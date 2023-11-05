@@ -7,7 +7,9 @@ let private toInputItem (token: Token) : InputItem =
     match token with
     | TNumberLiteral (i, f) -> InputItem.NumberLiteral (i, f)
     | TPlus -> InputItem.Plus ()
+    | TMinus -> InputItem.Minus ()
     | TAsterisk -> InputItem.Asterisk ()
+    | TSlash -> InputItem.Slash ()
     | TInvalid t -> failwith $"Invalid token {t}"
     | TBreak -> failwith "todo"
     | TBlockOpen -> failwith "todo"

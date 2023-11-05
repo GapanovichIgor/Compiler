@@ -26,15 +26,25 @@ let internal build (ast: Program, outputPath: string) =
 
     let getNumberExpression (NumberLiteralExpression.NumberLiteralExpression n) = getNumber n
 
+    let rec getDivideExpression (e: DivideExpression) =
+        match e with
+        | DivideExpression.DivideExpression (e1, (), e2) -> "(" + getDivideExpression e1 + " / " + getNumberExpression e2 + ")"
+        | DivideExpression.NumberLiteralExpression e -> getNumberExpression e
+
     let rec getMultiplyExpression (e: MultiplyExpression) =
         match e with
-        | MultiplyExpression.MultiplyExpression (e1, (), e2) -> "(" + getMultiplyExpression e1 + " * " + getNumberExpression e2 + ")"
-        | MultiplyExpression.NumberLiteralExpression e -> getNumberExpression e
+        | MultiplyExpression.MultiplyExpression (e1, (), e2) -> "(" + getMultiplyExpression e1 + " * " + getDivideExpression e2 + ")"
+        | MultiplyExpression.DivideExpression e -> getDivideExpression e
+
+    let rec getSubtractExpression (e: SubtractExpression) =
+        match e with
+        | SubtractExpression.SubtractExpression (e1, (), e2) -> "(" + getSubtractExpression e1 + " - " + getMultiplyExpression e2 + ")"
+        | SubtractExpression.MultiplyExpression e -> getMultiplyExpression e
 
     let rec getAddExpression (e: AddExpression) =
         match e with
-        | AddExpression.AddExpression (e1, (), e2) -> "(" + getAddExpression e1 + " + " + getMultiplyExpression e2 + ")"
-        | AddExpression.MultiplyExpression e -> getMultiplyExpression e
+        | AddExpression.AddExpression (e1, (), e2) -> "(" + getAddExpression e1 + " + " + getSubtractExpression e2 + ")"
+        | AddExpression.SubtractExpression e -> getSubtractExpression e
 
     let getExpression (Expression.Expression p) = getAddExpression p
 

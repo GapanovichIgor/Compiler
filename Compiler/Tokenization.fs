@@ -9,7 +9,9 @@ open HnkParserCombinator.Primitives
 type Token =
     | TNumberLiteral of int * int option
     | TPlus
+    | TMinus
     | TAsterisk
+    | TSlash
     | TBreak
     | TBlockOpen
     | TBlockClose
@@ -31,8 +33,14 @@ let private pNumber: TokenParser =
 let private pPlus: TokenParser =
     skipOne '+' >> ParseResult.constValue TPlus
 
+let private pMinus: TokenParser =
+    skipOne '-' >> ParseResult.constValue TMinus
+
 let private pAsterisk: TokenParser =
     skipOne '*' >> ParseResult.constValue TAsterisk
+
+let private pSlash: TokenParser =
+    skipOne '/' >> ParseResult.constValue TSlash
 
 let private pInvalidToken: TokenParser =
     oneOrMoreCond (fun c -> not (isWhiteSpace c) && c <> '\n' && c <> '\r')
@@ -51,7 +59,9 @@ let tokenize (stream: Stream) =
     let parseToken =
         chooseFirstLongest [
             pPlus
+            pMinus
             pAsterisk
+            pSlash
             pNumber
         ]
         |> orElse pInvalidToken
