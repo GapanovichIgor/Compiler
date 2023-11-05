@@ -6,4 +6,13 @@ let sourceCodeStream = File.OpenRead("Program.txt")
 
 let tokens = Tokenization.tokenize sourceCodeStream
 
-Build.build (null, "Build")
+match tokens with
+| Error e -> failwith ""
+| Ok tokens ->
+
+let ast = AstParser.parse tokens
+match ast with
+| Error e -> failwith ""
+| Ok ast ->
+
+Build.build (ast, "Build")

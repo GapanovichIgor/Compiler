@@ -9,8 +9,12 @@
         <Content Include="Program.txt">
           <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
         </Content>
-        <Compile Include="Build.fs" />
+        <Content Include="Grammar.txt" />
+        <Content Include="RegenerateParser.cmd" />
         <Compile Include="Tokenization.fs" />
+        <Compile Include="AstParser.generated.fs" />
+        <Compile Include="AstParser.fs" />
+        <Compile Include="Build.fs" />
         <Compile Include="Program.fs" />
     </ItemGroup>
 

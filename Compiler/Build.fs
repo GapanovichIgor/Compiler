@@ -3,8 +3,9 @@
 open System
 open System.Diagnostics
 open System.IO
+open Compiler.AstParserGenerated
 
-let build (source: Stream, outputPath: string) =
+let internal build (ast: Program, outputPath: string) =
     let dir = Guid.NewGuid().ToString()
     let csDir = $"{dir}\\cs"
     Directory.CreateDirectory(csDir) |> ignore
@@ -18,8 +19,12 @@ let build (source: Stream, outputPath: string) =
     csprojFile.Write("""</Project>""")
     csprojFile.Dispose()
 
+    let number =
+        match ast with
+        | Program n -> n
+
     let programFile = File.CreateText($"{csDir}\\Program.cs")
-    programFile.Write("""System.Console.WriteLine("Hello, World!");""")
+    programFile.Write($"""System.Console.WriteLine(%i{number});""")
     programFile.Dispose()
 
     let dotnetProcessStartInfo = ProcessStartInfo("dotnet.exe", "publish -c Release -o ..\\output")
