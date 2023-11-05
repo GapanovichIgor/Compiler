@@ -26,27 +26,19 @@ let internal build (ast: Program, outputPath: string) =
 
     let getNumberExpression (NumberLiteralExpression.NumberLiteralExpression n) = getNumber n
 
-    let rec getDivideExpression (e: DivideExpression) =
+    let rec getArithmeticOpOrderA (e: ArithmeticOpOrderA) =
         match e with
-        | DivideExpression.DivideExpression (e1, (), e2) -> "(" + getDivideExpression e1 + " / " + getNumberExpression e2 + ")"
-        | DivideExpression.NumberLiteralExpression e -> getNumberExpression e
+        | ArithmeticOpOrderA.Multiply (e1, (), e2) -> "(" + getArithmeticOpOrderA e1 + " * " + getNumberExpression e2 + ")"
+        | ArithmeticOpOrderA.Divide (e1, (), e2) -> "(" + getArithmeticOpOrderA e1 + " / " + getNumberExpression e2 + ")"
+        | ArithmeticOpOrderA.Fallthrough e -> getNumberExpression e
 
-    let rec getMultiplyExpression (e: MultiplyExpression) =
+    let rec getArithmeticOpOrderB (e: ArithmeticOpOrderB) =
         match e with
-        | MultiplyExpression.MultiplyExpression (e1, (), e2) -> "(" + getMultiplyExpression e1 + " * " + getDivideExpression e2 + ")"
-        | MultiplyExpression.DivideExpression e -> getDivideExpression e
+        | ArithmeticOpOrderB.Add (e1, (), e2) -> "(" + getArithmeticOpOrderB e1 + " + " + getArithmeticOpOrderA e2 + ")"
+        | ArithmeticOpOrderB.Subtract (e1, (), e2) -> "(" + getArithmeticOpOrderB e1 + " - " + getArithmeticOpOrderA e2 + ")"
+        | ArithmeticOpOrderB.Fallthrough e -> getArithmeticOpOrderA e
 
-    let rec getSubtractExpression (e: SubtractExpression) =
-        match e with
-        | SubtractExpression.SubtractExpression (e1, (), e2) -> "(" + getSubtractExpression e1 + " - " + getMultiplyExpression e2 + ")"
-        | SubtractExpression.MultiplyExpression e -> getMultiplyExpression e
-
-    let rec getAddExpression (e: AddExpression) =
-        match e with
-        | AddExpression.AddExpression (e1, (), e2) -> "(" + getAddExpression e1 + " + " + getSubtractExpression e2 + ")"
-        | AddExpression.SubtractExpression e -> getSubtractExpression e
-
-    let getExpression (Expression.Expression p) = getAddExpression p
+    let getExpression (Expression.Expression p) = getArithmeticOpOrderB p
 
     let getProgram (Program e) = getExpression e
 
@@ -65,4 +57,4 @@ let internal build (ast: Program, outputPath: string) =
 
     Directory.Move($"{dir}\\output", outputPath)
 
-    Directory.Delete(dir, true)
+    // Directory.Delete(dir, true)

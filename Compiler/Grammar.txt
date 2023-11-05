@@ -6,18 +6,14 @@ Slash : unit
 
 Program -> Expression
 
-Expression -> AddExpression
+Expression -> ArithmeticOpOrderB
 
-AddExpression.AddExpression -> AddExpression Plus SubtractExpression
-AddExpression.SubtractExpression -> SubtractExpression
+ArithmeticOpOrderB.Add -> ArithmeticOpOrderB Plus ArithmeticOpOrderA
+ArithmeticOpOrderB.Subtract -> ArithmeticOpOrderB Minus ArithmeticOpOrderA
+ArithmeticOpOrderB.Fallthrough -> ArithmeticOpOrderA
 
-SubtractExpression.SubtractExpression -> SubtractExpression Minus MultiplyExpression
-SubtractExpression.MultiplyExpression -> MultiplyExpression
-
-MultiplyExpression.MultiplyExpression -> MultiplyExpression Asterisk DivideExpression
-MultiplyExpression.DivideExpression -> DivideExpression
-
-DivideExpression.DivideExpression -> DivideExpression Slash NumberLiteralExpression
-DivideExpression.NumberLiteralExpression -> NumberLiteralExpression
+ArithmeticOpOrderA.Multiply -> ArithmeticOpOrderA Asterisk NumberLiteralExpression
+ArithmeticOpOrderA.Divide -> ArithmeticOpOrderA Slash NumberLiteralExpression
+ArithmeticOpOrderA.Fallthrough -> NumberLiteralExpression
 
 NumberLiteralExpression -> NumberLiteral
