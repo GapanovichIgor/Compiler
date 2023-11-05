@@ -7,7 +7,7 @@ open HnkParserCombinator.Composition
 open HnkParserCombinator.Primitives
 
 type Token =
-    | TNumberLiteral of int
+    | TNumberLiteral of int * int option
     | TBreak
     | TBlockOpen
     | TBlockClose
@@ -18,8 +18,13 @@ type private TokenParser = CharParser<IndentationBasedLanguageKit.State, Primiti
 let private isWhiteSpace char = char = ' '
 
 let private pNumber: TokenParser =
-    oneOrMoreCond (fun c -> Char.IsDigit(c))
-    >> ParseResult.mapValue (Int32.Parse >> TNumberLiteral)
+    let pDigits = oneOrMoreCond Char.IsDigit
+
+    pDigits .>>. optional (skipOne '.' >>. pDigits)
+    >> ParseResult.mapValue (fun (integerPart, fractionalPart) ->
+        let integerPart = Int32.Parse integerPart
+        let fractionalPart = fractionalPart |> Option.map Int32.Parse
+        TNumberLiteral (integerPart, fractionalPart))
 
 let private pInvalidToken: TokenParser =
     oneOrMoreCond (fun c -> not (isWhiteSpace c) && c <> '\n' && c <> '\r')

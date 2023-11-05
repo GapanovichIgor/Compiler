@@ -1,17 +1,17 @@
-﻿module Compiler.AstParser
+﻿module Compiler.Ast
 
-open Compiler.AstParserGenerated
+open Compiler.AstGenerated
 open Compiler.Tokenization
 
-let private toTerminal (token: Token) : InputItem =
+let private toInputItem (token: Token) : InputItem =
     match token with
-    | TNumberLiteral n -> InputItem.NumberLiteral n
+    | TNumberLiteral (i, f) -> InputItem.NumberLiteral (i, f)
     | TInvalid t -> failwith $"Invalid token {t}"
     | TBreak -> failwith "todo"
     | TBlockOpen -> failwith "todo"
     | TBlockClose -> failwith "todo"
 
 let internal parse (tokens: #seq<Token>) : Result<Program, ParseError> =
-    let terminals = tokens |> Seq.map toTerminal
+    let inputItems = tokens |> Seq.map toInputItem
 
-    parse terminals
+    parse inputItems

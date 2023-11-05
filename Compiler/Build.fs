@@ -3,7 +3,7 @@
 open System
 open System.Diagnostics
 open System.IO
-open Compiler.AstParserGenerated
+open Compiler.AstGenerated
 
 let internal build (ast: Program, outputPath: string) =
     let dir = Guid.NewGuid().ToString()
@@ -21,10 +21,13 @@ let internal build (ast: Program, outputPath: string) =
 
     let number =
         match ast with
-        | Program n -> n
+        | Program (i, f) ->
+            match f with
+            | Some f -> $"{i}.{f}"
+            | None -> i.ToString()
 
     let programFile = File.CreateText($"{csDir}\\Program.cs")
-    programFile.Write($"""System.Console.WriteLine(%i{number});""")
+    programFile.Write($"""System.Console.WriteLine(%s{number});""")
     programFile.Dispose()
 
     let dotnetProcessStartInfo = ProcessStartInfo("dotnet.exe", "publish -c Release -o ..\\output")

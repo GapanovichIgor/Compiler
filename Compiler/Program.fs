@@ -10,7 +10,7 @@ match tokens with
 | Error e -> failwith ""
 | Ok tokens ->
 
-let ast = AstParser.parse tokens
+let ast = Ast.parse tokens
 match ast with
 | Error e -> failwith ""
 | Ok ast ->

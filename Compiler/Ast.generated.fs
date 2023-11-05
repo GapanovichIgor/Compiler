@@ -1,4 +1,4 @@
-module internal rec Compiler.AstParserGenerated
+module internal rec Compiler.AstGenerated
 
 (*
 STATES
@@ -17,7 +17,7 @@ GOTO
 
 *)
 
-type NumberLiteral = int
+type NumberLiteral = int * int option
 
 type Program =
     | Program of NumberLiteral
