@@ -19,15 +19,31 @@ let internal build (ast: Program, outputPath: string) =
     csprojFile.Write("""</Project>""")
     csprojFile.Dispose()
 
-    let number =
-        match ast with
-        | Program (i, f) ->
-            match f with
-            | Some f -> $"{i}.{f}"
-            | None -> i.ToString()
+    let getNumber (i, f) =
+        match f with
+        | Some f -> i.ToString() + "." + f.ToString()
+        | None -> i.ToString()
+
+    let getNumberExpression (NumberLiteralExpression.NumberLiteralExpression n) = getNumber n
+
+    let rec getMultiplyExpression (e: MultiplyExpression) =
+        match e with
+        | MultiplyExpression.MultiplyExpression (e1, (), e2) -> "(" + getMultiplyExpression e1 + " * " + getNumberExpression e2 + ")"
+        | MultiplyExpression.NumberLiteralExpression e -> getNumberExpression e
+
+    let rec getAddExpression (e: AddExpression) =
+        match e with
+        | AddExpression.AddExpression (e1, (), e2) -> "(" + getAddExpression e1 + " + " + getMultiplyExpression e2 + ")"
+        | AddExpression.MultiplyExpression e -> getMultiplyExpression e
+
+    let getExpression (Expression.Expression p) = getAddExpression p
+
+    let getProgram (Program e) = getExpression e
+
+    let csExpr = getProgram ast
 
     let programFile = File.CreateText($"{csDir}\\Program.cs")
-    programFile.Write($"""System.Console.WriteLine(%s{number});""")
+    programFile.Write($"""System.Console.WriteLine(%s{csExpr});""")
     programFile.Dispose()
 
     let dotnetProcessStartInfo = ProcessStartInfo("dotnet.exe", "publish -c Release -o ..\\output")

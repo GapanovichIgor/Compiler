@@ -6,6 +6,8 @@ open Compiler.Tokenization
 let private toInputItem (token: Token) : InputItem =
     match token with
     | TNumberLiteral (i, f) -> InputItem.NumberLiteral (i, f)
+    | TPlus -> InputItem.Plus ()
+    | TAsterisk -> InputItem.Asterisk ()
     | TInvalid t -> failwith $"Invalid token {t}"
     | TBreak -> failwith "todo"
     | TBlockOpen -> failwith "todo"

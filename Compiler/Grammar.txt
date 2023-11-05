@@ -1,3 +1,15 @@
 NumberLiteral : int * int option
+Plus : unit
+Asterisk : unit
 
-Program -> NumberLiteral
+Program -> Expression
+
+Expression -> AddExpression
+
+AddExpression.AddExpression -> AddExpression Plus MultiplyExpression
+AddExpression.MultiplyExpression -> MultiplyExpression
+
+MultiplyExpression.MultiplyExpression -> MultiplyExpression Asterisk NumberLiteralExpression
+MultiplyExpression.NumberLiteralExpression -> NumberLiteralExpression
+
+NumberLiteralExpression -> NumberLiteral

@@ -8,6 +8,8 @@ open HnkParserCombinator.Primitives
 
 type Token =
     | TNumberLiteral of int * int option
+    | TPlus
+    | TAsterisk
     | TBreak
     | TBlockOpen
     | TBlockClose
@@ -26,6 +28,12 @@ let private pNumber: TokenParser =
         let fractionalPart = fractionalPart |> Option.map Int32.Parse
         TNumberLiteral (integerPart, fractionalPart))
 
+let private pPlus: TokenParser =
+    skipOne '+' >> ParseResult.constValue TPlus
+
+let private pAsterisk: TokenParser =
+    skipOne '*' >> ParseResult.constValue TAsterisk
+
 let private pInvalidToken: TokenParser =
     oneOrMoreCond (fun c -> not (isWhiteSpace c) && c <> '\n' && c <> '\r')
     >> ParseResult.mapValue (String >> TInvalid)
@@ -42,7 +50,8 @@ let tokenize (stream: Stream) =
 
     let parseToken =
         chooseFirstLongest [
-            pNumber
+            pPlus
+            pAsterisk
             pNumber
         ]
         |> orElse pInvalidToken
