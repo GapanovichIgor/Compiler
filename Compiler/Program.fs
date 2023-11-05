@@ -4,6 +4,6 @@ open Compiler
 
 let sourceCodeStream = File.OpenRead("Program.txt")
 
-let
+let tokens = Tokenization.tokenize sourceCodeStream
 
 Build.build (null, "Build")

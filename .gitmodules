@@ -1,0 +1,3 @@
+[submodule "Libs/HnkParserCombinator"]
+	path = Libs/HnkParserCombinator
+	url = https://github.com/GapanovichIgor/HnkParserCombinator.git

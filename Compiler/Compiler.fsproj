@@ -6,11 +6,16 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <Compile Include="Build.fs" />
-        <Compile Include="Program.fs"/>
         <Content Include="Program.txt">
           <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
         </Content>
+        <Compile Include="Build.fs" />
+        <Compile Include="Tokenization.fs" />
+        <Compile Include="Program.fs" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="..\Libs\HnkParserCombinator\HnkParserCombinator\HnkParserCombinator.fsproj" />
     </ItemGroup>
 
 </Project>
