@@ -10,9 +10,9 @@ match tokens with
 | Error e -> failwith ""
 | Ok tokens ->
 
-let ast = Ast.parse tokens
-match ast with
+let parseTree = Parser.parse tokens
+match parseTree with
 | Error e -> failwith ""
-| Ok ast ->
+| Ok parseTree ->
 
-Build.build (ast, "Build")
+Build.build (parseTree, "Build")

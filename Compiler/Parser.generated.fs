@@ -1,4 +1,4 @@
-module internal rec Compiler.AstGenerated
+module internal rec Compiler.ParserGenerated
 
 (*
 STATES

@@ -1,6 +1,6 @@
-﻿module Compiler.Ast
+﻿module Compiler.Parser
 
-open Compiler.AstGenerated
+open Compiler.ParserGenerated
 open Compiler.Tokenization
 
 let private toInputItem (token: Token) : InputItem =
@@ -14,8 +14,8 @@ let private toInputItem (token: Token) : InputItem =
     | TParenOpen -> InputItem.ParenOpen ()
     | TParenClose -> InputItem.ParenClose ()
     | TIdentifier i -> InputItem.Identifier i
-    | TInvalid t -> failwith $"Invalid token {t}"
-    | TBreak -> failwith "todo"
+    | TInvalid t -> failwith "todo"
+    | TNewLine -> failwith "todo"
     | TBlockOpen -> failwith "todo"
     | TBlockClose -> failwith "todo"
 

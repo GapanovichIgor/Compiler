@@ -3,7 +3,7 @@
 open System
 open System.Diagnostics
 open System.IO
-open Compiler.AstGenerated
+open Compiler.ParserGenerated
 
 module private rec Transpile =
     let getNumber (i, f) =
@@ -44,7 +44,7 @@ module private rec Transpile =
 
     let getProgram (Program e) = getExpression e
 
-let internal build (ast: Program, outputPath: string) =
+let internal build (parseTree: Program, outputPath: string) =
     let dir = Guid.NewGuid().ToString()
     let csDir = $"{dir}\\cs"
     Directory.CreateDirectory(csDir) |> ignore
@@ -58,7 +58,7 @@ let internal build (ast: Program, outputPath: string) =
     csprojFile.Write("""</Project>""")
     csprojFile.Dispose()
 
-    let csExpr = Transpile.getProgram ast
+    let csExpr = Transpile.getProgram parseTree
     // let csExpr = ""
 
     let programFile = File.CreateText($"{csDir}\\Program.cs")

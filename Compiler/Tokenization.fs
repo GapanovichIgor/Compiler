@@ -16,7 +16,7 @@ type Token =
     | TSlash
     | TParenOpen
     | TParenClose
-    | TBreak
+    | TNewLine
     | TBlockOpen
     | TBlockClose
     | TInvalid of string
@@ -92,7 +92,7 @@ let tokenize (stream: Stream) =
         IndentationBasedLanguageKit.simpleParseDocument
             { parseToken = parseToken
               blockOpenToken = TBlockOpen
-              newLineDelimiter = TBreak
+              newLineDelimiter = TNewLine
               blockCloseToken = TBlockClose
               isWhiteSpace = isWhiteSpace }
 
