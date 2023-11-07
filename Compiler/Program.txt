@@ -1,1 +1,1 @@
-print (floatToStr (1.5 + 1))
+print (intToStr (let x = 1 in x))

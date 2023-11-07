@@ -20,6 +20,7 @@ type Expression =
     | Cast of Expression * Type
 
 type Statement =
+    | Var of Type * Identifier * Expression
     | FunctionCall of Identifier * Expression list
 
 type StatementSequence = Statement list

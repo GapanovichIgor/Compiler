@@ -7,18 +7,22 @@ Asterisk : unit
 Slash : unit
 ParenOpen : unit
 ParenClose : unit
+Let : unit
+In : unit
+Equals : unit
 
-Program -> Expr
+Program -> Expression
 
-Expr -> ArithmeticSecondOrderExpr
+Expression.LetIn -> Let Identifier Equals Expression In Expression
+Expression.Value -> ArithmeticSecondOrderExpression
 
-ArithmeticSecondOrderExpr.Add -> ArithmeticSecondOrderExpr Plus ArithmeticFirstOrderExpr
-ArithmeticSecondOrderExpr.Subtract -> ArithmeticSecondOrderExpr Minus ArithmeticFirstOrderExpr
-ArithmeticSecondOrderExpr.Fallthrough -> ArithmeticFirstOrderExpr
+ArithmeticSecondOrderExpression.Add -> ArithmeticSecondOrderExpression Plus ArithmeticFirstOrderExpression
+ArithmeticSecondOrderExpression.Subtract -> ArithmeticSecondOrderExpression Minus ArithmeticFirstOrderExpression
+ArithmeticSecondOrderExpression.Fallthrough -> ArithmeticFirstOrderExpression
 
-ArithmeticFirstOrderExpr.Multiply -> ArithmeticFirstOrderExpr Asterisk Application
-ArithmeticFirstOrderExpr.Divide -> ArithmeticFirstOrderExpr Slash Application
-ArithmeticFirstOrderExpr.Fallthrough -> Application
+ArithmeticFirstOrderExpression.Multiply -> ArithmeticFirstOrderExpression Asterisk Application
+ArithmeticFirstOrderExpression.Divide -> ArithmeticFirstOrderExpression Slash Application
+ArithmeticFirstOrderExpression.Fallthrough -> Application
 
 Application.Application -> Application AtomExpr
 Application.Fallthrough -> AtomExpr
@@ -26,4 +30,4 @@ Application.Fallthrough -> AtomExpr
 AtomExpr.Number -> NumberLiteral
 AtomExpr.DoubleQuotedString -> DoubleQuotedString
 AtomExpr.Identifier -> Identifier
-AtomExpr.Paren -> ParenOpen Expr ParenClose
+AtomExpr.Paren -> ParenOpen Expression ParenClose

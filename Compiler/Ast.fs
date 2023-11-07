@@ -1,5 +1,7 @@
 ﻿module internal rec Compiler.Ast
 
+open System.Collections.Generic
+
 type Type =
     | ValueType of string
     | FunctionType of Type * Type
@@ -10,6 +12,8 @@ module BuiltInTypes =
     let float = ValueType "System.Float"
     let string = ValueType "System.String"
 
+type Identifier = string
+
 type BinaryOperator =
     | Add
     | Subtract
@@ -17,13 +21,14 @@ type BinaryOperator =
     | Divide
 
 type Expression =
-    | Identifier of string
+    | Identifier of Identifier
     | IntegerLiteral of int
     | FloatLiteral of int * int
     | StringLiteral of string
     | BinaryOperation of TypedExpression * BinaryOperator * TypedExpression
     | Application of TypedExpression * TypedExpression
     | Coerce of TypedExpression * Type
+    | Let of Identifier * TypedExpression * TypedExpression
 
 type TypedExpression =
     { expression: Expression
@@ -42,7 +47,8 @@ let private (|Is|_|) v1 v2 =
     else None
 
 type Context =
-    { resolveType: string -> Type }
+    { resolveType: Identifier -> Type
+      addTyping: Identifier -> Type -> unit }
 
 let private mapBinaryOperator (o: UntypedAst.BinaryOperator) =
     match o with
@@ -97,19 +103,30 @@ let private getExpression (ctx: Context) (e: UntypedAst.Expression) =
             { expression = Application (e1, e2)
               expressionType = resultT }
         | _ -> failwith "TODO"
+    | UntypedAst.Let(i, v, body) ->
+        let v = getExpression ctx v
+        ctx.addTyping i v.expressionType
+        let body = getExpression ctx body
+        { expression = Let (i, v, body)
+          expressionType = body.expressionType }
 
 let private getStatement (ctx: Context) (statement: UntypedAst.Statement) =
     match statement with
     | UntypedAst.Statement.Expression e -> Expression (getExpression ctx e)
 
 let fromUntypedAst (untypedAst: UntypedAst.Program): Program =
+    let identifierTypes = Dictionary()
+    identifierTypes["print"] <- FunctionType (BuiltInTypes.string, BuiltInTypes.unit)
+    identifierTypes["intToStr"] <- FunctionType (BuiltInTypes.int, BuiltInTypes.string)
+    identifierTypes["floatToStr"] <- FunctionType (BuiltInTypes.float, BuiltInTypes.string)
     let context =
         { resolveType = fun i ->
-            match i with
-            | "print" -> FunctionType (BuiltInTypes.string, BuiltInTypes.unit)
-            | "intToStr" -> FunctionType (BuiltInTypes.int, BuiltInTypes.string)
-            | "floatToStr" -> FunctionType (BuiltInTypes.float, BuiltInTypes.string)
-            | _ -> failwith "TODO" }
+            match identifierTypes.TryGetValue(i) with
+            | false, _ -> failwith $"Can't resolve type for identifier %s{i}"
+            | true, t -> t
+          addTyping = fun i t ->
+            if not (identifierTypes.TryAdd(i, t)) then
+                failwith $"Can't add type for identifier %s{i}" }
 
     let (UntypedAst.Program statements) = untypedAst
     let statements = statements |> List.map (getStatement context)

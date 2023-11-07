@@ -60,10 +60,18 @@ let rec private generateExpression (expression: Expression) (output: StreamWrite
     | Expression.Cast (e, t) ->
         generateCast (e, t) output
 
+let private generateVar (t: Type, i: Identifier, v: Expression) (output: StreamWriter) =
+    output.Write(t)
+    output.Write(" ")
+    output.Write(i)
+    output.Write(" = ")
+    generateExpression v output
+
 let private generateStatement (statement: Statement) (output: StreamWriter) =
     match statement with
     | Statement.FunctionCall (functionName, args) -> generateFunctionCallExpression (functionName, args) output
-    output.Write(";")
+    | Statement.Var (t, i, v) -> generateVar (t, i, v) output
+    output.WriteLine(";")
 
 let generate (program: Program) (output: Stream) : unit =
     let output = new StreamWriter(output)

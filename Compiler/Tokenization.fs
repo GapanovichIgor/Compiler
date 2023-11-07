@@ -5,6 +5,7 @@ open System.IO
 open HnkParserCombinator
 open HnkParserCombinator.Composition
 open HnkParserCombinator.Primitives
+open HnkParserCombinator.CharPrimitives
 
 type Token =
     | TNumberLiteral of int * int option
@@ -16,6 +17,9 @@ type Token =
     | TSlash
     | TParenOpen
     | TParenClose
+    | TLet
+    | TIn
+    | TEquals
     | TNewLine
     | TBlockOpen
     | TBlockClose
@@ -60,6 +64,15 @@ let private pParenOpen: TokenParser =
 let private pParenClose: TokenParser =
     skipOne ')' >> ParseResult.constValue TParenClose
 
+let private pLet: TokenParser =
+    constString "let" >> ParseResult.constValue TLet
+
+let private pIn: TokenParser =
+    constString "in" >> ParseResult.constValue TIn
+
+let private pEquals: TokenParser =
+    skipOne '=' >> ParseResult.constValue TEquals
+
 let private pInvalidToken: TokenParser =
     oneOrMoreCond (fun c -> not (isWhiteSpace c) && c <> '\n' && c <> '\r')
     >> ParseResult.mapValue (String >> TInvalid)
@@ -82,6 +95,9 @@ let tokenize (stream: Stream) =
             pSlash
             pParenOpen
             pParenClose
+            pEquals
+            pLet
+            pIn
             pNumber
             pIdentifier
             pDoubleQuotedString
