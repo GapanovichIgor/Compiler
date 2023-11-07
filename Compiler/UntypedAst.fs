@@ -14,19 +14,15 @@ type Expression =
     | Application of Expression * Expression
     | Let of string * Expression * Expression
 
-type Statement =
-    | Expression of Expression
+type Program = Program of Expression
 
-type StatementSequence = Statement list
-
-type Program = Program of StatementSequence
-
-let private getAtom (e: Parser.AtomExpr) =
+let private getAtom (e: Parser.AtomExpression) =
     match e with
-    | Parser.AtomExpr.Identifier i -> Identifier i
-    | Parser.AtomExpr.DoubleQuotedString s -> StringLiteral s
-    | Parser.AtomExpr.Number (i, f) -> NumberLiteral (i, f)
-    | Parser.AtomExpr.Paren((), e, ()) -> getExpression e
+    | Parser.AtomExpression.Identifier i -> Identifier i
+    | Parser.AtomExpression.DoubleQuotedString s -> StringLiteral s
+    | Parser.AtomExpression.Number (i, f) -> NumberLiteral (i, f)
+    | Parser.AtomExpression.Paren(_, e, _) -> getExpression e
+    | Parser.AtomExpression.Block((), e, ()) -> getExpression e
 
 let private getApplication (e: Parser.Application) =
     match e with
@@ -62,13 +58,16 @@ let private getArithmeticSecondOrderExpr (e: Parser.ArithmeticSecondOrderExpress
 let private getExpression (e: Parser.Expression) =
     match e with
     | Parser.Expression.Value e -> getArithmeticSecondOrderExpr e
-    | Parser.Expression.LetIn ((), i, (), v, (), body) ->
+    | Parser.Expression.Binding ((), i, (), v, bindingBody) ->
+        let body =
+            match bindingBody with
+            | Parser.BindingBody.Semicolon ((), body)
+            | Parser.BindingBody.NewLine ((), body) -> body
+
         let v = getExpression v
         let body = getExpression body
         Let (i, v, body)
 
-let fromParseTree (parseTree: Parser.Program): Program =
-    let (Parser.Program e) = parseTree
-    Program [
-        Statement.Expression (getExpression e)
-    ]
+let fromParseTree (Parser.Program e): Program =
+    let e = getExpression e
+    Program e

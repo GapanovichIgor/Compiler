@@ -1,1 +1,4 @@
-print (intToStr (let x = 1 in x))
+print (intToStr (
+let y = 6
+y
+))

@@ -1,13 +1,16 @@
 ﻿module Compiler.Build
 
-open System
 open System.Diagnostics
 open System.IO
 open Compiler.CsAst
 
 let internal build (ast: Program, outputPath: string) =
-    let dir = Guid.NewGuid().ToString()
-    let csDir = $"{dir}\\cs"
+    let buildDir = "tmp"
+    let csDir = $"{buildDir}\\cs"
+
+    if Directory.Exists(buildDir) then
+        Directory.Delete(buildDir, true)
+
     Directory.CreateDirectory(csDir) |> ignore
 
     let csprojFile = File.CreateText($"{csDir}\\Program.csproj")
@@ -36,6 +39,6 @@ let internal build (ast: Program, outputPath: string) =
     if Directory.Exists(outputPath) then
         Directory.Delete(outputPath, true)
 
-    Directory.Move($"{dir}\\output", outputPath)
+    Directory.Move($"{buildDir}\\output", outputPath)
 
-    // Directory.Delete(dir, true)
+    // Directory.Delete(buildDir, true)

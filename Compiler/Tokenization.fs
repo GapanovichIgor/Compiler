@@ -1,4 +1,4 @@
-﻿module Compiler.Tokenization
+﻿module internal Compiler.Tokenization
 
 open System
 open System.IO
@@ -7,23 +7,7 @@ open HnkParserCombinator.Composition
 open HnkParserCombinator.Primitives
 open HnkParserCombinator.CharPrimitives
 
-type Token =
-    | TNumberLiteral of int * int option
-    | TDoubleQuotedString of string
-    | TIdentifier of string
-    | TPlus
-    | TMinus
-    | TAsterisk
-    | TSlash
-    | TParenOpen
-    | TParenClose
-    | TLet
-    | TIn
-    | TEquals
-    | TNewLine
-    | TBlockOpen
-    | TBlockClose
-    | TInvalid of string
+type Token = Parser.InputItem
 
 type private TokenParser = CharParser<IndentationBasedLanguageKit.State, PrimitiveError<char>, Token>
 
@@ -36,46 +20,46 @@ let private pNumber: TokenParser =
     >> ParseResult.mapValue (fun (integerPart, fractionalPart) ->
         let integerPart = Int32.Parse integerPart
         let fractionalPart = fractionalPart |> Option.map Int32.Parse
-        TNumberLiteral (integerPart, fractionalPart))
+        Token.NumberLiteral (integerPart, fractionalPart))
 
 let private pDoubleQuotedString: TokenParser =
     skipOne '"' >>. zeroOrMoreCond (fun c -> c <> '"') .>> skipOne '"'
-    >> ParseResult.mapValue (String >> TDoubleQuotedString)
+    >> ParseResult.mapValue (String >> Token.DoubleQuotedString)
 
 let private pIdentifier: TokenParser =
     oneCond Char.IsLetter .>>. zeroOrMoreCond Char.IsLetterOrDigit
-    >> ParseResult.mapValue (fun (firstChar, rest) -> TIdentifier (string firstChar + String(rest)))
+    >> ParseResult.mapValue (fun (firstChar, rest) -> Token.Identifier (string firstChar + String(rest)))
 
 let private pPlus: TokenParser =
-    skipOne '+' >> ParseResult.constValue TPlus
+    skipOne '+' >> ParseResult.constValue (Token.Plus ())
 
 let private pMinus: TokenParser =
-    skipOne '-' >> ParseResult.constValue TMinus
+    skipOne '-' >> ParseResult.constValue (Token.Minus ())
 
 let private pAsterisk: TokenParser =
-    skipOne '*' >> ParseResult.constValue TAsterisk
+    skipOne '*' >> ParseResult.constValue (Token.Asterisk ())
 
 let private pSlash: TokenParser =
-    skipOne '/' >> ParseResult.constValue TSlash
+    skipOne '/' >> ParseResult.constValue (Token.Slash ())
 
 let private pParenOpen: TokenParser =
-    skipOne '(' >> ParseResult.constValue TParenOpen
+    skipOne '(' >> ParseResult.constValue (Token.ParenOpen ())
 
 let private pParenClose: TokenParser =
-    skipOne ')' >> ParseResult.constValue TParenClose
+    skipOne ')' >> ParseResult.constValue (Token.ParenClose ())
 
 let private pLet: TokenParser =
-    constString "let" >> ParseResult.constValue TLet
+    constString "let" >> ParseResult.constValue (Token.Let ())
 
-let private pIn: TokenParser =
-    constString "in" >> ParseResult.constValue TIn
+let private pSemicolon: TokenParser =
+    skipOne ';' >> ParseResult.constValue (Token.Semicolon ())
 
 let private pEquals: TokenParser =
-    skipOne '=' >> ParseResult.constValue TEquals
+    skipOne '=' >> ParseResult.constValue (Token.Equals ())
 
 let private pInvalidToken: TokenParser =
     oneOrMoreCond (fun c -> not (isWhiteSpace c) && c <> '\n' && c <> '\r')
-    >> ParseResult.mapValue (String >> TInvalid)
+    >> ParseResult.mapValue (String >> Token.InvalidToken)
 
 let tokenize (stream: Stream) =
     let reader = new StreamReader(stream)
@@ -96,8 +80,8 @@ let tokenize (stream: Stream) =
             pParenOpen
             pParenClose
             pEquals
+            pSemicolon
             pLet
-            pIn
             pNumber
             pIdentifier
             pDoubleQuotedString
@@ -107,9 +91,9 @@ let tokenize (stream: Stream) =
     let parseDocument =
         IndentationBasedLanguageKit.simpleParseDocument
             { parseToken = parseToken
-              blockOpenToken = TBlockOpen
-              newLineDelimiter = TNewLine
-              blockCloseToken = TBlockClose
+              blockOpenToken = Token.BlockOpen ()
+              newLineDelimiter = Token.NewLine ()
+              blockCloseToken = Token.BlockClose ()
               isWhiteSpace = isWhiteSpace }
 
     match parseDocument tape with

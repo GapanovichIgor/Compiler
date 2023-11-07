@@ -34,12 +34,7 @@ type TypedExpression =
     { expression: Expression
       expressionType: Type }
 
-type Statement =
-    | Expression of TypedExpression
-
-type StatementSequence = Statement list
-
-type Program = Program of StatementSequence
+type Program = Program of TypedExpression
 
 let private (|Is|_|) v1 v2 =
     if v1 = v2
@@ -110,11 +105,7 @@ let private getExpression (ctx: Context) (e: UntypedAst.Expression) =
         { expression = Let (i, v, body)
           expressionType = body.expressionType }
 
-let private getStatement (ctx: Context) (statement: UntypedAst.Statement) =
-    match statement with
-    | UntypedAst.Statement.Expression e -> Expression (getExpression ctx e)
-
-let fromUntypedAst (untypedAst: UntypedAst.Program): Program =
+let fromUntypedAst (UntypedAst.Program e): Program =
     let identifierTypes = Dictionary()
     identifierTypes["print"] <- FunctionType (BuiltInTypes.string, BuiltInTypes.unit)
     identifierTypes["intToStr"] <- FunctionType (BuiltInTypes.int, BuiltInTypes.string)
@@ -128,6 +119,5 @@ let fromUntypedAst (untypedAst: UntypedAst.Program): Program =
             if not (identifierTypes.TryAdd(i, t)) then
                 failwith $"Can't add type for identifier %s{i}" }
 
-    let (UntypedAst.Program statements) = untypedAst
-    let statements = statements |> List.map (getStatement context)
-    Program statements
+    let e = getExpression context e
+    Program e

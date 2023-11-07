@@ -8,12 +8,16 @@ Slash : unit
 ParenOpen : unit
 ParenClose : unit
 Let : unit
-In : unit
 Equals : unit
+Semicolon : unit
+NewLine : unit
+BlockOpen : unit
+BlockClose : unit
+InvalidToken : string
 
 Program -> Expression
 
-Expression.LetIn -> Let Identifier Equals Expression In Expression
+Expression.Binding -> Let Identifier Equals Expression BindingBody
 Expression.Value -> ArithmeticSecondOrderExpression
 
 ArithmeticSecondOrderExpression.Add -> ArithmeticSecondOrderExpression Plus ArithmeticFirstOrderExpression
@@ -24,10 +28,20 @@ ArithmeticFirstOrderExpression.Multiply -> ArithmeticFirstOrderExpression Asteri
 ArithmeticFirstOrderExpression.Divide -> ArithmeticFirstOrderExpression Slash Application
 ArithmeticFirstOrderExpression.Fallthrough -> Application
 
-Application.Application -> Application AtomExpr
-Application.Fallthrough -> AtomExpr
+Application.Application -> Application AtomExpression
+Application.Fallthrough -> AtomExpression
 
-AtomExpr.Number -> NumberLiteral
-AtomExpr.DoubleQuotedString -> DoubleQuotedString
-AtomExpr.Identifier -> Identifier
-AtomExpr.Paren -> ParenOpen Expression ParenClose
+AtomExpression.Number -> NumberLiteral
+AtomExpression.DoubleQuotedString -> DoubleQuotedString
+AtomExpression.Identifier -> Identifier
+AtomExpression.Paren -> ParenOpening Expression ParenClosing
+AtomExpression.Block -> BlockOpen Expression BlockClose
+
+ParenOpening.Simple -> ParenOpen
+ParenOpening.WithNewLine -> ParenOpen NewLine
+
+ParenClosing.Simple -> ParenClose
+ParenClosing.WithNewLine -> NewLine ParenClose
+
+BindingBody.Semicolon -> Semicolon Expression
+BindingBody.NewLine -> NewLine Expression

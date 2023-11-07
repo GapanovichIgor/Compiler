@@ -52,30 +52,40 @@ let private getExpression (ctx: Context) (e: Ast.TypedExpression) =
         ctx.addVar t i v
         getExpression ctx body
 
-let private getStatement (s: Ast.Statement): CsAst.Statement list =
-    match s with
-    | Ast.Statement.Expression e ->
-        match e.expression with
-        | Ast.Application (f, arg) ->
-            match f.expression with
-            | Ast.Identifier i ->
-                let statements = List()
-                let context =
-                    { addVar = fun t i v ->
-                        statements.Add(CsAst.Statement.Var (t, i, v)) }
+let private getStatements (e: Ast.TypedExpression): CsAst.Statement list =
+    match e.expression with
+    | Ast.Application (f, arg) ->
+        match f.expression with
+        | Ast.Identifier i ->
+            let statements = List()
+            let context =
+                { addVar = fun t i v ->
+                    statements.Add(CsAst.Statement.Var (t, i, v)) }
 
-                let arg = getExpression context arg
+            let arg = getExpression context arg
 
-                statements.Add(CsAst.Statement.FunctionCall (i, [arg]))
+            statements.Add(CsAst.Statement.FunctionCall (i, [arg]))
 
-                List.ofSeq statements
-            | _ -> failwith "TODO handle case when function is not represented by an identifier"
-        | _ ->
-            failwith "TODO handle statements beside function calls"
+            List.ofSeq statements
+        | _ -> failwith "TODO handle case when function is not represented by an identifier"
+    | Ast.Let (i, v, body) ->
+        let statements = List()
+        let context =
+            { addVar = fun t i v ->
+                statements.Add(CsAst.Statement.Var (t, i, v)) }
+
+        let t = mapType v.expressionType
+        let v = getExpression context v
+
+        statements.Add(CsAst.Statement.Var (t, i, v))
+        statements.AddRange(getStatements body)
+
+        List.ofSeq statements
+    | _ -> failwith "TODO"
 
 let transpile (ast: Ast.Program): CsAst.Program =
-    let (Ast.Program statements) = ast
+    let (Ast.Program e) = ast
 
-    let statements = statements |> List.collect getStatement
+    let statements = getStatements e
 
     CsAst.Program statements
