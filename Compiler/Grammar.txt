@@ -1,4 +1,5 @@
 NumberLiteral : int * int option
+DoubleQuotedString : string
 Plus : unit
 Minus : unit
 Asterisk : unit
@@ -19,4 +20,5 @@ ArithmeticFirstOrderExpr.Divide -> ArithmeticFirstOrderExpr Slash AtomExpr
 ArithmeticFirstOrderExpr.Fallthrough -> AtomExpr
 
 AtomExpr.Number -> NumberLiteral
+AtomExpr.DoubleQuotedString -> DoubleQuotedString
 AtomExpr.Paren -> ParenOpen Expr ParenClose

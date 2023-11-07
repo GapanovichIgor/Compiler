@@ -8,6 +8,7 @@ open HnkParserCombinator.Primitives
 
 type Token =
     | TNumberLiteral of int * int option
+    | TDoubleQuotedString of string
     | TPlus
     | TMinus
     | TAsterisk
@@ -31,6 +32,10 @@ let private pNumber: TokenParser =
         let integerPart = Int32.Parse integerPart
         let fractionalPart = fractionalPart |> Option.map Int32.Parse
         TNumberLiteral (integerPart, fractionalPart))
+
+let private pDoubleQuotedString: TokenParser =
+    skipOne '"' >>. zeroOrMoreCond (fun c -> c <> '"') .>> skipOne '"'
+    >> ParseResult.mapValue (String >> TDoubleQuotedString)
 
 let private pPlus: TokenParser =
     skipOne '+' >> ParseResult.constValue TPlus
@@ -73,6 +78,7 @@ let tokenize (stream: Stream) =
             pParenOpen
             pParenClose
             pNumber
+            pDoubleQuotedString
         ]
         |> orElse pInvalidToken
 

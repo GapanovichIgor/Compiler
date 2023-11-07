@@ -6,6 +6,7 @@ open Compiler.Tokenization
 let private toInputItem (token: Token) : InputItem =
     match token with
     | TNumberLiteral (i, f) -> InputItem.NumberLiteral (i, f)
+    | TDoubleQuotedString s -> InputItem.DoubleQuotedString s
     | TPlus -> InputItem.Plus ()
     | TMinus -> InputItem.Minus ()
     | TAsterisk -> InputItem.Asterisk ()

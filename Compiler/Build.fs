@@ -11,10 +11,14 @@ module private rec Transpile =
         | Some f -> i.ToString() + "." + f.ToString()
         | None -> i.ToString() + ".0"
 
+    let getDoubleQuotedString s =
+        "\"" + s + "\""
+
     let getAtom (e: AtomExpr) =
         match e with
         | AtomExpr.Number e -> getNumber e
         | AtomExpr.Paren ((), e, ()) -> "(" + getExpression e + ")"
+        | AtomExpr.DoubleQuotedString e -> getDoubleQuotedString e
 
     let rec getArithmeticFirstOrderExpr (e: ArithmeticFirstOrderExpr) =
         match e with
@@ -58,7 +62,8 @@ let internal build (ast: Program, outputPath: string) =
     let dotnetProcess = Process.Start(dotnetProcessStartInfo)
     dotnetProcess.WaitForExit()
 
-    Directory.Delete(outputPath, true)
+    if Directory.Exists(outputPath) then
+        Directory.Delete(outputPath, true)
 
     Directory.Move($"{dir}\\output", outputPath)
 
