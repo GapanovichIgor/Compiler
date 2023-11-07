@@ -640,10 +640,6 @@ let parse (input: #seq<InputItem>) : Result<Program, ParseError> =
                     | 3 -> 13
                     | _ -> failwith "Parser is in an invalid state. This is a bug in the parser generator."
                 stateStack.Push(nextState)
-            | _ ->
-                // error
-                expected <- [ExpectedItem.EndOfStream; ExpectedItem.Asterisk; ExpectedItem.DoubleQuotedString; ExpectedItem.Identifier; ExpectedItem.Minus; ExpectedItem.NumberLiteral; ExpectedItem.ParenClose; ExpectedItem.ParenOpen; ExpectedItem.Plus; ExpectedItem.Slash]
-                keepGoing <- false
         | 7 ->
             match lookahead with
             | _ when lookaheadIsEof ->
@@ -786,10 +782,6 @@ let parse (input: #seq<InputItem>) : Result<Program, ParseError> =
                     | 3 -> 13
                     | _ -> failwith "Parser is in an invalid state. This is a bug in the parser generator."
                 stateStack.Push(nextState)
-            | _ ->
-                // error
-                expected <- [ExpectedItem.EndOfStream; ExpectedItem.Asterisk; ExpectedItem.DoubleQuotedString; ExpectedItem.Identifier; ExpectedItem.Minus; ExpectedItem.NumberLiteral; ExpectedItem.ParenClose; ExpectedItem.ParenOpen; ExpectedItem.Plus; ExpectedItem.Slash]
-                keepGoing <- false
         | 8 ->
             match lookahead with
             | _ when lookaheadIsEof ->
@@ -932,10 +924,6 @@ let parse (input: #seq<InputItem>) : Result<Program, ParseError> =
                     | 3 -> 13
                     | _ -> failwith "Parser is in an invalid state. This is a bug in the parser generator."
                 stateStack.Push(nextState)
-            | _ ->
-                // error
-                expected <- [ExpectedItem.EndOfStream; ExpectedItem.Asterisk; ExpectedItem.DoubleQuotedString; ExpectedItem.Identifier; ExpectedItem.Minus; ExpectedItem.NumberLiteral; ExpectedItem.ParenClose; ExpectedItem.ParenOpen; ExpectedItem.Plus; ExpectedItem.Slash]
-                keepGoing <- false
         | 9 ->
             match lookahead with
             | _ when lookaheadIsEof ->
@@ -1118,10 +1106,6 @@ let parse (input: #seq<InputItem>) : Result<Program, ParseError> =
                     | 5 -> 8
                     | _ -> failwith "Parser is in an invalid state. This is a bug in the parser generator."
                 stateStack.Push(nextState)
-            | _ ->
-                // error
-                expected <- [ExpectedItem.EndOfStream; ExpectedItem.Asterisk; ExpectedItem.DoubleQuotedString; ExpectedItem.Identifier; ExpectedItem.Minus; ExpectedItem.NumberLiteral; ExpectedItem.ParenClose; ExpectedItem.ParenOpen; ExpectedItem.Plus; ExpectedItem.Slash]
-                keepGoing <- false
         | 10 ->
             match lookahead with
             | _ when lookaheadIsEof ->
@@ -1284,10 +1268,6 @@ let parse (input: #seq<InputItem>) : Result<Program, ParseError> =
                     | 5 -> 8
                     | _ -> failwith "Parser is in an invalid state. This is a bug in the parser generator."
                 stateStack.Push(nextState)
-            | _ ->
-                // error
-                expected <- [ExpectedItem.EndOfStream; ExpectedItem.Asterisk; ExpectedItem.DoubleQuotedString; ExpectedItem.Identifier; ExpectedItem.Minus; ExpectedItem.NumberLiteral; ExpectedItem.ParenClose; ExpectedItem.ParenOpen; ExpectedItem.Plus; ExpectedItem.Slash]
-                keepGoing <- false
         | 11 ->
             match lookahead with
             | _ when lookaheadIsEof ->
@@ -1768,10 +1748,6 @@ let parse (input: #seq<InputItem>) : Result<Program, ParseError> =
                     | 8 -> 9
                     | _ -> failwith "Parser is in an invalid state. This is a bug in the parser generator."
                 stateStack.Push(nextState)
-            | _ ->
-                // error
-                expected <- [ExpectedItem.EndOfStream; ExpectedItem.Asterisk; ExpectedItem.DoubleQuotedString; ExpectedItem.Identifier; ExpectedItem.Minus; ExpectedItem.NumberLiteral; ExpectedItem.ParenClose; ExpectedItem.ParenOpen; ExpectedItem.Plus; ExpectedItem.Slash]
-                keepGoing <- false
         | 16 ->
             match lookahead with
             | _ when lookaheadIsEof ->
@@ -1964,10 +1940,6 @@ let parse (input: #seq<InputItem>) : Result<Program, ParseError> =
                     | 8 -> 9
                     | _ -> failwith "Parser is in an invalid state. This is a bug in the parser generator."
                 stateStack.Push(nextState)
-            | _ ->
-                // error
-                expected <- [ExpectedItem.EndOfStream; ExpectedItem.Asterisk; ExpectedItem.DoubleQuotedString; ExpectedItem.Identifier; ExpectedItem.Minus; ExpectedItem.NumberLiteral; ExpectedItem.ParenClose; ExpectedItem.ParenOpen; ExpectedItem.Plus; ExpectedItem.Slash]
-                keepGoing <- false
         | 17 ->
             match lookahead with
             | _ when lookaheadIsEof ->
@@ -2160,10 +2132,6 @@ let parse (input: #seq<InputItem>) : Result<Program, ParseError> =
                     | 8 -> 9
                     | _ -> failwith "Parser is in an invalid state. This is a bug in the parser generator."
                 stateStack.Push(nextState)
-            | _ ->
-                // error
-                expected <- [ExpectedItem.EndOfStream; ExpectedItem.Asterisk; ExpectedItem.DoubleQuotedString; ExpectedItem.Identifier; ExpectedItem.Minus; ExpectedItem.NumberLiteral; ExpectedItem.ParenClose; ExpectedItem.ParenOpen; ExpectedItem.Plus; ExpectedItem.Slash]
-                keepGoing <- false
         | 18 ->
             match lookahead with
             | InputItem.ParenClose x ->
@@ -2410,10 +2378,6 @@ let parse (input: #seq<InputItem>) : Result<Program, ParseError> =
                     | 8 -> 9
                     | _ -> failwith "Parser is in an invalid state. This is a bug in the parser generator."
                 stateStack.Push(nextState)
-            | _ ->
-                // error
-                expected <- [ExpectedItem.EndOfStream; ExpectedItem.Asterisk; ExpectedItem.DoubleQuotedString; ExpectedItem.Identifier; ExpectedItem.Minus; ExpectedItem.NumberLiteral; ExpectedItem.ParenClose; ExpectedItem.ParenOpen; ExpectedItem.Plus; ExpectedItem.Slash]
-                keepGoing <- false
         | 20 ->
             match lookahead with
             | _ when lookaheadIsEof ->
