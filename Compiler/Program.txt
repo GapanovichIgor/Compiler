@@ -1,1 +1,1 @@
-print (toStr 1.5)
+print (floatToStr (1.5 + 1))

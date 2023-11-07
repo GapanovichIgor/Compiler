@@ -1,18 +1,40 @@
 ﻿
 open System.IO
 open Compiler
+open Compiler.Parser
+open Compiler.Tokenization
 
 let sourceCodeStream = File.OpenRead("Program.txt")
 
-let tokens = Tokenization.tokenize sourceCodeStream
-
-match tokens with
-| Error e -> failwith ""
+match tokenize sourceCodeStream with
+| Error e -> failwith "TODO"
 | Ok tokens ->
 
-let parseTree = Parser.parse tokens
-match parseTree with
-| Error e -> failwith ""
+let parserInput =
+    tokens
+    |> List.map (function
+        | TNumberLiteral (i, f) -> InputItem.NumberLiteral (i, f)
+        | TDoubleQuotedString s -> InputItem.DoubleQuotedString s
+        | TPlus -> InputItem.Plus ()
+        | TMinus -> InputItem.Minus ()
+        | TAsterisk -> InputItem.Asterisk ()
+        | TSlash -> InputItem.Slash ()
+        | TParenOpen -> InputItem.ParenOpen ()
+        | TParenClose -> InputItem.ParenClose ()
+        | TIdentifier i -> InputItem.Identifier i
+        | TInvalid t -> failwith "todo"
+        | TNewLine -> failwith "todo"
+        | TBlockOpen -> failwith "todo"
+        | TBlockClose -> failwith "todo")
+
+match parse parserInput with
+| Error e -> failwith "TODO"
 | Ok parseTree ->
 
-Build.build (parseTree, "Build")
+let untypedAst = UntypedAst.fromParseTree parseTree
+
+let ast = Ast.fromUntypedAst untypedAst
+
+let csAst = TranspileToCs.transpile ast
+
+Build.build (csAst, "Build")

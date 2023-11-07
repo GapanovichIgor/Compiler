@@ -12,8 +12,12 @@
         <Content Include="Grammar.txt" />
         <Content Include="RegenerateParser.cmd" />
         <Compile Include="Tokenization.fs" />
-        <Compile Include="Parser.generated.fs" />
         <Compile Include="Parser.fs" />
+        <Compile Include="UntypedAst.fs" />
+        <Compile Include="Ast.fs" />
+        <Compile Include="CsAst.fs" />
+        <Compile Include="TranspileToCs.fs" />
+        <Compile Include="CsCodeGenerator.fs" />
         <Compile Include="Build.fs" />
         <Compile Include="Program.fs" />
     </ItemGroup>

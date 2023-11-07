@@ -3,48 +3,9 @@
 open System
 open System.Diagnostics
 open System.IO
-open Compiler.ParserGenerated
+open Compiler.CsAst
 
-module private rec Transpile =
-    let getNumber (i, f) =
-        match f with
-        | Some f -> i.ToString() + "." + f.ToString()
-        | None -> i.ToString() + ".0"
-
-    let getDoubleQuotedString s =
-        "\"" + s + "\""
-
-    let getIdentifier i = i
-
-    let getAtom (e: AtomExpr) =
-        match e with
-        | AtomExpr.Number e -> getNumber e
-        | AtomExpr.Paren ((), e, ()) -> "(" + getExpression e + ")"
-        | AtomExpr.DoubleQuotedString e -> getDoubleQuotedString e
-        | AtomExpr.Identifier e -> getIdentifier e
-
-    let getApplication (e: Application) =
-        match e with
-        | Application.Application (f, arg) -> getApplication f + "(" + getAtom arg + ")"
-        | Application.Fallthrough e -> getAtom e
-
-    let rec getArithmeticFirstOrderExpr (e: ArithmeticFirstOrderExpr) =
-        match e with
-        | ArithmeticFirstOrderExpr.Multiply (e1, (), e2) -> "(" + getArithmeticFirstOrderExpr e1 + " * " + getApplication e2 + ")"
-        | ArithmeticFirstOrderExpr.Divide (e1, (), e2) -> "(" + getArithmeticFirstOrderExpr e1 + " / " + getApplication e2 + ")"
-        | ArithmeticFirstOrderExpr.Fallthrough e -> getApplication e
-
-    let rec getArithmeticSecondOrderExpr (e: ArithmeticSecondOrderExpr) =
-        match e with
-        | ArithmeticSecondOrderExpr.Add (e1, (), e2) -> "(" + getArithmeticSecondOrderExpr e1 + " + " + getArithmeticFirstOrderExpr e2 + ")"
-        | ArithmeticSecondOrderExpr.Subtract (e1, (), e2) -> "(" + getArithmeticSecondOrderExpr e1 + " - " + getArithmeticFirstOrderExpr e2 + ")"
-        | ArithmeticSecondOrderExpr.Fallthrough e -> getArithmeticFirstOrderExpr e
-
-    let getExpression (Expr e) = getArithmeticSecondOrderExpr e
-
-    let getProgram (Program e) = getExpression e
-
-let internal build (parseTree: Program, outputPath: string) =
+let internal build (ast: Program, outputPath: string) =
     let dir = Guid.NewGuid().ToString()
     let csDir = $"{dir}\\cs"
     Directory.CreateDirectory(csDir) |> ignore
@@ -58,14 +19,13 @@ let internal build (parseTree: Program, outputPath: string) =
     csprojFile.Write("""</Project>""")
     csprojFile.Dispose()
 
-    let csExpr = Transpile.getProgram parseTree
-    // let csExpr = ""
-
     let programFile = File.CreateText($"{csDir}\\Program.cs")
     programFile.WriteLine("""void print(string text) => System.Console.WriteLine(text);""")
-    programFile.WriteLine("""string toStr<T>(T x) => x.ToString();""")
-    programFile.Write(csExpr)
-    programFile.WriteLine(";")
+    programFile.WriteLine("""string intToStr(int x) => x.ToString();""")
+    programFile.WriteLine("""string floatToStr(float x) => x.ToString();""")
+    programFile.WriteLine()
+    programFile.Flush()
+    CsCodeGenerator.generate ast programFile.BaseStream
     programFile.Dispose()
 
     let dotnetProcessStartInfo = ProcessStartInfo("dotnet.exe", "publish -c Release -o ..\\output")
