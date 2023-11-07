@@ -3,17 +3,20 @@ Plus : unit
 Minus : unit
 Asterisk : unit
 Slash : unit
+ParenOpen : unit
+ParenClose : unit
 
-Program -> Expression
+Program -> Expr
 
-Expression -> ArithmeticOpOrderB
+Expr -> ArithmeticSecondOrderExpr
 
-ArithmeticOpOrderB.Add -> ArithmeticOpOrderB Plus ArithmeticOpOrderA
-ArithmeticOpOrderB.Subtract -> ArithmeticOpOrderB Minus ArithmeticOpOrderA
-ArithmeticOpOrderB.Fallthrough -> ArithmeticOpOrderA
+ArithmeticSecondOrderExpr.Add -> ArithmeticSecondOrderExpr Plus ArithmeticFirstOrderExpr
+ArithmeticSecondOrderExpr.Subtract -> ArithmeticSecondOrderExpr Minus ArithmeticFirstOrderExpr
+ArithmeticSecondOrderExpr.Fallthrough -> ArithmeticFirstOrderExpr
 
-ArithmeticOpOrderA.Multiply -> ArithmeticOpOrderA Asterisk NumberLiteralExpression
-ArithmeticOpOrderA.Divide -> ArithmeticOpOrderA Slash NumberLiteralExpression
-ArithmeticOpOrderA.Fallthrough -> NumberLiteralExpression
+ArithmeticFirstOrderExpr.Multiply -> ArithmeticFirstOrderExpr Asterisk AtomExpr
+ArithmeticFirstOrderExpr.Divide -> ArithmeticFirstOrderExpr Slash AtomExpr
+ArithmeticFirstOrderExpr.Fallthrough -> AtomExpr
 
-NumberLiteralExpression -> NumberLiteral
+AtomExpr.Number -> NumberLiteral
+AtomExpr.Paren -> ParenOpen Expr ParenClose

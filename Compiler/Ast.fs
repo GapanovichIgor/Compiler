@@ -10,6 +10,8 @@ let private toInputItem (token: Token) : InputItem =
     | TMinus -> InputItem.Minus ()
     | TAsterisk -> InputItem.Asterisk ()
     | TSlash -> InputItem.Slash ()
+    | TParenOpen -> InputItem.ParenOpen ()
+    | TParenClose -> InputItem.ParenClose ()
     | TInvalid t -> failwith $"Invalid token {t}"
     | TBreak -> failwith "todo"
     | TBlockOpen -> failwith "todo"

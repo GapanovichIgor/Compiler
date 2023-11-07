@@ -12,6 +12,8 @@ type Token =
     | TMinus
     | TAsterisk
     | TSlash
+    | TParenOpen
+    | TParenClose
     | TBreak
     | TBlockOpen
     | TBlockClose
@@ -42,6 +44,12 @@ let private pAsterisk: TokenParser =
 let private pSlash: TokenParser =
     skipOne '/' >> ParseResult.constValue TSlash
 
+let private pParenOpen: TokenParser =
+    skipOne '(' >> ParseResult.constValue TParenOpen
+
+let private pParenClose: TokenParser =
+    skipOne ')' >> ParseResult.constValue TParenClose
+
 let private pInvalidToken: TokenParser =
     oneOrMoreCond (fun c -> not (isWhiteSpace c) && c <> '\n' && c <> '\r')
     >> ParseResult.mapValue (String >> TInvalid)
@@ -62,6 +70,8 @@ let tokenize (stream: Stream) =
             pMinus
             pAsterisk
             pSlash
+            pParenOpen
+            pParenClose
             pNumber
         ]
         |> orElse pInvalidToken

@@ -2,122 +2,157 @@ module internal rec Compiler.AstGenerated
 
 (*
 STATES
-   0 { ArithmeticOpOrderA -> ·ArithmeticOpOrderA Asterisk NumberLiteralExpression [] | ArithmeticOpOrderA -> ·ArithmeticOpOrderA Slash NumberLiteralExpression [] | ArithmeticOpOrderA -> ·NumberLiteralExpression [] | ArithmeticOpOrderB -> ·ArithmeticOpOrderA [] | ArithmeticOpOrderB -> ·ArithmeticOpOrderB Minus ArithmeticOpOrderA [] | ArithmeticOpOrderB -> ·ArithmeticOpOrderB Plus ArithmeticOpOrderA [] | Expression -> ·ArithmeticOpOrderB [] | NumberLiteralExpression -> ·NumberLiteral [] | Program -> ·Expression [] }
-   1 { ArithmeticOpOrderA -> ·ArithmeticOpOrderA Asterisk NumberLiteralExpression [] | ArithmeticOpOrderA -> ·ArithmeticOpOrderA Slash NumberLiteralExpression [] | ArithmeticOpOrderA -> ·NumberLiteralExpression [] | ArithmeticOpOrderB -> ArithmeticOpOrderB Minus· ArithmeticOpOrderA [] | NumberLiteralExpression -> ·NumberLiteral [] }
-   2 { ArithmeticOpOrderA -> ·ArithmeticOpOrderA Asterisk NumberLiteralExpression [] | ArithmeticOpOrderA -> ·ArithmeticOpOrderA Slash NumberLiteralExpression [] | ArithmeticOpOrderA -> ·NumberLiteralExpression [] | ArithmeticOpOrderB -> ArithmeticOpOrderB Plus· ArithmeticOpOrderA [] | NumberLiteralExpression -> ·NumberLiteral [] }
-   3 { ArithmeticOpOrderA -> ArithmeticOpOrderA· Asterisk NumberLiteralExpression [] | ArithmeticOpOrderA -> ArithmeticOpOrderA· Slash NumberLiteralExpression [] | ArithmeticOpOrderB -> ArithmeticOpOrderA· [$ Minus Plus] }
-   4 { ArithmeticOpOrderA -> ArithmeticOpOrderA· Asterisk NumberLiteralExpression [] | ArithmeticOpOrderA -> ArithmeticOpOrderA· Slash NumberLiteralExpression [] | ArithmeticOpOrderB -> ArithmeticOpOrderB Minus ArithmeticOpOrderA· [$ Minus Plus] }
-   5 { ArithmeticOpOrderA -> ArithmeticOpOrderA· Asterisk NumberLiteralExpression [] | ArithmeticOpOrderA -> ArithmeticOpOrderA· Slash NumberLiteralExpression [] | ArithmeticOpOrderB -> ArithmeticOpOrderB Plus ArithmeticOpOrderA· [$ Minus Plus] }
-   6 { ArithmeticOpOrderA -> ArithmeticOpOrderA Asterisk· NumberLiteralExpression [] | NumberLiteralExpression -> ·NumberLiteral [] }
-   7 { ArithmeticOpOrderA -> ArithmeticOpOrderA Asterisk NumberLiteralExpression· [$ Asterisk Minus Plus Slash] }
-   8 { ArithmeticOpOrderA -> ArithmeticOpOrderA Slash· NumberLiteralExpression [] | NumberLiteralExpression -> ·NumberLiteral [] }
-   9 { ArithmeticOpOrderA -> ArithmeticOpOrderA Slash NumberLiteralExpression· [$ Asterisk Minus Plus Slash] }
-   10 { ArithmeticOpOrderA -> NumberLiteralExpression· [$ Asterisk Minus Plus Slash] }
-   11 { ArithmeticOpOrderB -> ArithmeticOpOrderB· Minus ArithmeticOpOrderA [] | ArithmeticOpOrderB -> ArithmeticOpOrderB· Plus ArithmeticOpOrderA [] | Expression -> ArithmeticOpOrderB· [$] }
-   12 { NumberLiteralExpression -> NumberLiteral· [$ Asterisk Minus Plus Slash] }
-   13 { Program -> Expression· [$] }
+   0 { ArithmeticFirstOrderExpr -> ·ArithmeticFirstOrderExpr Asterisk AtomExpr [] | ArithmeticFirstOrderExpr -> ·ArithmeticFirstOrderExpr Slash AtomExpr [] | ArithmeticFirstOrderExpr -> ·AtomExpr [] | ArithmeticSecondOrderExpr -> ·ArithmeticFirstOrderExpr [] | ArithmeticSecondOrderExpr -> ·ArithmeticSecondOrderExpr Minus ArithmeticFirstOrderExpr [] | ArithmeticSecondOrderExpr -> ·ArithmeticSecondOrderExpr Plus ArithmeticFirstOrderExpr [] | AtomExpr -> ·NumberLiteral [] | AtomExpr -> ·ParenOpen Expr ParenClose [] | AtomExpr -> ParenOpen· Expr ParenClose [] | Expr -> ·ArithmeticSecondOrderExpr [] }
+   1 { ArithmeticFirstOrderExpr -> ·ArithmeticFirstOrderExpr Asterisk AtomExpr [] | ArithmeticFirstOrderExpr -> ·ArithmeticFirstOrderExpr Slash AtomExpr [] | ArithmeticFirstOrderExpr -> ·AtomExpr [] | ArithmeticSecondOrderExpr -> ·ArithmeticFirstOrderExpr [] | ArithmeticSecondOrderExpr -> ·ArithmeticSecondOrderExpr Minus ArithmeticFirstOrderExpr [] | ArithmeticSecondOrderExpr -> ·ArithmeticSecondOrderExpr Plus ArithmeticFirstOrderExpr [] | AtomExpr -> ·NumberLiteral [] | AtomExpr -> ·ParenOpen Expr ParenClose [] | Expr -> ·ArithmeticSecondOrderExpr [] | Program -> ·Expr [] }
+   2 { ArithmeticFirstOrderExpr -> ·ArithmeticFirstOrderExpr Asterisk AtomExpr [] | ArithmeticFirstOrderExpr -> ·ArithmeticFirstOrderExpr Slash AtomExpr [] | ArithmeticFirstOrderExpr -> ·AtomExpr [] | ArithmeticSecondOrderExpr -> ArithmeticSecondOrderExpr Minus· ArithmeticFirstOrderExpr [] | AtomExpr -> ·NumberLiteral [] | AtomExpr -> ·ParenOpen Expr ParenClose [] }
+   3 { ArithmeticFirstOrderExpr -> ·ArithmeticFirstOrderExpr Asterisk AtomExpr [] | ArithmeticFirstOrderExpr -> ·ArithmeticFirstOrderExpr Slash AtomExpr [] | ArithmeticFirstOrderExpr -> ·AtomExpr [] | ArithmeticSecondOrderExpr -> ArithmeticSecondOrderExpr Plus· ArithmeticFirstOrderExpr [] | AtomExpr -> ·NumberLiteral [] | AtomExpr -> ·ParenOpen Expr ParenClose [] }
+   4 { ArithmeticFirstOrderExpr -> ArithmeticFirstOrderExpr· Asterisk AtomExpr [] | ArithmeticFirstOrderExpr -> ArithmeticFirstOrderExpr· Slash AtomExpr [] | ArithmeticSecondOrderExpr -> ArithmeticFirstOrderExpr· [$ Minus ParenClose Plus] }
+   5 { ArithmeticFirstOrderExpr -> ArithmeticFirstOrderExpr· Asterisk AtomExpr [] | ArithmeticFirstOrderExpr -> ArithmeticFirstOrderExpr· Slash AtomExpr [] | ArithmeticSecondOrderExpr -> ArithmeticSecondOrderExpr Minus ArithmeticFirstOrderExpr· [$ Minus ParenClose Plus] }
+   6 { ArithmeticFirstOrderExpr -> ArithmeticFirstOrderExpr· Asterisk AtomExpr [] | ArithmeticFirstOrderExpr -> ArithmeticFirstOrderExpr· Slash AtomExpr [] | ArithmeticSecondOrderExpr -> ArithmeticSecondOrderExpr Plus ArithmeticFirstOrderExpr· [$ Minus ParenClose Plus] }
+   7 { ArithmeticFirstOrderExpr -> ArithmeticFirstOrderExpr Asterisk· AtomExpr [] | AtomExpr -> ·NumberLiteral [] | AtomExpr -> ·ParenOpen Expr ParenClose [] }
+   8 { ArithmeticFirstOrderExpr -> ArithmeticFirstOrderExpr Asterisk AtomExpr· [$ Asterisk Minus ParenClose Plus Slash] }
+   9 { ArithmeticFirstOrderExpr -> ArithmeticFirstOrderExpr Slash· AtomExpr [] | AtomExpr -> ·NumberLiteral [] | AtomExpr -> ·ParenOpen Expr ParenClose [] }
+   10 { ArithmeticFirstOrderExpr -> ArithmeticFirstOrderExpr Slash AtomExpr· [$ Asterisk Minus ParenClose Plus Slash] }
+   11 { ArithmeticFirstOrderExpr -> AtomExpr· [$ Asterisk Minus ParenClose Plus Slash] }
+   12 { ArithmeticSecondOrderExpr -> ArithmeticSecondOrderExpr· Minus ArithmeticFirstOrderExpr [] | ArithmeticSecondOrderExpr -> ArithmeticSecondOrderExpr· Plus ArithmeticFirstOrderExpr [] | Expr -> ArithmeticSecondOrderExpr· [$ ParenClose] }
+   13 { AtomExpr -> NumberLiteral· [$ Asterisk Minus ParenClose Plus Slash] }
+   14 { AtomExpr -> ParenOpen Expr· ParenClose [] }
+   15 { AtomExpr -> ParenOpen Expr ParenClose· [$ Asterisk Minus ParenClose Plus Slash] }
+   16 { Program -> Expr· [$] }
 
 PRODUCTIONS
-   ArithmeticOpOrderB -> ArithmeticOpOrderA
-   ArithmeticOpOrderB -> ArithmeticOpOrderB Minus ArithmeticOpOrderA
-   ArithmeticOpOrderB -> ArithmeticOpOrderB Plus ArithmeticOpOrderA
-   ArithmeticOpOrderA -> ArithmeticOpOrderA Asterisk NumberLiteralExpression
-   ArithmeticOpOrderA -> ArithmeticOpOrderA Slash NumberLiteralExpression
-   ArithmeticOpOrderA -> NumberLiteralExpression
-   Expression -> ArithmeticOpOrderB
-   NumberLiteralExpression -> NumberLiteral
+   ArithmeticSecondOrderExpr -> ArithmeticFirstOrderExpr
+   ArithmeticSecondOrderExpr -> ArithmeticSecondOrderExpr Minus ArithmeticFirstOrderExpr
+   ArithmeticSecondOrderExpr -> ArithmeticSecondOrderExpr Plus ArithmeticFirstOrderExpr
+   ArithmeticFirstOrderExpr -> ArithmeticFirstOrderExpr Asterisk AtomExpr
+   ArithmeticFirstOrderExpr -> ArithmeticFirstOrderExpr Slash AtomExpr
+   ArithmeticFirstOrderExpr -> AtomExpr
+   Expr -> ArithmeticSecondOrderExpr
+   AtomExpr -> NumberLiteral
+   AtomExpr -> ParenOpen Expr ParenClose
 
 ACTION
    State Lookahead     Action
-   0     NumberLiteral shift (12)
-   1     NumberLiteral shift (12)
-   2     NumberLiteral shift (12)
-   3     $             reduce (ArithmeticOpOrderB -> ArithmeticOpOrderA)
-   3     Asterisk      shift (6)
-   3     Minus         reduce (ArithmeticOpOrderB -> ArithmeticOpOrderA)
-   3     Plus          reduce (ArithmeticOpOrderB -> ArithmeticOpOrderA)
-   3     Slash         shift (8)
-   4     $             reduce (ArithmeticOpOrderB -> ArithmeticOpOrderB Minus ArithmeticOpOrderA)
-   4     Asterisk      shift (6)
-   4     Minus         reduce (ArithmeticOpOrderB -> ArithmeticOpOrderB Minus ArithmeticOpOrderA)
-   4     Plus          reduce (ArithmeticOpOrderB -> ArithmeticOpOrderB Minus ArithmeticOpOrderA)
-   4     Slash         shift (8)
-   5     $             reduce (ArithmeticOpOrderB -> ArithmeticOpOrderB Plus ArithmeticOpOrderA)
-   5     Asterisk      shift (6)
-   5     Minus         reduce (ArithmeticOpOrderB -> ArithmeticOpOrderB Plus ArithmeticOpOrderA)
-   5     Plus          reduce (ArithmeticOpOrderB -> ArithmeticOpOrderB Plus ArithmeticOpOrderA)
-   5     Slash         shift (8)
-   6     NumberLiteral shift (12)
-   7     $             reduce (ArithmeticOpOrderA -> ArithmeticOpOrderA Asterisk NumberLiteralExpression)
-   7     Asterisk      reduce (ArithmeticOpOrderA -> ArithmeticOpOrderA Asterisk NumberLiteralExpression)
-   7     Minus         reduce (ArithmeticOpOrderA -> ArithmeticOpOrderA Asterisk NumberLiteralExpression)
-   7     Plus          reduce (ArithmeticOpOrderA -> ArithmeticOpOrderA Asterisk NumberLiteralExpression)
-   7     Slash         reduce (ArithmeticOpOrderA -> ArithmeticOpOrderA Asterisk NumberLiteralExpression)
-   8     NumberLiteral shift (12)
-   9     $             reduce (ArithmeticOpOrderA -> ArithmeticOpOrderA Slash NumberLiteralExpression)
-   9     Asterisk      reduce (ArithmeticOpOrderA -> ArithmeticOpOrderA Slash NumberLiteralExpression)
-   9     Minus         reduce (ArithmeticOpOrderA -> ArithmeticOpOrderA Slash NumberLiteralExpression)
-   9     Plus          reduce (ArithmeticOpOrderA -> ArithmeticOpOrderA Slash NumberLiteralExpression)
-   9     Slash         reduce (ArithmeticOpOrderA -> ArithmeticOpOrderA Slash NumberLiteralExpression)
-   10    $             reduce (ArithmeticOpOrderA -> NumberLiteralExpression)
-   10    Asterisk      reduce (ArithmeticOpOrderA -> NumberLiteralExpression)
-   10    Minus         reduce (ArithmeticOpOrderA -> NumberLiteralExpression)
-   10    Plus          reduce (ArithmeticOpOrderA -> NumberLiteralExpression)
-   10    Slash         reduce (ArithmeticOpOrderA -> NumberLiteralExpression)
-   11    $             reduce (Expression -> ArithmeticOpOrderB)
-   11    Minus         shift (1)
-   11    Plus          shift (2)
-   12    $             reduce (NumberLiteralExpression -> NumberLiteral)
-   12    Asterisk      reduce (NumberLiteralExpression -> NumberLiteral)
-   12    Minus         reduce (NumberLiteralExpression -> NumberLiteral)
-   12    Plus          reduce (NumberLiteralExpression -> NumberLiteral)
-   12    Slash         reduce (NumberLiteralExpression -> NumberLiteral)
-   13    $             accept
+   0     NumberLiteral shift (13)
+   0     ParenOpen     shift (0)
+   1     NumberLiteral shift (13)
+   1     ParenOpen     shift (0)
+   2     NumberLiteral shift (13)
+   2     ParenOpen     shift (0)
+   3     NumberLiteral shift (13)
+   3     ParenOpen     shift (0)
+   4     $             reduce (ArithmeticSecondOrderExpr -> ArithmeticFirstOrderExpr)
+   4     Asterisk      shift (7)
+   4     Minus         reduce (ArithmeticSecondOrderExpr -> ArithmeticFirstOrderExpr)
+   4     ParenClose    reduce (ArithmeticSecondOrderExpr -> ArithmeticFirstOrderExpr)
+   4     Plus          reduce (ArithmeticSecondOrderExpr -> ArithmeticFirstOrderExpr)
+   4     Slash         shift (9)
+   5     $             reduce (ArithmeticSecondOrderExpr -> ArithmeticSecondOrderExpr Minus ArithmeticFirstOrderExpr)
+   5     Asterisk      shift (7)
+   5     Minus         reduce (ArithmeticSecondOrderExpr -> ArithmeticSecondOrderExpr Minus ArithmeticFirstOrderExpr)
+   5     ParenClose    reduce (ArithmeticSecondOrderExpr -> ArithmeticSecondOrderExpr Minus ArithmeticFirstOrderExpr)
+   5     Plus          reduce (ArithmeticSecondOrderExpr -> ArithmeticSecondOrderExpr Minus ArithmeticFirstOrderExpr)
+   5     Slash         shift (9)
+   6     $             reduce (ArithmeticSecondOrderExpr -> ArithmeticSecondOrderExpr Plus ArithmeticFirstOrderExpr)
+   6     Asterisk      shift (7)
+   6     Minus         reduce (ArithmeticSecondOrderExpr -> ArithmeticSecondOrderExpr Plus ArithmeticFirstOrderExpr)
+   6     ParenClose    reduce (ArithmeticSecondOrderExpr -> ArithmeticSecondOrderExpr Plus ArithmeticFirstOrderExpr)
+   6     Plus          reduce (ArithmeticSecondOrderExpr -> ArithmeticSecondOrderExpr Plus ArithmeticFirstOrderExpr)
+   6     Slash         shift (9)
+   7     NumberLiteral shift (13)
+   7     ParenOpen     shift (0)
+   8     $             reduce (ArithmeticFirstOrderExpr -> ArithmeticFirstOrderExpr Asterisk AtomExpr)
+   8     Asterisk      reduce (ArithmeticFirstOrderExpr -> ArithmeticFirstOrderExpr Asterisk AtomExpr)
+   8     Minus         reduce (ArithmeticFirstOrderExpr -> ArithmeticFirstOrderExpr Asterisk AtomExpr)
+   8     ParenClose    reduce (ArithmeticFirstOrderExpr -> ArithmeticFirstOrderExpr Asterisk AtomExpr)
+   8     Plus          reduce (ArithmeticFirstOrderExpr -> ArithmeticFirstOrderExpr Asterisk AtomExpr)
+   8     Slash         reduce (ArithmeticFirstOrderExpr -> ArithmeticFirstOrderExpr Asterisk AtomExpr)
+   9     NumberLiteral shift (13)
+   9     ParenOpen     shift (0)
+   10    $             reduce (ArithmeticFirstOrderExpr -> ArithmeticFirstOrderExpr Slash AtomExpr)
+   10    Asterisk      reduce (ArithmeticFirstOrderExpr -> ArithmeticFirstOrderExpr Slash AtomExpr)
+   10    Minus         reduce (ArithmeticFirstOrderExpr -> ArithmeticFirstOrderExpr Slash AtomExpr)
+   10    ParenClose    reduce (ArithmeticFirstOrderExpr -> ArithmeticFirstOrderExpr Slash AtomExpr)
+   10    Plus          reduce (ArithmeticFirstOrderExpr -> ArithmeticFirstOrderExpr Slash AtomExpr)
+   10    Slash         reduce (ArithmeticFirstOrderExpr -> ArithmeticFirstOrderExpr Slash AtomExpr)
+   11    $             reduce (ArithmeticFirstOrderExpr -> AtomExpr)
+   11    Asterisk      reduce (ArithmeticFirstOrderExpr -> AtomExpr)
+   11    Minus         reduce (ArithmeticFirstOrderExpr -> AtomExpr)
+   11    ParenClose    reduce (ArithmeticFirstOrderExpr -> AtomExpr)
+   11    Plus          reduce (ArithmeticFirstOrderExpr -> AtomExpr)
+   11    Slash         reduce (ArithmeticFirstOrderExpr -> AtomExpr)
+   12    $             reduce (Expr -> ArithmeticSecondOrderExpr)
+   12    Minus         shift (2)
+   12    ParenClose    reduce (Expr -> ArithmeticSecondOrderExpr)
+   12    Plus          shift (3)
+   13    $             reduce (AtomExpr -> NumberLiteral)
+   13    Asterisk      reduce (AtomExpr -> NumberLiteral)
+   13    Minus         reduce (AtomExpr -> NumberLiteral)
+   13    ParenClose    reduce (AtomExpr -> NumberLiteral)
+   13    Plus          reduce (AtomExpr -> NumberLiteral)
+   13    Slash         reduce (AtomExpr -> NumberLiteral)
+   14    ParenClose    shift (15)
+   15    $             reduce (AtomExpr -> ParenOpen Expr ParenClose)
+   15    Asterisk      reduce (AtomExpr -> ParenOpen Expr ParenClose)
+   15    Minus         reduce (AtomExpr -> ParenOpen Expr ParenClose)
+   15    ParenClose    reduce (AtomExpr -> ParenOpen Expr ParenClose)
+   15    Plus          reduce (AtomExpr -> ParenOpen Expr ParenClose)
+   15    Slash         reduce (AtomExpr -> ParenOpen Expr ParenClose)
+   16    $             accept
 
 GOTO
-   Source state Symbol                  Destination state
-   0            ArithmeticOpOrderA      3
-   0            ArithmeticOpOrderB      11
-   0            Expression              13
-   0            NumberLiteralExpression 10
-   1            ArithmeticOpOrderA      4
-   1            NumberLiteralExpression 10
-   2            ArithmeticOpOrderA      5
-   2            NumberLiteralExpression 10
-   6            NumberLiteralExpression 7
-   8            NumberLiteralExpression 9
+   Source state Symbol                    Destination state
+   0            ArithmeticFirstOrderExpr  4
+   0            ArithmeticSecondOrderExpr 12
+   0            AtomExpr                  11
+   0            Expr                      14
+   1            ArithmeticFirstOrderExpr  4
+   1            ArithmeticSecondOrderExpr 12
+   1            AtomExpr                  11
+   1            Expr                      16
+   2            ArithmeticFirstOrderExpr  5
+   2            AtomExpr                  11
+   3            ArithmeticFirstOrderExpr  6
+   3            AtomExpr                  11
+   7            AtomExpr                  8
+   9            AtomExpr                  10
 
 *)
 
 type Asterisk = unit
 type Minus = unit
 type NumberLiteral = int * int option
+type ParenClose = unit
+type ParenOpen = unit
 type Plus = unit
 type Slash = unit
 
-type ArithmeticOpOrderA =
-    | Divide of ArithmeticOpOrderA * Slash * NumberLiteralExpression
-    | Fallthrough of NumberLiteralExpression
-    | Multiply of ArithmeticOpOrderA * Asterisk * NumberLiteralExpression
+type ArithmeticFirstOrderExpr =
+    | Divide of ArithmeticFirstOrderExpr * Slash * AtomExpr
+    | Fallthrough of AtomExpr
+    | Multiply of ArithmeticFirstOrderExpr * Asterisk * AtomExpr
 
-type ArithmeticOpOrderB =
-    | Add of ArithmeticOpOrderB * Plus * ArithmeticOpOrderA
-    | Fallthrough of ArithmeticOpOrderA
-    | Subtract of ArithmeticOpOrderB * Minus * ArithmeticOpOrderA
+type ArithmeticSecondOrderExpr =
+    | Add of ArithmeticSecondOrderExpr * Plus * ArithmeticFirstOrderExpr
+    | Fallthrough of ArithmeticFirstOrderExpr
+    | Subtract of ArithmeticSecondOrderExpr * Minus * ArithmeticFirstOrderExpr
 
-type Expression =
-    | Expression of ArithmeticOpOrderB
+type AtomExpr =
+    | Number of NumberLiteral
+    | Paren of ParenOpen * Expr * ParenClose
 
-type NumberLiteralExpression =
-    | NumberLiteralExpression of NumberLiteral
+type Expr =
+    | Expr of ArithmeticSecondOrderExpr
 
 type Program =
-    | Program of Expression
+    | Program of Expr
 
 type InputItem =
     | Asterisk of Asterisk
     | Minus of Minus
     | NumberLiteral of NumberLiteral
+    | ParenClose of ParenClose
+    | ParenOpen of ParenOpen
     | Plus of Plus
     | Slash of Slash
 
@@ -130,6 +165,8 @@ type ExpectedItem =
     | Asterisk
     | Minus
     | NumberLiteral
+    | ParenClose
+    | ParenOpen
     | Plus
     | Slash
 
@@ -146,7 +183,7 @@ let parse (input: #seq<InputItem>) : Result<Program, ParseError> =
     let mutable accepted = false
     let mutable expected = Unchecked.defaultof<list<ExpectedItem>>
 
-    stateStack.Push(0)
+    stateStack.Push(1)
 
     let mutable lookahead, lookaheadIsEof =
         if inputEnumerator.MoveNext()
@@ -165,10 +202,18 @@ let parse (input: #seq<InputItem>) : Result<Program, ParseError> =
                     lookahead <- inputEnumerator.Current
                 else
                     lookaheadIsEof <- true
-                stateStack.Push(12)
+                stateStack.Push(13)
+            | InputItem.ParenOpen x ->
+                // shift
+                lhsStack.Push(x)
+                if inputEnumerator.MoveNext() then
+                    lookahead <- inputEnumerator.Current
+                else
+                    lookaheadIsEof <- true
+                stateStack.Push(0)
             | _ ->
                 // error
-                expected <- [ExpectedItem.NumberLiteral]
+                expected <- [ExpectedItem.NumberLiteral; ExpectedItem.ParenOpen]
                 keepGoing <- false
         | 1 ->
             match lookahead with
@@ -179,10 +224,18 @@ let parse (input: #seq<InputItem>) : Result<Program, ParseError> =
                     lookahead <- inputEnumerator.Current
                 else
                     lookaheadIsEof <- true
-                stateStack.Push(12)
+                stateStack.Push(13)
+            | InputItem.ParenOpen x ->
+                // shift
+                lhsStack.Push(x)
+                if inputEnumerator.MoveNext() then
+                    lookahead <- inputEnumerator.Current
+                else
+                    lookaheadIsEof <- true
+                stateStack.Push(0)
             | _ ->
                 // error
-                expected <- [ExpectedItem.NumberLiteral]
+                expected <- [ExpectedItem.NumberLiteral; ExpectedItem.ParenOpen]
                 keepGoing <- false
         | 2 ->
             match lookahead with
@@ -193,81 +246,53 @@ let parse (input: #seq<InputItem>) : Result<Program, ParseError> =
                     lookahead <- inputEnumerator.Current
                 else
                     lookaheadIsEof <- true
-                stateStack.Push(12)
+                stateStack.Push(13)
+            | InputItem.ParenOpen x ->
+                // shift
+                lhsStack.Push(x)
+                if inputEnumerator.MoveNext() then
+                    lookahead <- inputEnumerator.Current
+                else
+                    lookaheadIsEof <- true
+                stateStack.Push(0)
             | _ ->
                 // error
-                expected <- [ExpectedItem.NumberLiteral]
+                expected <- [ExpectedItem.NumberLiteral; ExpectedItem.ParenOpen]
                 keepGoing <- false
         | 3 ->
             match lookahead with
-            | _ when lookaheadIsEof ->
-                // reduce
-                stateStack.Pop() |> ignore
-                let arg1 = lhsStack.Pop() :?> ArithmeticOpOrderA
-                let reductionResult = ArithmeticOpOrderB.Fallthrough arg1
-                lhsStack.Push(reductionResult)
-                let nextState =
-                    match stateStack.Peek() with
-                    | 0 -> 11
-                    | _ -> failwith "Parser is in an invalid state. This is a bug in the parser generator."
-                stateStack.Push(nextState)
-            | InputItem.Asterisk x ->
+            | InputItem.NumberLiteral x ->
                 // shift
                 lhsStack.Push(x)
                 if inputEnumerator.MoveNext() then
                     lookahead <- inputEnumerator.Current
                 else
                     lookaheadIsEof <- true
-                stateStack.Push(6)
-            | InputItem.Minus _ ->
-                // reduce
-                stateStack.Pop() |> ignore
-                let arg1 = lhsStack.Pop() :?> ArithmeticOpOrderA
-                let reductionResult = ArithmeticOpOrderB.Fallthrough arg1
-                lhsStack.Push(reductionResult)
-                let nextState =
-                    match stateStack.Peek() with
-                    | 0 -> 11
-                    | _ -> failwith "Parser is in an invalid state. This is a bug in the parser generator."
-                stateStack.Push(nextState)
-            | InputItem.Plus _ ->
-                // reduce
-                stateStack.Pop() |> ignore
-                let arg1 = lhsStack.Pop() :?> ArithmeticOpOrderA
-                let reductionResult = ArithmeticOpOrderB.Fallthrough arg1
-                lhsStack.Push(reductionResult)
-                let nextState =
-                    match stateStack.Peek() with
-                    | 0 -> 11
-                    | _ -> failwith "Parser is in an invalid state. This is a bug in the parser generator."
-                stateStack.Push(nextState)
-            | InputItem.Slash x ->
+                stateStack.Push(13)
+            | InputItem.ParenOpen x ->
                 // shift
                 lhsStack.Push(x)
                 if inputEnumerator.MoveNext() then
                     lookahead <- inputEnumerator.Current
                 else
                     lookaheadIsEof <- true
-                stateStack.Push(8)
+                stateStack.Push(0)
             | _ ->
                 // error
-                expected <- [ExpectedItem.EndOfStream; ExpectedItem.Asterisk; ExpectedItem.Minus; ExpectedItem.Plus; ExpectedItem.Slash]
+                expected <- [ExpectedItem.NumberLiteral; ExpectedItem.ParenOpen]
                 keepGoing <- false
         | 4 ->
             match lookahead with
             | _ when lookaheadIsEof ->
                 // reduce
                 stateStack.Pop() |> ignore
-                stateStack.Pop() |> ignore
-                stateStack.Pop() |> ignore
-                let arg3 = lhsStack.Pop() :?> ArithmeticOpOrderA
-                let arg2 = lhsStack.Pop() :?> Minus
-                let arg1 = lhsStack.Pop() :?> ArithmeticOpOrderB
-                let reductionResult = ArithmeticOpOrderB.Subtract (arg1, arg2, arg3)
+                let arg1 = lhsStack.Pop() :?> ArithmeticFirstOrderExpr
+                let reductionResult = ArithmeticSecondOrderExpr.Fallthrough arg1
                 lhsStack.Push(reductionResult)
                 let nextState =
                     match stateStack.Peek() with
-                    | 0 -> 11
+                    | 0 -> 12
+                    | 1 -> 12
                     | _ -> failwith "Parser is in an invalid state. This is a bug in the parser generator."
                 stateStack.Push(nextState)
             | InputItem.Asterisk x ->
@@ -277,35 +302,41 @@ let parse (input: #seq<InputItem>) : Result<Program, ParseError> =
                     lookahead <- inputEnumerator.Current
                 else
                     lookaheadIsEof <- true
-                stateStack.Push(6)
+                stateStack.Push(7)
             | InputItem.Minus _ ->
                 // reduce
                 stateStack.Pop() |> ignore
-                stateStack.Pop() |> ignore
-                stateStack.Pop() |> ignore
-                let arg3 = lhsStack.Pop() :?> ArithmeticOpOrderA
-                let arg2 = lhsStack.Pop() :?> Minus
-                let arg1 = lhsStack.Pop() :?> ArithmeticOpOrderB
-                let reductionResult = ArithmeticOpOrderB.Subtract (arg1, arg2, arg3)
+                let arg1 = lhsStack.Pop() :?> ArithmeticFirstOrderExpr
+                let reductionResult = ArithmeticSecondOrderExpr.Fallthrough arg1
                 lhsStack.Push(reductionResult)
                 let nextState =
                     match stateStack.Peek() with
-                    | 0 -> 11
+                    | 0 -> 12
+                    | 1 -> 12
+                    | _ -> failwith "Parser is in an invalid state. This is a bug in the parser generator."
+                stateStack.Push(nextState)
+            | InputItem.ParenClose _ ->
+                // reduce
+                stateStack.Pop() |> ignore
+                let arg1 = lhsStack.Pop() :?> ArithmeticFirstOrderExpr
+                let reductionResult = ArithmeticSecondOrderExpr.Fallthrough arg1
+                lhsStack.Push(reductionResult)
+                let nextState =
+                    match stateStack.Peek() with
+                    | 0 -> 12
+                    | 1 -> 12
                     | _ -> failwith "Parser is in an invalid state. This is a bug in the parser generator."
                 stateStack.Push(nextState)
             | InputItem.Plus _ ->
                 // reduce
                 stateStack.Pop() |> ignore
-                stateStack.Pop() |> ignore
-                stateStack.Pop() |> ignore
-                let arg3 = lhsStack.Pop() :?> ArithmeticOpOrderA
-                let arg2 = lhsStack.Pop() :?> Minus
-                let arg1 = lhsStack.Pop() :?> ArithmeticOpOrderB
-                let reductionResult = ArithmeticOpOrderB.Subtract (arg1, arg2, arg3)
+                let arg1 = lhsStack.Pop() :?> ArithmeticFirstOrderExpr
+                let reductionResult = ArithmeticSecondOrderExpr.Fallthrough arg1
                 lhsStack.Push(reductionResult)
                 let nextState =
                     match stateStack.Peek() with
-                    | 0 -> 11
+                    | 0 -> 12
+                    | 1 -> 12
                     | _ -> failwith "Parser is in an invalid state. This is a bug in the parser generator."
                 stateStack.Push(nextState)
             | InputItem.Slash x ->
@@ -315,10 +346,10 @@ let parse (input: #seq<InputItem>) : Result<Program, ParseError> =
                     lookahead <- inputEnumerator.Current
                 else
                     lookaheadIsEof <- true
-                stateStack.Push(8)
+                stateStack.Push(9)
             | _ ->
                 // error
-                expected <- [ExpectedItem.EndOfStream; ExpectedItem.Asterisk; ExpectedItem.Minus; ExpectedItem.Plus; ExpectedItem.Slash]
+                expected <- [ExpectedItem.EndOfStream; ExpectedItem.Asterisk; ExpectedItem.Minus; ExpectedItem.ParenClose; ExpectedItem.Plus; ExpectedItem.Slash]
                 keepGoing <- false
         | 5 ->
             match lookahead with
@@ -327,14 +358,15 @@ let parse (input: #seq<InputItem>) : Result<Program, ParseError> =
                 stateStack.Pop() |> ignore
                 stateStack.Pop() |> ignore
                 stateStack.Pop() |> ignore
-                let arg3 = lhsStack.Pop() :?> ArithmeticOpOrderA
-                let arg2 = lhsStack.Pop() :?> Plus
-                let arg1 = lhsStack.Pop() :?> ArithmeticOpOrderB
-                let reductionResult = ArithmeticOpOrderB.Add (arg1, arg2, arg3)
+                let arg3 = lhsStack.Pop() :?> ArithmeticFirstOrderExpr
+                let arg2 = lhsStack.Pop() :?> Minus
+                let arg1 = lhsStack.Pop() :?> ArithmeticSecondOrderExpr
+                let reductionResult = ArithmeticSecondOrderExpr.Subtract (arg1, arg2, arg3)
                 lhsStack.Push(reductionResult)
                 let nextState =
                     match stateStack.Peek() with
-                    | 0 -> 11
+                    | 0 -> 12
+                    | 1 -> 12
                     | _ -> failwith "Parser is in an invalid state. This is a bug in the parser generator."
                 stateStack.Push(nextState)
             | InputItem.Asterisk x ->
@@ -344,20 +376,37 @@ let parse (input: #seq<InputItem>) : Result<Program, ParseError> =
                     lookahead <- inputEnumerator.Current
                 else
                     lookaheadIsEof <- true
-                stateStack.Push(6)
+                stateStack.Push(7)
             | InputItem.Minus _ ->
                 // reduce
                 stateStack.Pop() |> ignore
                 stateStack.Pop() |> ignore
                 stateStack.Pop() |> ignore
-                let arg3 = lhsStack.Pop() :?> ArithmeticOpOrderA
-                let arg2 = lhsStack.Pop() :?> Plus
-                let arg1 = lhsStack.Pop() :?> ArithmeticOpOrderB
-                let reductionResult = ArithmeticOpOrderB.Add (arg1, arg2, arg3)
+                let arg3 = lhsStack.Pop() :?> ArithmeticFirstOrderExpr
+                let arg2 = lhsStack.Pop() :?> Minus
+                let arg1 = lhsStack.Pop() :?> ArithmeticSecondOrderExpr
+                let reductionResult = ArithmeticSecondOrderExpr.Subtract (arg1, arg2, arg3)
                 lhsStack.Push(reductionResult)
                 let nextState =
                     match stateStack.Peek() with
-                    | 0 -> 11
+                    | 0 -> 12
+                    | 1 -> 12
+                    | _ -> failwith "Parser is in an invalid state. This is a bug in the parser generator."
+                stateStack.Push(nextState)
+            | InputItem.ParenClose _ ->
+                // reduce
+                stateStack.Pop() |> ignore
+                stateStack.Pop() |> ignore
+                stateStack.Pop() |> ignore
+                let arg3 = lhsStack.Pop() :?> ArithmeticFirstOrderExpr
+                let arg2 = lhsStack.Pop() :?> Minus
+                let arg1 = lhsStack.Pop() :?> ArithmeticSecondOrderExpr
+                let reductionResult = ArithmeticSecondOrderExpr.Subtract (arg1, arg2, arg3)
+                lhsStack.Push(reductionResult)
+                let nextState =
+                    match stateStack.Peek() with
+                    | 0 -> 12
+                    | 1 -> 12
                     | _ -> failwith "Parser is in an invalid state. This is a bug in the parser generator."
                 stateStack.Push(nextState)
             | InputItem.Plus _ ->
@@ -365,14 +414,15 @@ let parse (input: #seq<InputItem>) : Result<Program, ParseError> =
                 stateStack.Pop() |> ignore
                 stateStack.Pop() |> ignore
                 stateStack.Pop() |> ignore
-                let arg3 = lhsStack.Pop() :?> ArithmeticOpOrderA
-                let arg2 = lhsStack.Pop() :?> Plus
-                let arg1 = lhsStack.Pop() :?> ArithmeticOpOrderB
-                let reductionResult = ArithmeticOpOrderB.Add (arg1, arg2, arg3)
+                let arg3 = lhsStack.Pop() :?> ArithmeticFirstOrderExpr
+                let arg2 = lhsStack.Pop() :?> Minus
+                let arg1 = lhsStack.Pop() :?> ArithmeticSecondOrderExpr
+                let reductionResult = ArithmeticSecondOrderExpr.Subtract (arg1, arg2, arg3)
                 lhsStack.Push(reductionResult)
                 let nextState =
                     match stateStack.Peek() with
-                    | 0 -> 11
+                    | 0 -> 12
+                    | 1 -> 12
                     | _ -> failwith "Parser is in an invalid state. This is a bug in the parser generator."
                 stateStack.Push(nextState)
             | InputItem.Slash x ->
@@ -382,42 +432,137 @@ let parse (input: #seq<InputItem>) : Result<Program, ParseError> =
                     lookahead <- inputEnumerator.Current
                 else
                     lookaheadIsEof <- true
-                stateStack.Push(8)
+                stateStack.Push(9)
             | _ ->
                 // error
-                expected <- [ExpectedItem.EndOfStream; ExpectedItem.Asterisk; ExpectedItem.Minus; ExpectedItem.Plus; ExpectedItem.Slash]
+                expected <- [ExpectedItem.EndOfStream; ExpectedItem.Asterisk; ExpectedItem.Minus; ExpectedItem.ParenClose; ExpectedItem.Plus; ExpectedItem.Slash]
                 keepGoing <- false
         | 6 ->
             match lookahead with
-            | InputItem.NumberLiteral x ->
+            | _ when lookaheadIsEof ->
+                // reduce
+                stateStack.Pop() |> ignore
+                stateStack.Pop() |> ignore
+                stateStack.Pop() |> ignore
+                let arg3 = lhsStack.Pop() :?> ArithmeticFirstOrderExpr
+                let arg2 = lhsStack.Pop() :?> Plus
+                let arg1 = lhsStack.Pop() :?> ArithmeticSecondOrderExpr
+                let reductionResult = ArithmeticSecondOrderExpr.Add (arg1, arg2, arg3)
+                lhsStack.Push(reductionResult)
+                let nextState =
+                    match stateStack.Peek() with
+                    | 0 -> 12
+                    | 1 -> 12
+                    | _ -> failwith "Parser is in an invalid state. This is a bug in the parser generator."
+                stateStack.Push(nextState)
+            | InputItem.Asterisk x ->
                 // shift
                 lhsStack.Push(x)
                 if inputEnumerator.MoveNext() then
                     lookahead <- inputEnumerator.Current
                 else
                     lookaheadIsEof <- true
-                stateStack.Push(12)
+                stateStack.Push(7)
+            | InputItem.Minus _ ->
+                // reduce
+                stateStack.Pop() |> ignore
+                stateStack.Pop() |> ignore
+                stateStack.Pop() |> ignore
+                let arg3 = lhsStack.Pop() :?> ArithmeticFirstOrderExpr
+                let arg2 = lhsStack.Pop() :?> Plus
+                let arg1 = lhsStack.Pop() :?> ArithmeticSecondOrderExpr
+                let reductionResult = ArithmeticSecondOrderExpr.Add (arg1, arg2, arg3)
+                lhsStack.Push(reductionResult)
+                let nextState =
+                    match stateStack.Peek() with
+                    | 0 -> 12
+                    | 1 -> 12
+                    | _ -> failwith "Parser is in an invalid state. This is a bug in the parser generator."
+                stateStack.Push(nextState)
+            | InputItem.ParenClose _ ->
+                // reduce
+                stateStack.Pop() |> ignore
+                stateStack.Pop() |> ignore
+                stateStack.Pop() |> ignore
+                let arg3 = lhsStack.Pop() :?> ArithmeticFirstOrderExpr
+                let arg2 = lhsStack.Pop() :?> Plus
+                let arg1 = lhsStack.Pop() :?> ArithmeticSecondOrderExpr
+                let reductionResult = ArithmeticSecondOrderExpr.Add (arg1, arg2, arg3)
+                lhsStack.Push(reductionResult)
+                let nextState =
+                    match stateStack.Peek() with
+                    | 0 -> 12
+                    | 1 -> 12
+                    | _ -> failwith "Parser is in an invalid state. This is a bug in the parser generator."
+                stateStack.Push(nextState)
+            | InputItem.Plus _ ->
+                // reduce
+                stateStack.Pop() |> ignore
+                stateStack.Pop() |> ignore
+                stateStack.Pop() |> ignore
+                let arg3 = lhsStack.Pop() :?> ArithmeticFirstOrderExpr
+                let arg2 = lhsStack.Pop() :?> Plus
+                let arg1 = lhsStack.Pop() :?> ArithmeticSecondOrderExpr
+                let reductionResult = ArithmeticSecondOrderExpr.Add (arg1, arg2, arg3)
+                lhsStack.Push(reductionResult)
+                let nextState =
+                    match stateStack.Peek() with
+                    | 0 -> 12
+                    | 1 -> 12
+                    | _ -> failwith "Parser is in an invalid state. This is a bug in the parser generator."
+                stateStack.Push(nextState)
+            | InputItem.Slash x ->
+                // shift
+                lhsStack.Push(x)
+                if inputEnumerator.MoveNext() then
+                    lookahead <- inputEnumerator.Current
+                else
+                    lookaheadIsEof <- true
+                stateStack.Push(9)
             | _ ->
                 // error
-                expected <- [ExpectedItem.NumberLiteral]
+                expected <- [ExpectedItem.EndOfStream; ExpectedItem.Asterisk; ExpectedItem.Minus; ExpectedItem.ParenClose; ExpectedItem.Plus; ExpectedItem.Slash]
                 keepGoing <- false
         | 7 ->
             match lookahead with
+            | InputItem.NumberLiteral x ->
+                // shift
+                lhsStack.Push(x)
+                if inputEnumerator.MoveNext() then
+                    lookahead <- inputEnumerator.Current
+                else
+                    lookaheadIsEof <- true
+                stateStack.Push(13)
+            | InputItem.ParenOpen x ->
+                // shift
+                lhsStack.Push(x)
+                if inputEnumerator.MoveNext() then
+                    lookahead <- inputEnumerator.Current
+                else
+                    lookaheadIsEof <- true
+                stateStack.Push(0)
+            | _ ->
+                // error
+                expected <- [ExpectedItem.NumberLiteral; ExpectedItem.ParenOpen]
+                keepGoing <- false
+        | 8 ->
+            match lookahead with
             | _ when lookaheadIsEof ->
                 // reduce
                 stateStack.Pop() |> ignore
                 stateStack.Pop() |> ignore
                 stateStack.Pop() |> ignore
-                let arg3 = lhsStack.Pop() :?> NumberLiteralExpression
+                let arg3 = lhsStack.Pop() :?> AtomExpr
                 let arg2 = lhsStack.Pop() :?> Asterisk
-                let arg1 = lhsStack.Pop() :?> ArithmeticOpOrderA
-                let reductionResult = ArithmeticOpOrderA.Multiply (arg1, arg2, arg3)
+                let arg1 = lhsStack.Pop() :?> ArithmeticFirstOrderExpr
+                let reductionResult = ArithmeticFirstOrderExpr.Multiply (arg1, arg2, arg3)
                 lhsStack.Push(reductionResult)
                 let nextState =
                     match stateStack.Peek() with
-                    | 0 -> 3
+                    | 0 -> 4
                     | 1 -> 4
                     | 2 -> 5
+                    | 3 -> 6
                     | _ -> failwith "Parser is in an invalid state. This is a bug in the parser generator."
                 stateStack.Push(nextState)
             | InputItem.Asterisk _ ->
@@ -425,16 +570,17 @@ let parse (input: #seq<InputItem>) : Result<Program, ParseError> =
                 stateStack.Pop() |> ignore
                 stateStack.Pop() |> ignore
                 stateStack.Pop() |> ignore
-                let arg3 = lhsStack.Pop() :?> NumberLiteralExpression
+                let arg3 = lhsStack.Pop() :?> AtomExpr
                 let arg2 = lhsStack.Pop() :?> Asterisk
-                let arg1 = lhsStack.Pop() :?> ArithmeticOpOrderA
-                let reductionResult = ArithmeticOpOrderA.Multiply (arg1, arg2, arg3)
+                let arg1 = lhsStack.Pop() :?> ArithmeticFirstOrderExpr
+                let reductionResult = ArithmeticFirstOrderExpr.Multiply (arg1, arg2, arg3)
                 lhsStack.Push(reductionResult)
                 let nextState =
                     match stateStack.Peek() with
-                    | 0 -> 3
+                    | 0 -> 4
                     | 1 -> 4
                     | 2 -> 5
+                    | 3 -> 6
                     | _ -> failwith "Parser is in an invalid state. This is a bug in the parser generator."
                 stateStack.Push(nextState)
             | InputItem.Minus _ ->
@@ -442,16 +588,35 @@ let parse (input: #seq<InputItem>) : Result<Program, ParseError> =
                 stateStack.Pop() |> ignore
                 stateStack.Pop() |> ignore
                 stateStack.Pop() |> ignore
-                let arg3 = lhsStack.Pop() :?> NumberLiteralExpression
+                let arg3 = lhsStack.Pop() :?> AtomExpr
                 let arg2 = lhsStack.Pop() :?> Asterisk
-                let arg1 = lhsStack.Pop() :?> ArithmeticOpOrderA
-                let reductionResult = ArithmeticOpOrderA.Multiply (arg1, arg2, arg3)
+                let arg1 = lhsStack.Pop() :?> ArithmeticFirstOrderExpr
+                let reductionResult = ArithmeticFirstOrderExpr.Multiply (arg1, arg2, arg3)
                 lhsStack.Push(reductionResult)
                 let nextState =
                     match stateStack.Peek() with
-                    | 0 -> 3
+                    | 0 -> 4
                     | 1 -> 4
                     | 2 -> 5
+                    | 3 -> 6
+                    | _ -> failwith "Parser is in an invalid state. This is a bug in the parser generator."
+                stateStack.Push(nextState)
+            | InputItem.ParenClose _ ->
+                // reduce
+                stateStack.Pop() |> ignore
+                stateStack.Pop() |> ignore
+                stateStack.Pop() |> ignore
+                let arg3 = lhsStack.Pop() :?> AtomExpr
+                let arg2 = lhsStack.Pop() :?> Asterisk
+                let arg1 = lhsStack.Pop() :?> ArithmeticFirstOrderExpr
+                let reductionResult = ArithmeticFirstOrderExpr.Multiply (arg1, arg2, arg3)
+                lhsStack.Push(reductionResult)
+                let nextState =
+                    match stateStack.Peek() with
+                    | 0 -> 4
+                    | 1 -> 4
+                    | 2 -> 5
+                    | 3 -> 6
                     | _ -> failwith "Parser is in an invalid state. This is a bug in the parser generator."
                 stateStack.Push(nextState)
             | InputItem.Plus _ ->
@@ -459,16 +624,17 @@ let parse (input: #seq<InputItem>) : Result<Program, ParseError> =
                 stateStack.Pop() |> ignore
                 stateStack.Pop() |> ignore
                 stateStack.Pop() |> ignore
-                let arg3 = lhsStack.Pop() :?> NumberLiteralExpression
+                let arg3 = lhsStack.Pop() :?> AtomExpr
                 let arg2 = lhsStack.Pop() :?> Asterisk
-                let arg1 = lhsStack.Pop() :?> ArithmeticOpOrderA
-                let reductionResult = ArithmeticOpOrderA.Multiply (arg1, arg2, arg3)
+                let arg1 = lhsStack.Pop() :?> ArithmeticFirstOrderExpr
+                let reductionResult = ArithmeticFirstOrderExpr.Multiply (arg1, arg2, arg3)
                 lhsStack.Push(reductionResult)
                 let nextState =
                     match stateStack.Peek() with
-                    | 0 -> 3
+                    | 0 -> 4
                     | 1 -> 4
                     | 2 -> 5
+                    | 3 -> 6
                     | _ -> failwith "Parser is in an invalid state. This is a bug in the parser generator."
                 stateStack.Push(nextState)
             | InputItem.Slash _ ->
@@ -476,23 +642,24 @@ let parse (input: #seq<InputItem>) : Result<Program, ParseError> =
                 stateStack.Pop() |> ignore
                 stateStack.Pop() |> ignore
                 stateStack.Pop() |> ignore
-                let arg3 = lhsStack.Pop() :?> NumberLiteralExpression
+                let arg3 = lhsStack.Pop() :?> AtomExpr
                 let arg2 = lhsStack.Pop() :?> Asterisk
-                let arg1 = lhsStack.Pop() :?> ArithmeticOpOrderA
-                let reductionResult = ArithmeticOpOrderA.Multiply (arg1, arg2, arg3)
+                let arg1 = lhsStack.Pop() :?> ArithmeticFirstOrderExpr
+                let reductionResult = ArithmeticFirstOrderExpr.Multiply (arg1, arg2, arg3)
                 lhsStack.Push(reductionResult)
                 let nextState =
                     match stateStack.Peek() with
-                    | 0 -> 3
+                    | 0 -> 4
                     | 1 -> 4
                     | 2 -> 5
+                    | 3 -> 6
                     | _ -> failwith "Parser is in an invalid state. This is a bug in the parser generator."
                 stateStack.Push(nextState)
             | _ ->
                 // error
-                expected <- [ExpectedItem.EndOfStream; ExpectedItem.Asterisk; ExpectedItem.Minus; ExpectedItem.Plus; ExpectedItem.Slash]
+                expected <- [ExpectedItem.EndOfStream; ExpectedItem.Asterisk; ExpectedItem.Minus; ExpectedItem.ParenClose; ExpectedItem.Plus; ExpectedItem.Slash]
                 keepGoing <- false
-        | 8 ->
+        | 9 ->
             match lookahead with
             | InputItem.NumberLiteral x ->
                 // shift
@@ -501,184 +668,235 @@ let parse (input: #seq<InputItem>) : Result<Program, ParseError> =
                     lookahead <- inputEnumerator.Current
                 else
                     lookaheadIsEof <- true
-                stateStack.Push(12)
+                stateStack.Push(13)
+            | InputItem.ParenOpen x ->
+                // shift
+                lhsStack.Push(x)
+                if inputEnumerator.MoveNext() then
+                    lookahead <- inputEnumerator.Current
+                else
+                    lookaheadIsEof <- true
+                stateStack.Push(0)
             | _ ->
                 // error
-                expected <- [ExpectedItem.NumberLiteral]
-                keepGoing <- false
-        | 9 ->
-            match lookahead with
-            | _ when lookaheadIsEof ->
-                // reduce
-                stateStack.Pop() |> ignore
-                stateStack.Pop() |> ignore
-                stateStack.Pop() |> ignore
-                let arg3 = lhsStack.Pop() :?> NumberLiteralExpression
-                let arg2 = lhsStack.Pop() :?> Slash
-                let arg1 = lhsStack.Pop() :?> ArithmeticOpOrderA
-                let reductionResult = ArithmeticOpOrderA.Divide (arg1, arg2, arg3)
-                lhsStack.Push(reductionResult)
-                let nextState =
-                    match stateStack.Peek() with
-                    | 0 -> 3
-                    | 1 -> 4
-                    | 2 -> 5
-                    | _ -> failwith "Parser is in an invalid state. This is a bug in the parser generator."
-                stateStack.Push(nextState)
-            | InputItem.Asterisk _ ->
-                // reduce
-                stateStack.Pop() |> ignore
-                stateStack.Pop() |> ignore
-                stateStack.Pop() |> ignore
-                let arg3 = lhsStack.Pop() :?> NumberLiteralExpression
-                let arg2 = lhsStack.Pop() :?> Slash
-                let arg1 = lhsStack.Pop() :?> ArithmeticOpOrderA
-                let reductionResult = ArithmeticOpOrderA.Divide (arg1, arg2, arg3)
-                lhsStack.Push(reductionResult)
-                let nextState =
-                    match stateStack.Peek() with
-                    | 0 -> 3
-                    | 1 -> 4
-                    | 2 -> 5
-                    | _ -> failwith "Parser is in an invalid state. This is a bug in the parser generator."
-                stateStack.Push(nextState)
-            | InputItem.Minus _ ->
-                // reduce
-                stateStack.Pop() |> ignore
-                stateStack.Pop() |> ignore
-                stateStack.Pop() |> ignore
-                let arg3 = lhsStack.Pop() :?> NumberLiteralExpression
-                let arg2 = lhsStack.Pop() :?> Slash
-                let arg1 = lhsStack.Pop() :?> ArithmeticOpOrderA
-                let reductionResult = ArithmeticOpOrderA.Divide (arg1, arg2, arg3)
-                lhsStack.Push(reductionResult)
-                let nextState =
-                    match stateStack.Peek() with
-                    | 0 -> 3
-                    | 1 -> 4
-                    | 2 -> 5
-                    | _ -> failwith "Parser is in an invalid state. This is a bug in the parser generator."
-                stateStack.Push(nextState)
-            | InputItem.Plus _ ->
-                // reduce
-                stateStack.Pop() |> ignore
-                stateStack.Pop() |> ignore
-                stateStack.Pop() |> ignore
-                let arg3 = lhsStack.Pop() :?> NumberLiteralExpression
-                let arg2 = lhsStack.Pop() :?> Slash
-                let arg1 = lhsStack.Pop() :?> ArithmeticOpOrderA
-                let reductionResult = ArithmeticOpOrderA.Divide (arg1, arg2, arg3)
-                lhsStack.Push(reductionResult)
-                let nextState =
-                    match stateStack.Peek() with
-                    | 0 -> 3
-                    | 1 -> 4
-                    | 2 -> 5
-                    | _ -> failwith "Parser is in an invalid state. This is a bug in the parser generator."
-                stateStack.Push(nextState)
-            | InputItem.Slash _ ->
-                // reduce
-                stateStack.Pop() |> ignore
-                stateStack.Pop() |> ignore
-                stateStack.Pop() |> ignore
-                let arg3 = lhsStack.Pop() :?> NumberLiteralExpression
-                let arg2 = lhsStack.Pop() :?> Slash
-                let arg1 = lhsStack.Pop() :?> ArithmeticOpOrderA
-                let reductionResult = ArithmeticOpOrderA.Divide (arg1, arg2, arg3)
-                lhsStack.Push(reductionResult)
-                let nextState =
-                    match stateStack.Peek() with
-                    | 0 -> 3
-                    | 1 -> 4
-                    | 2 -> 5
-                    | _ -> failwith "Parser is in an invalid state. This is a bug in the parser generator."
-                stateStack.Push(nextState)
-            | _ ->
-                // error
-                expected <- [ExpectedItem.EndOfStream; ExpectedItem.Asterisk; ExpectedItem.Minus; ExpectedItem.Plus; ExpectedItem.Slash]
+                expected <- [ExpectedItem.NumberLiteral; ExpectedItem.ParenOpen]
                 keepGoing <- false
         | 10 ->
             match lookahead with
             | _ when lookaheadIsEof ->
                 // reduce
                 stateStack.Pop() |> ignore
-                let arg1 = lhsStack.Pop() :?> NumberLiteralExpression
-                let reductionResult = ArithmeticOpOrderA.Fallthrough arg1
+                stateStack.Pop() |> ignore
+                stateStack.Pop() |> ignore
+                let arg3 = lhsStack.Pop() :?> AtomExpr
+                let arg2 = lhsStack.Pop() :?> Slash
+                let arg1 = lhsStack.Pop() :?> ArithmeticFirstOrderExpr
+                let reductionResult = ArithmeticFirstOrderExpr.Divide (arg1, arg2, arg3)
                 lhsStack.Push(reductionResult)
                 let nextState =
                     match stateStack.Peek() with
-                    | 0 -> 3
+                    | 0 -> 4
                     | 1 -> 4
                     | 2 -> 5
+                    | 3 -> 6
                     | _ -> failwith "Parser is in an invalid state. This is a bug in the parser generator."
                 stateStack.Push(nextState)
             | InputItem.Asterisk _ ->
                 // reduce
                 stateStack.Pop() |> ignore
-                let arg1 = lhsStack.Pop() :?> NumberLiteralExpression
-                let reductionResult = ArithmeticOpOrderA.Fallthrough arg1
+                stateStack.Pop() |> ignore
+                stateStack.Pop() |> ignore
+                let arg3 = lhsStack.Pop() :?> AtomExpr
+                let arg2 = lhsStack.Pop() :?> Slash
+                let arg1 = lhsStack.Pop() :?> ArithmeticFirstOrderExpr
+                let reductionResult = ArithmeticFirstOrderExpr.Divide (arg1, arg2, arg3)
                 lhsStack.Push(reductionResult)
                 let nextState =
                     match stateStack.Peek() with
-                    | 0 -> 3
+                    | 0 -> 4
                     | 1 -> 4
                     | 2 -> 5
+                    | 3 -> 6
                     | _ -> failwith "Parser is in an invalid state. This is a bug in the parser generator."
                 stateStack.Push(nextState)
             | InputItem.Minus _ ->
                 // reduce
                 stateStack.Pop() |> ignore
-                let arg1 = lhsStack.Pop() :?> NumberLiteralExpression
-                let reductionResult = ArithmeticOpOrderA.Fallthrough arg1
+                stateStack.Pop() |> ignore
+                stateStack.Pop() |> ignore
+                let arg3 = lhsStack.Pop() :?> AtomExpr
+                let arg2 = lhsStack.Pop() :?> Slash
+                let arg1 = lhsStack.Pop() :?> ArithmeticFirstOrderExpr
+                let reductionResult = ArithmeticFirstOrderExpr.Divide (arg1, arg2, arg3)
                 lhsStack.Push(reductionResult)
                 let nextState =
                     match stateStack.Peek() with
-                    | 0 -> 3
+                    | 0 -> 4
                     | 1 -> 4
                     | 2 -> 5
+                    | 3 -> 6
+                    | _ -> failwith "Parser is in an invalid state. This is a bug in the parser generator."
+                stateStack.Push(nextState)
+            | InputItem.ParenClose _ ->
+                // reduce
+                stateStack.Pop() |> ignore
+                stateStack.Pop() |> ignore
+                stateStack.Pop() |> ignore
+                let arg3 = lhsStack.Pop() :?> AtomExpr
+                let arg2 = lhsStack.Pop() :?> Slash
+                let arg1 = lhsStack.Pop() :?> ArithmeticFirstOrderExpr
+                let reductionResult = ArithmeticFirstOrderExpr.Divide (arg1, arg2, arg3)
+                lhsStack.Push(reductionResult)
+                let nextState =
+                    match stateStack.Peek() with
+                    | 0 -> 4
+                    | 1 -> 4
+                    | 2 -> 5
+                    | 3 -> 6
                     | _ -> failwith "Parser is in an invalid state. This is a bug in the parser generator."
                 stateStack.Push(nextState)
             | InputItem.Plus _ ->
                 // reduce
                 stateStack.Pop() |> ignore
-                let arg1 = lhsStack.Pop() :?> NumberLiteralExpression
-                let reductionResult = ArithmeticOpOrderA.Fallthrough arg1
+                stateStack.Pop() |> ignore
+                stateStack.Pop() |> ignore
+                let arg3 = lhsStack.Pop() :?> AtomExpr
+                let arg2 = lhsStack.Pop() :?> Slash
+                let arg1 = lhsStack.Pop() :?> ArithmeticFirstOrderExpr
+                let reductionResult = ArithmeticFirstOrderExpr.Divide (arg1, arg2, arg3)
                 lhsStack.Push(reductionResult)
                 let nextState =
                     match stateStack.Peek() with
-                    | 0 -> 3
+                    | 0 -> 4
                     | 1 -> 4
                     | 2 -> 5
+                    | 3 -> 6
                     | _ -> failwith "Parser is in an invalid state. This is a bug in the parser generator."
                 stateStack.Push(nextState)
             | InputItem.Slash _ ->
                 // reduce
                 stateStack.Pop() |> ignore
-                let arg1 = lhsStack.Pop() :?> NumberLiteralExpression
-                let reductionResult = ArithmeticOpOrderA.Fallthrough arg1
+                stateStack.Pop() |> ignore
+                stateStack.Pop() |> ignore
+                let arg3 = lhsStack.Pop() :?> AtomExpr
+                let arg2 = lhsStack.Pop() :?> Slash
+                let arg1 = lhsStack.Pop() :?> ArithmeticFirstOrderExpr
+                let reductionResult = ArithmeticFirstOrderExpr.Divide (arg1, arg2, arg3)
                 lhsStack.Push(reductionResult)
                 let nextState =
                     match stateStack.Peek() with
-                    | 0 -> 3
+                    | 0 -> 4
                     | 1 -> 4
                     | 2 -> 5
+                    | 3 -> 6
                     | _ -> failwith "Parser is in an invalid state. This is a bug in the parser generator."
                 stateStack.Push(nextState)
             | _ ->
                 // error
-                expected <- [ExpectedItem.EndOfStream; ExpectedItem.Asterisk; ExpectedItem.Minus; ExpectedItem.Plus; ExpectedItem.Slash]
+                expected <- [ExpectedItem.EndOfStream; ExpectedItem.Asterisk; ExpectedItem.Minus; ExpectedItem.ParenClose; ExpectedItem.Plus; ExpectedItem.Slash]
                 keepGoing <- false
         | 11 ->
             match lookahead with
             | _ when lookaheadIsEof ->
                 // reduce
                 stateStack.Pop() |> ignore
-                let arg1 = lhsStack.Pop() :?> ArithmeticOpOrderB
-                let reductionResult = Expression.Expression arg1
+                let arg1 = lhsStack.Pop() :?> AtomExpr
+                let reductionResult = ArithmeticFirstOrderExpr.Fallthrough arg1
                 lhsStack.Push(reductionResult)
                 let nextState =
                     match stateStack.Peek() with
-                    | 0 -> 13
+                    | 0 -> 4
+                    | 1 -> 4
+                    | 2 -> 5
+                    | 3 -> 6
+                    | _ -> failwith "Parser is in an invalid state. This is a bug in the parser generator."
+                stateStack.Push(nextState)
+            | InputItem.Asterisk _ ->
+                // reduce
+                stateStack.Pop() |> ignore
+                let arg1 = lhsStack.Pop() :?> AtomExpr
+                let reductionResult = ArithmeticFirstOrderExpr.Fallthrough arg1
+                lhsStack.Push(reductionResult)
+                let nextState =
+                    match stateStack.Peek() with
+                    | 0 -> 4
+                    | 1 -> 4
+                    | 2 -> 5
+                    | 3 -> 6
+                    | _ -> failwith "Parser is in an invalid state. This is a bug in the parser generator."
+                stateStack.Push(nextState)
+            | InputItem.Minus _ ->
+                // reduce
+                stateStack.Pop() |> ignore
+                let arg1 = lhsStack.Pop() :?> AtomExpr
+                let reductionResult = ArithmeticFirstOrderExpr.Fallthrough arg1
+                lhsStack.Push(reductionResult)
+                let nextState =
+                    match stateStack.Peek() with
+                    | 0 -> 4
+                    | 1 -> 4
+                    | 2 -> 5
+                    | 3 -> 6
+                    | _ -> failwith "Parser is in an invalid state. This is a bug in the parser generator."
+                stateStack.Push(nextState)
+            | InputItem.ParenClose _ ->
+                // reduce
+                stateStack.Pop() |> ignore
+                let arg1 = lhsStack.Pop() :?> AtomExpr
+                let reductionResult = ArithmeticFirstOrderExpr.Fallthrough arg1
+                lhsStack.Push(reductionResult)
+                let nextState =
+                    match stateStack.Peek() with
+                    | 0 -> 4
+                    | 1 -> 4
+                    | 2 -> 5
+                    | 3 -> 6
+                    | _ -> failwith "Parser is in an invalid state. This is a bug in the parser generator."
+                stateStack.Push(nextState)
+            | InputItem.Plus _ ->
+                // reduce
+                stateStack.Pop() |> ignore
+                let arg1 = lhsStack.Pop() :?> AtomExpr
+                let reductionResult = ArithmeticFirstOrderExpr.Fallthrough arg1
+                lhsStack.Push(reductionResult)
+                let nextState =
+                    match stateStack.Peek() with
+                    | 0 -> 4
+                    | 1 -> 4
+                    | 2 -> 5
+                    | 3 -> 6
+                    | _ -> failwith "Parser is in an invalid state. This is a bug in the parser generator."
+                stateStack.Push(nextState)
+            | InputItem.Slash _ ->
+                // reduce
+                stateStack.Pop() |> ignore
+                let arg1 = lhsStack.Pop() :?> AtomExpr
+                let reductionResult = ArithmeticFirstOrderExpr.Fallthrough arg1
+                lhsStack.Push(reductionResult)
+                let nextState =
+                    match stateStack.Peek() with
+                    | 0 -> 4
+                    | 1 -> 4
+                    | 2 -> 5
+                    | 3 -> 6
+                    | _ -> failwith "Parser is in an invalid state. This is a bug in the parser generator."
+                stateStack.Push(nextState)
+            | _ ->
+                // error
+                expected <- [ExpectedItem.EndOfStream; ExpectedItem.Asterisk; ExpectedItem.Minus; ExpectedItem.ParenClose; ExpectedItem.Plus; ExpectedItem.Slash]
+                keepGoing <- false
+        | 12 ->
+            match lookahead with
+            | _ when lookaheadIsEof ->
+                // reduce
+                stateStack.Pop() |> ignore
+                let arg1 = lhsStack.Pop() :?> ArithmeticSecondOrderExpr
+                let reductionResult = Expr.Expr arg1
+                lhsStack.Push(reductionResult)
+                let nextState =
+                    match stateStack.Peek() with
+                    | 0 -> 14
+                    | 1 -> 16
                     | _ -> failwith "Parser is in an invalid state. This is a bug in the parser generator."
                 stateStack.Push(nextState)
             | InputItem.Minus x ->
@@ -688,7 +906,19 @@ let parse (input: #seq<InputItem>) : Result<Program, ParseError> =
                     lookahead <- inputEnumerator.Current
                 else
                     lookaheadIsEof <- true
-                stateStack.Push(1)
+                stateStack.Push(2)
+            | InputItem.ParenClose _ ->
+                // reduce
+                stateStack.Pop() |> ignore
+                let arg1 = lhsStack.Pop() :?> ArithmeticSecondOrderExpr
+                let reductionResult = Expr.Expr arg1
+                lhsStack.Push(reductionResult)
+                let nextState =
+                    match stateStack.Peek() with
+                    | 0 -> 14
+                    | 1 -> 16
+                    | _ -> failwith "Parser is in an invalid state. This is a bug in the parser generator."
+                stateStack.Push(nextState)
             | InputItem.Plus x ->
                 // shift
                 lhsStack.Push(x)
@@ -696,98 +926,259 @@ let parse (input: #seq<InputItem>) : Result<Program, ParseError> =
                     lookahead <- inputEnumerator.Current
                 else
                     lookaheadIsEof <- true
-                stateStack.Push(2)
+                stateStack.Push(3)
             | _ ->
                 // error
-                expected <- [ExpectedItem.EndOfStream; ExpectedItem.Minus; ExpectedItem.Plus]
+                expected <- [ExpectedItem.EndOfStream; ExpectedItem.Minus; ExpectedItem.ParenClose; ExpectedItem.Plus]
                 keepGoing <- false
-        | 12 ->
+        | 13 ->
             match lookahead with
             | _ when lookaheadIsEof ->
                 // reduce
                 stateStack.Pop() |> ignore
                 let arg1 = lhsStack.Pop() :?> NumberLiteral
-                let reductionResult = NumberLiteralExpression.NumberLiteralExpression arg1
+                let reductionResult = AtomExpr.Number arg1
                 lhsStack.Push(reductionResult)
                 let nextState =
                     match stateStack.Peek() with
-                    | 0 -> 10
-                    | 1 -> 10
-                    | 2 -> 10
-                    | 6 -> 7
-                    | 8 -> 9
+                    | 0 -> 11
+                    | 1 -> 11
+                    | 2 -> 11
+                    | 3 -> 11
+                    | 7 -> 8
+                    | 9 -> 10
                     | _ -> failwith "Parser is in an invalid state. This is a bug in the parser generator."
                 stateStack.Push(nextState)
             | InputItem.Asterisk _ ->
                 // reduce
                 stateStack.Pop() |> ignore
                 let arg1 = lhsStack.Pop() :?> NumberLiteral
-                let reductionResult = NumberLiteralExpression.NumberLiteralExpression arg1
+                let reductionResult = AtomExpr.Number arg1
                 lhsStack.Push(reductionResult)
                 let nextState =
                     match stateStack.Peek() with
-                    | 0 -> 10
-                    | 1 -> 10
-                    | 2 -> 10
-                    | 6 -> 7
-                    | 8 -> 9
+                    | 0 -> 11
+                    | 1 -> 11
+                    | 2 -> 11
+                    | 3 -> 11
+                    | 7 -> 8
+                    | 9 -> 10
                     | _ -> failwith "Parser is in an invalid state. This is a bug in the parser generator."
                 stateStack.Push(nextState)
             | InputItem.Minus _ ->
                 // reduce
                 stateStack.Pop() |> ignore
                 let arg1 = lhsStack.Pop() :?> NumberLiteral
-                let reductionResult = NumberLiteralExpression.NumberLiteralExpression arg1
+                let reductionResult = AtomExpr.Number arg1
                 lhsStack.Push(reductionResult)
                 let nextState =
                     match stateStack.Peek() with
-                    | 0 -> 10
-                    | 1 -> 10
-                    | 2 -> 10
-                    | 6 -> 7
-                    | 8 -> 9
+                    | 0 -> 11
+                    | 1 -> 11
+                    | 2 -> 11
+                    | 3 -> 11
+                    | 7 -> 8
+                    | 9 -> 10
+                    | _ -> failwith "Parser is in an invalid state. This is a bug in the parser generator."
+                stateStack.Push(nextState)
+            | InputItem.ParenClose _ ->
+                // reduce
+                stateStack.Pop() |> ignore
+                let arg1 = lhsStack.Pop() :?> NumberLiteral
+                let reductionResult = AtomExpr.Number arg1
+                lhsStack.Push(reductionResult)
+                let nextState =
+                    match stateStack.Peek() with
+                    | 0 -> 11
+                    | 1 -> 11
+                    | 2 -> 11
+                    | 3 -> 11
+                    | 7 -> 8
+                    | 9 -> 10
                     | _ -> failwith "Parser is in an invalid state. This is a bug in the parser generator."
                 stateStack.Push(nextState)
             | InputItem.Plus _ ->
                 // reduce
                 stateStack.Pop() |> ignore
                 let arg1 = lhsStack.Pop() :?> NumberLiteral
-                let reductionResult = NumberLiteralExpression.NumberLiteralExpression arg1
+                let reductionResult = AtomExpr.Number arg1
                 lhsStack.Push(reductionResult)
                 let nextState =
                     match stateStack.Peek() with
-                    | 0 -> 10
-                    | 1 -> 10
-                    | 2 -> 10
-                    | 6 -> 7
-                    | 8 -> 9
+                    | 0 -> 11
+                    | 1 -> 11
+                    | 2 -> 11
+                    | 3 -> 11
+                    | 7 -> 8
+                    | 9 -> 10
                     | _ -> failwith "Parser is in an invalid state. This is a bug in the parser generator."
                 stateStack.Push(nextState)
             | InputItem.Slash _ ->
                 // reduce
                 stateStack.Pop() |> ignore
                 let arg1 = lhsStack.Pop() :?> NumberLiteral
-                let reductionResult = NumberLiteralExpression.NumberLiteralExpression arg1
+                let reductionResult = AtomExpr.Number arg1
                 lhsStack.Push(reductionResult)
                 let nextState =
                     match stateStack.Peek() with
-                    | 0 -> 10
-                    | 1 -> 10
-                    | 2 -> 10
-                    | 6 -> 7
-                    | 8 -> 9
+                    | 0 -> 11
+                    | 1 -> 11
+                    | 2 -> 11
+                    | 3 -> 11
+                    | 7 -> 8
+                    | 9 -> 10
                     | _ -> failwith "Parser is in an invalid state. This is a bug in the parser generator."
                 stateStack.Push(nextState)
             | _ ->
                 // error
-                expected <- [ExpectedItem.EndOfStream; ExpectedItem.Asterisk; ExpectedItem.Minus; ExpectedItem.Plus; ExpectedItem.Slash]
+                expected <- [ExpectedItem.EndOfStream; ExpectedItem.Asterisk; ExpectedItem.Minus; ExpectedItem.ParenClose; ExpectedItem.Plus; ExpectedItem.Slash]
                 keepGoing <- false
-        | 13 ->
+        | 14 ->
+            match lookahead with
+            | InputItem.ParenClose x ->
+                // shift
+                lhsStack.Push(x)
+                if inputEnumerator.MoveNext() then
+                    lookahead <- inputEnumerator.Current
+                else
+                    lookaheadIsEof <- true
+                stateStack.Push(15)
+            | _ ->
+                // error
+                expected <- [ExpectedItem.ParenClose]
+                keepGoing <- false
+        | 15 ->
+            match lookahead with
+            | _ when lookaheadIsEof ->
+                // reduce
+                stateStack.Pop() |> ignore
+                stateStack.Pop() |> ignore
+                stateStack.Pop() |> ignore
+                let arg3 = lhsStack.Pop() :?> ParenClose
+                let arg2 = lhsStack.Pop() :?> Expr
+                let arg1 = lhsStack.Pop() :?> ParenOpen
+                let reductionResult = AtomExpr.Paren (arg1, arg2, arg3)
+                lhsStack.Push(reductionResult)
+                let nextState =
+                    match stateStack.Peek() with
+                    | 0 -> 11
+                    | 1 -> 11
+                    | 2 -> 11
+                    | 3 -> 11
+                    | 7 -> 8
+                    | 9 -> 10
+                    | _ -> failwith "Parser is in an invalid state. This is a bug in the parser generator."
+                stateStack.Push(nextState)
+            | InputItem.Asterisk _ ->
+                // reduce
+                stateStack.Pop() |> ignore
+                stateStack.Pop() |> ignore
+                stateStack.Pop() |> ignore
+                let arg3 = lhsStack.Pop() :?> ParenClose
+                let arg2 = lhsStack.Pop() :?> Expr
+                let arg1 = lhsStack.Pop() :?> ParenOpen
+                let reductionResult = AtomExpr.Paren (arg1, arg2, arg3)
+                lhsStack.Push(reductionResult)
+                let nextState =
+                    match stateStack.Peek() with
+                    | 0 -> 11
+                    | 1 -> 11
+                    | 2 -> 11
+                    | 3 -> 11
+                    | 7 -> 8
+                    | 9 -> 10
+                    | _ -> failwith "Parser is in an invalid state. This is a bug in the parser generator."
+                stateStack.Push(nextState)
+            | InputItem.Minus _ ->
+                // reduce
+                stateStack.Pop() |> ignore
+                stateStack.Pop() |> ignore
+                stateStack.Pop() |> ignore
+                let arg3 = lhsStack.Pop() :?> ParenClose
+                let arg2 = lhsStack.Pop() :?> Expr
+                let arg1 = lhsStack.Pop() :?> ParenOpen
+                let reductionResult = AtomExpr.Paren (arg1, arg2, arg3)
+                lhsStack.Push(reductionResult)
+                let nextState =
+                    match stateStack.Peek() with
+                    | 0 -> 11
+                    | 1 -> 11
+                    | 2 -> 11
+                    | 3 -> 11
+                    | 7 -> 8
+                    | 9 -> 10
+                    | _ -> failwith "Parser is in an invalid state. This is a bug in the parser generator."
+                stateStack.Push(nextState)
+            | InputItem.ParenClose _ ->
+                // reduce
+                stateStack.Pop() |> ignore
+                stateStack.Pop() |> ignore
+                stateStack.Pop() |> ignore
+                let arg3 = lhsStack.Pop() :?> ParenClose
+                let arg2 = lhsStack.Pop() :?> Expr
+                let arg1 = lhsStack.Pop() :?> ParenOpen
+                let reductionResult = AtomExpr.Paren (arg1, arg2, arg3)
+                lhsStack.Push(reductionResult)
+                let nextState =
+                    match stateStack.Peek() with
+                    | 0 -> 11
+                    | 1 -> 11
+                    | 2 -> 11
+                    | 3 -> 11
+                    | 7 -> 8
+                    | 9 -> 10
+                    | _ -> failwith "Parser is in an invalid state. This is a bug in the parser generator."
+                stateStack.Push(nextState)
+            | InputItem.Plus _ ->
+                // reduce
+                stateStack.Pop() |> ignore
+                stateStack.Pop() |> ignore
+                stateStack.Pop() |> ignore
+                let arg3 = lhsStack.Pop() :?> ParenClose
+                let arg2 = lhsStack.Pop() :?> Expr
+                let arg1 = lhsStack.Pop() :?> ParenOpen
+                let reductionResult = AtomExpr.Paren (arg1, arg2, arg3)
+                lhsStack.Push(reductionResult)
+                let nextState =
+                    match stateStack.Peek() with
+                    | 0 -> 11
+                    | 1 -> 11
+                    | 2 -> 11
+                    | 3 -> 11
+                    | 7 -> 8
+                    | 9 -> 10
+                    | _ -> failwith "Parser is in an invalid state. This is a bug in the parser generator."
+                stateStack.Push(nextState)
+            | InputItem.Slash _ ->
+                // reduce
+                stateStack.Pop() |> ignore
+                stateStack.Pop() |> ignore
+                stateStack.Pop() |> ignore
+                let arg3 = lhsStack.Pop() :?> ParenClose
+                let arg2 = lhsStack.Pop() :?> Expr
+                let arg1 = lhsStack.Pop() :?> ParenOpen
+                let reductionResult = AtomExpr.Paren (arg1, arg2, arg3)
+                lhsStack.Push(reductionResult)
+                let nextState =
+                    match stateStack.Peek() with
+                    | 0 -> 11
+                    | 1 -> 11
+                    | 2 -> 11
+                    | 3 -> 11
+                    | 7 -> 8
+                    | 9 -> 10
+                    | _ -> failwith "Parser is in an invalid state. This is a bug in the parser generator."
+                stateStack.Push(nextState)
+            | _ ->
+                // error
+                expected <- [ExpectedItem.EndOfStream; ExpectedItem.Asterisk; ExpectedItem.Minus; ExpectedItem.ParenClose; ExpectedItem.Plus; ExpectedItem.Slash]
+                keepGoing <- false
+        | 16 ->
             match lookahead with
             | _ when lookaheadIsEof ->
                 // accept
                 stateStack.Pop() |> ignore
-                let arg1 = lhsStack.Pop() :?> Expression
+                let arg1 = lhsStack.Pop() :?> Expr
                 let reductionResult = Program.Program arg1
                 result <- reductionResult
                 accepted <- true
