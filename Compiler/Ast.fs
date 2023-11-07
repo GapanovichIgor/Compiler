@@ -13,6 +13,7 @@ let private toInputItem (token: Token) : InputItem =
     | TSlash -> InputItem.Slash ()
     | TParenOpen -> InputItem.ParenOpen ()
     | TParenClose -> InputItem.ParenClose ()
+    | TIdentifier i -> InputItem.Identifier i
     | TInvalid t -> failwith $"Invalid token {t}"
     | TBreak -> failwith "todo"
     | TBlockOpen -> failwith "todo"

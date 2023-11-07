@@ -1,5 +1,6 @@
 NumberLiteral : int * int option
 DoubleQuotedString : string
+Identifier : string
 Plus : unit
 Minus : unit
 Asterisk : unit
@@ -15,10 +16,14 @@ ArithmeticSecondOrderExpr.Add -> ArithmeticSecondOrderExpr Plus ArithmeticFirstO
 ArithmeticSecondOrderExpr.Subtract -> ArithmeticSecondOrderExpr Minus ArithmeticFirstOrderExpr
 ArithmeticSecondOrderExpr.Fallthrough -> ArithmeticFirstOrderExpr
 
-ArithmeticFirstOrderExpr.Multiply -> ArithmeticFirstOrderExpr Asterisk AtomExpr
-ArithmeticFirstOrderExpr.Divide -> ArithmeticFirstOrderExpr Slash AtomExpr
-ArithmeticFirstOrderExpr.Fallthrough -> AtomExpr
+ArithmeticFirstOrderExpr.Multiply -> ArithmeticFirstOrderExpr Asterisk Application
+ArithmeticFirstOrderExpr.Divide -> ArithmeticFirstOrderExpr Slash Application
+ArithmeticFirstOrderExpr.Fallthrough -> Application
+
+Application.Application -> Application AtomExpr
+Application.Fallthrough -> AtomExpr
 
 AtomExpr.Number -> NumberLiteral
 AtomExpr.DoubleQuotedString -> DoubleQuotedString
+AtomExpr.Identifier -> Identifier
 AtomExpr.Paren -> ParenOpen Expr ParenClose

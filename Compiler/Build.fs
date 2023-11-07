@@ -14,17 +14,25 @@ module private rec Transpile =
     let getDoubleQuotedString s =
         "\"" + s + "\""
 
+    let getIdentifier i = i
+
     let getAtom (e: AtomExpr) =
         match e with
         | AtomExpr.Number e -> getNumber e
         | AtomExpr.Paren ((), e, ()) -> "(" + getExpression e + ")"
         | AtomExpr.DoubleQuotedString e -> getDoubleQuotedString e
+        | AtomExpr.Identifier e -> getIdentifier e
+
+    let getApplication (e: Application) =
+        match e with
+        | Application.Application (f, arg) -> getApplication f + "(" + getAtom arg + ")"
+        | Application.Fallthrough e -> getAtom e
 
     let rec getArithmeticFirstOrderExpr (e: ArithmeticFirstOrderExpr) =
         match e with
-        | ArithmeticFirstOrderExpr.Multiply (e1, (), e2) -> "(" + getArithmeticFirstOrderExpr e1 + " * " + getAtom e2 + ")"
-        | ArithmeticFirstOrderExpr.Divide (e1, (), e2) -> "(" + getArithmeticFirstOrderExpr e1 + " / " + getAtom e2 + ")"
-        | ArithmeticFirstOrderExpr.Fallthrough e -> getAtom e
+        | ArithmeticFirstOrderExpr.Multiply (e1, (), e2) -> "(" + getArithmeticFirstOrderExpr e1 + " * " + getApplication e2 + ")"
+        | ArithmeticFirstOrderExpr.Divide (e1, (), e2) -> "(" + getArithmeticFirstOrderExpr e1 + " / " + getApplication e2 + ")"
+        | ArithmeticFirstOrderExpr.Fallthrough e -> getApplication e
 
     let rec getArithmeticSecondOrderExpr (e: ArithmeticSecondOrderExpr) =
         match e with
@@ -54,7 +62,10 @@ let internal build (ast: Program, outputPath: string) =
     // let csExpr = ""
 
     let programFile = File.CreateText($"{csDir}\\Program.cs")
-    programFile.Write($"System.Console.WriteLine(%s{csExpr});")
+    programFile.WriteLine("""void print(string text) => System.Console.WriteLine(text);""")
+    programFile.WriteLine("""string toStr<T>(T x) => x.ToString();""")
+    programFile.Write(csExpr)
+    programFile.WriteLine(";")
     programFile.Dispose()
 
     let dotnetProcessStartInfo = ProcessStartInfo("dotnet.exe", "publish -c Release -o ..\\output")
