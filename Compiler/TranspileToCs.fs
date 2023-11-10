@@ -6,7 +6,8 @@ open Compiler.Type
 type private TypedExpression = Ast.TypedExpression<Type>
 
 type private EnclosingFunctionBodyContext =
-    { addPrecedingStatement: CsAst.Statement -> unit }
+    { addPrecedingStatement: CsAst.Statement -> unit
+      createIdentifier: unit -> CsAst.Identifier }
 
 let private mapBinaryOperator (o: Ast.BinaryOperator) =
     match o with
@@ -19,10 +20,14 @@ let private (|Is|_|) v1 v2 = if v1 = v2 then Some() else None
 
 let private mapType (t: Type) : CsAst.Type =
     match t with
-    | Is BuiltInTypes.int -> "System.Int32"
-    | Is BuiltInTypes.float -> "System.Single"
-    | Is BuiltInTypes.string -> "System.String"
-    | Is BuiltInTypes.unit -> failwith "TODO handle void"
+    | Is BuiltInTypes.int -> CsAst.ValueType "System.Int32"
+    | Is BuiltInTypes.float -> CsAst.ValueType "System.Single"
+    | Is BuiltInTypes.string -> CsAst.ValueType "System.String"
+    | Is BuiltInTypes.unit -> CsAst.Void
+    | FunctionType (argT, resultT) ->
+        let argT = mapType argT
+        let resultT = mapType resultT
+        CsAst.FunctionType ([argT], resultT)
     | _ -> failwith "TODO handle other types"
 
 let private mapExpression (ctx: EnclosingFunctionBodyContext) (e: TypedExpression) : CsAst.Expression option =
@@ -51,7 +56,23 @@ let private mapExpression (ctx: EnclosingFunctionBodyContext) (e: TypedExpressio
                 | None -> []
 
             CsAst.FunctionCall(i, args) |> Some
-        | _ -> failwith "TODO handle case when function is not represented by an identifier"
+        | _ ->
+            let varT = mapType f.expressionType
+            let varId = ctx.createIdentifier ()
+            let varBody = mapExpression ctx f
+
+            match varBody with
+            | Some varBody ->
+                ctx.addPrecedingStatement (CsAst.Var(varT, varId, varBody))
+                let arg = mapExpression ctx arg
+
+                let args =
+                    match arg with
+                    | Some arg -> [ arg ]
+                    | None -> []
+
+                CsAst.FunctionCall(varId, args) |> Some
+            | None -> failwith "Expression was expected to evaluate to a function, but it evaluated to nothing"
     | Ast.Coerce(e, t) ->
         let e = mapExpression ctx e
         let t = mapType t
@@ -70,11 +91,14 @@ let private mapExpression (ctx: EnclosingFunctionBodyContext) (e: TypedExpressio
         None
     | Ast.Sequence es ->
         let mutable es = es |> List.map (mapExpression ctx)
+
         while es.Length > 1 do
             let eHead = es.Head
+
             match eHead with
-            | Some (CsAst.FunctionCall (f, args)) -> ctx.addPrecedingStatement (CsAst.Statement.FunctionCall(f, args))
+            | Some(CsAst.FunctionCall(f, args)) -> ctx.addPrecedingStatement (CsAst.Statement.FunctionCall(f, args))
             | _ -> ()
+
             es <- es.Tail
 
         es.Head
@@ -106,7 +130,25 @@ let private mapStatement (ctx: EnclosingFunctionBodyContext) (e: TypedExpression
 let private mapFunctionBody (e: TypedExpression) : CsAst.Statement list =
     let statements = List()
 
-    let context = { addPrecedingStatement = statements.Add }
+    let identifiers = HashSet()
+
+    let mutable identifierCounter = 0
+
+    let createIdentifier () =
+        let createId () =
+            identifierCounter <- identifierCounter + 1
+            "id" + string identifierCounter
+
+        let mutable i = createId ()
+
+        while not (identifiers.Add(i)) do
+            i <- createId ()
+
+        i
+
+    let context =
+        { addPrecedingStatement = statements.Add
+          createIdentifier = createIdentifier }
 
     match e.expression with
     | Ast.Sequence es ->

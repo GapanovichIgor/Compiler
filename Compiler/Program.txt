@@ -1,5 +1,2 @@
-let x =
-    println "Hello"
-    1
-println ", World!"
-println (intToStr x)
+let f = intToStr2
+println (f 1 "F")

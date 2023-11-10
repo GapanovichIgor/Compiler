@@ -2,7 +2,12 @@
 
 type Identifier = string
 
-type Type = string
+type FunctionSignature = Type list * Type
+
+type Type =
+    | Void
+    | ValueType of string
+    | FunctionType of FunctionSignature
 
 type BinaryOperator =
     | Add

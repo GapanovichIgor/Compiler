@@ -91,6 +91,7 @@ let check (ast: Program<unit>) : Program<Type> =
     let identifierTypes = Dictionary()
     identifierTypes["println"] <- FunctionType(BuiltInTypes.string, BuiltInTypes.unit)
     identifierTypes["intToStr"] <- FunctionType(BuiltInTypes.int, BuiltInTypes.string)
+    identifierTypes["intToStr2"] <- FunctionType(BuiltInTypes.int, FunctionType(BuiltInTypes.string, BuiltInTypes.string))
     identifierTypes["floatToStr"] <- FunctionType(BuiltInTypes.float, BuiltInTypes.string)
 
     let context =

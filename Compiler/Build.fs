@@ -25,6 +25,7 @@ let internal build (ast: Program, outputPath: string) =
     let programFile = File.CreateText($"{csDir}\\Program.cs")
     programFile.WriteLine("""void println(string text) => System.Console.WriteLine(text);""")
     programFile.WriteLine("""string intToStr(int x) => x.ToString();""")
+    programFile.WriteLine("""System.Func<string, string> intToStr2(int x) => (string format) => x.ToString(format);""")
     programFile.WriteLine("""string floatToStr(float x) => x.ToString();""")
     programFile.WriteLine()
     programFile.Flush()
