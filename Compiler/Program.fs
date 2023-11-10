@@ -14,9 +14,9 @@ match parse tokens with
 | Error e -> failwith "TODO"
 | Ok parseTree ->
 
-let untypedAst = UntypedAst.fromParseTree parseTree
+let untypedAst = AstBuilder.buildFromParseTree parseTree
 
-let ast = Ast.fromUntypedAst untypedAst
+let ast = TypeChecker.check untypedAst
 
 let csAst = TranspileToCs.transpile ast
 

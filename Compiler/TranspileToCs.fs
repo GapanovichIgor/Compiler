@@ -1,6 +1,9 @@
 ﻿module internal rec Compiler.TranspileToCs
 
 open System.Collections.Generic
+open Compiler.Type
+
+type private TypedExpression = Ast.TypedExpression<Type>
 
 type private EnclosingFunctionBodyContext =
     { addVar: CsAst.Type -> CsAst.Identifier -> CsAst.Expression -> unit }
@@ -17,19 +20,20 @@ let private (|Is|_|) v1 v2 =
     then Some ()
     else None
 
-let private mapType (t: Ast.Type): CsAst.Type =
+let private mapType (t: Type): CsAst.Type =
     match t with
-    | Is Ast.BuiltInTypes.int -> "System.Int32"
-    | Is Ast.BuiltInTypes.float -> "System.Single"
-    | Is Ast.BuiltInTypes.string -> "System.String"
-    | Is Ast.BuiltInTypes.unit -> failwith "TODO handle void"
+    | Is BuiltInTypes.int -> "System.Int32"
+    | Is BuiltInTypes.float -> "System.Single"
+    | Is BuiltInTypes.string -> "System.String"
+    | Is BuiltInTypes.unit -> failwith "TODO handle void"
     | _ -> failwith "TODO handle other types"
 
-let private mapExpression (ctx: EnclosingFunctionBodyContext) (e: Ast.TypedExpression): CsAst.Expression option =
+let private mapExpression (ctx: EnclosingFunctionBodyContext) (e: TypedExpression): CsAst.Expression option =
     match e.expression with
     | Ast.Identifier i -> CsAst.Identifier i |> Some
-    | Ast.IntegerLiteral i -> CsAst.IntegerLiteral i |> Some
-    | Ast.FloatLiteral (i, f) -> CsAst.FloatLiteral (i, f) |> Some
+    | Ast.NumberLiteral (i, f) ->
+        let t = mapType e.expressionType
+        CsAst.NumberLiteral (i, f, t) |> Some
     | Ast.StringLiteral s -> CsAst.StringLiteral s |> Some
     | Ast.BinaryOperation (e1, op, e2) ->
         let e1 = mapExpression ctx e1
@@ -71,7 +75,7 @@ let private mapExpression (ctx: EnclosingFunctionBodyContext) (e: Ast.TypedExpre
         let es = es |> List.map (mapExpression ctx)
         es |> List.last
 
-let private mapStatement (ctx: EnclosingFunctionBodyContext) (e: Ast.TypedExpression): CsAst.Statement list =
+let private mapStatement (ctx: EnclosingFunctionBodyContext) (e: TypedExpression): CsAst.Statement list =
     match e.expression with
     | Ast.Let (i, v) ->
         let t = mapType v.expressionType
@@ -93,7 +97,7 @@ let private mapStatement (ctx: EnclosingFunctionBodyContext) (e: Ast.TypedExpres
         es |> List.collect (mapStatement ctx)
     | _ -> failwith "TODO handle other statements"
 
-let private mapFunctionBody (e: Ast.TypedExpression): CsAst.Statement list =
+let private mapFunctionBody (e: TypedExpression): CsAst.Statement list =
     let statements = List()
 
     let context =
@@ -109,7 +113,7 @@ let private mapFunctionBody (e: Ast.TypedExpression): CsAst.Statement list =
 
     List.ofSeq statements
 
-let transpile (ast: Ast.Program): CsAst.Program =
+let transpile (ast: Ast.Program<Type>): CsAst.Program =
     let (Ast.Program e) = ast
 
     let statements = mapFunctionBody e

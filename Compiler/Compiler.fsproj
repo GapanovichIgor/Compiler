@@ -13,8 +13,10 @@
         <Content Include="RegenerateParser.cmd" />
         <Compile Include="Parser.fs" />
         <Compile Include="Tokenization.fs" />
-        <Compile Include="UntypedAst.fs" />
+        <Compile Include="Type.fs" />
         <Compile Include="Ast.fs" />
+        <Compile Include="AstBuilder.fs" />
+        <Compile Include="TypeChecker.fs" />
         <Compile Include="CsAst.fs" />
         <Compile Include="TranspileToCs.fs" />
         <Compile Include="CsCodeGenerator.fs" />

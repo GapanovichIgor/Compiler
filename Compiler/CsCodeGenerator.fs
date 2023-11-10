@@ -35,13 +35,19 @@ let rec private generateExpression (expression: Expression) (output: StreamWrite
     match expression with
     | Expression.Identifier i ->
         output.Write(i)
-    | Expression.IntegerLiteral i ->
-        output.Write(i)
-    | Expression.FloatLiteral (i, f) ->
-        output.Write(i)
-        output.Write(".")
-        output.Write(f)
-        output.Write("f")
+    | Expression.NumberLiteral (i, f, t) ->
+        match t with
+        | "System.Int32" ->
+            output.Write(i)
+        | "System.Single" ->
+            output.Write(i)
+            output.Write(".")
+            match f with
+            | Some f -> output.Write(f)
+            | None -> output.Write("0")
+            output.Write("f")
+        | _ ->
+            failwith "TODO handle other numeric types"
     | Expression.StringLiteral s ->
         output.Write('"')
         let s = s.Replace("\"", "\\\"")

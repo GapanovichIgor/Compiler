@@ -12,8 +12,7 @@ type BinaryOperator =
 
 type Expression =
     | Identifier of Identifier
-    | IntegerLiteral of int
-    | FloatLiteral of int * int
+    | NumberLiteral of int * int option * Type
     | StringLiteral of string
     | BinaryOperation of Expression * BinaryOperator * Expression
     | FunctionCall of Identifier * Expression list
