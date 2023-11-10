@@ -2,7 +2,7 @@
 
 open System.Collections.Generic
 
-type private Context =
+type private EnclosingFunctionBodyContext =
     { addVar: CsAst.Type -> CsAst.Identifier -> CsAst.Expression -> unit }
 
 let private mapBinaryOperator (o: Ast.BinaryOperator) =
@@ -25,67 +25,93 @@ let private mapType (t: Ast.Type): CsAst.Type =
     | Is Ast.BuiltInTypes.unit -> failwith "TODO handle void"
     | _ -> failwith "TODO handle other types"
 
-let private getExpression (ctx: Context) (e: Ast.TypedExpression) =
+let private mapExpression (ctx: EnclosingFunctionBodyContext) (e: Ast.TypedExpression): CsAst.Expression option =
     match e.expression with
-    | Ast.Identifier i -> CsAst.Identifier i
-    | Ast.IntegerLiteral i -> CsAst.IntegerLiteral i
-    | Ast.FloatLiteral (i, f) -> CsAst.FloatLiteral (i, f)
-    | Ast.StringLiteral s -> CsAst.StringLiteral s
+    | Ast.Identifier i -> CsAst.Identifier i |> Some
+    | Ast.IntegerLiteral i -> CsAst.IntegerLiteral i |> Some
+    | Ast.FloatLiteral (i, f) -> CsAst.FloatLiteral (i, f) |> Some
+    | Ast.StringLiteral s -> CsAst.StringLiteral s |> Some
     | Ast.BinaryOperation (e1, op, e2) ->
-        let e1 = getExpression ctx e1
+        let e1 = mapExpression ctx e1
         let op = mapBinaryOperator op
-        let e2 = getExpression ctx e2
-        CsAst.BinaryOperation (e1, op, e2)
+        let e2 = mapExpression ctx e2
+        match e1, e2 with
+        | Some e1, Some e2 ->
+            CsAst.BinaryOperation (e1, op, e2)
+            |> Some
+        | _ -> failwith "Operands of a binary operation should not be statements"
     | Ast.Application (f, arg) ->
         match f.expression with
         | Ast.Identifier i ->
-            let arg = getExpression ctx arg
-            CsAst.FunctionCall (i, [arg])
+            let arg = mapExpression ctx arg
+            let args =
+                match arg with
+                | Some arg -> [arg]
+                | None -> []
+
+            CsAst.FunctionCall (i, args)
+            |> Some
         | _ -> failwith "TODO handle case when function is not represented by an identifier"
     | Ast.Coerce (e, t) ->
-        let e = getExpression ctx e
+        let e = mapExpression ctx e
         let t = mapType t
-        CsAst.Cast (e, t)
-    | Ast.Let (i, v, body) ->
+        match e with
+        | Some e ->
+            CsAst.Cast (e, t)
+            |> Some
+        | None -> failwith "Coerce on a statement"
+    | Ast.Let (i, v) ->
         let t = mapType v.expressionType
-        let v = getExpression ctx v
-        ctx.addVar t i v
-        getExpression ctx body
+        let v = mapExpression ctx v
+        match v with
+        | Some v -> ctx.addVar t i v
+        | None -> ()
+        None
+    | Ast.Concat (e1, e2) ->
+        let e1 = mapExpression ctx e1
+        let e2 = mapExpression ctx e2
+        match e1 with
+        | Some _ -> failwith "First expression of a concatenation should be a unit expression"
+        | None -> e2
 
-let private getStatements (e: Ast.TypedExpression): CsAst.Statement list =
+let private mapStatement (ctx: EnclosingFunctionBodyContext) (e: Ast.TypedExpression): CsAst.Statement list =
     match e.expression with
+    | Ast.Let (i, v) ->
+        let t = mapType v.expressionType
+        let v = mapExpression ctx v
+        match v with
+        | Some v -> [ CsAst.Statement.Var (t, i, v) ]
+        | None -> failwith "Let binding has statement as its value"
     | Ast.Application (f, arg) ->
         match f.expression with
         | Ast.Identifier i ->
-            let statements = List()
-            let context =
-                { addVar = fun t i v ->
-                    statements.Add(CsAst.Statement.Var (t, i, v)) }
-
-            let arg = getExpression context arg
-
-            statements.Add(CsAst.Statement.FunctionCall (i, [arg]))
-
-            List.ofSeq statements
+            let arg = mapExpression ctx arg
+            let args =
+                match arg with
+                | Some arg -> [arg]
+                | None -> []
+            [ CsAst.Statement.FunctionCall (i, args) ]
         | _ -> failwith "TODO handle case when function is not represented by an identifier"
-    | Ast.Let (i, v, body) ->
-        let statements = List()
-        let context =
-            { addVar = fun t i v ->
-                statements.Add(CsAst.Statement.Var (t, i, v)) }
+    | Ast.Concat (e1, e2) ->
+        let statements1 = mapStatement ctx e1
+        let statements2 = mapStatement ctx e2
+        statements1 @ statements2
+    | _ -> failwith "TODO handle other statements"
 
-        let t = mapType v.expressionType
-        let v = getExpression context v
+let private mapFunctionBody (e: Ast.TypedExpression): CsAst.Statement list =
+    let statements = List()
 
-        statements.Add(CsAst.Statement.Var (t, i, v))
-        statements.AddRange(getStatements body)
+    let context =
+        { addVar = fun t i v ->
+            statements.Add(CsAst.Statement.Var (t, i, v)) }
 
-        List.ofSeq statements
-    | _ -> failwith "TODO"
+    statements.AddRange(mapStatement context e)
+
+    List.ofSeq statements
 
 let transpile (ast: Ast.Program): CsAst.Program =
     let (Ast.Program e) = ast
 
-    let statements = getStatements e
+    let statements = mapFunctionBody e
 
     CsAst.Program statements

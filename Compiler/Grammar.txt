@@ -9,16 +9,20 @@ ParenOpen : unit
 ParenClose : unit
 Let : unit
 Equals : unit
-Semicolon : unit
-NewLine : unit
+Break : unit
 BlockOpen : unit
 BlockClose : unit
 InvalidToken : string
 
 Program -> Expression
 
-Expression.Binding -> Let Identifier Equals Expression BindingBody
-Expression.Value -> ArithmeticSecondOrderExpression
+Expression -> ExpressionConcatenation
+
+ExpressionConcatenation.Concat -> ExpressionConcatenation Break BindingExpression
+ExpressionConcatenation.Fallthrough -> BindingExpression
+
+BindingExpression.Binding -> Let Identifier Equals ArithmeticSecondOrderExpression
+BindingExpression.Fallthrough -> ArithmeticSecondOrderExpression
 
 ArithmeticSecondOrderExpression.Add -> ArithmeticSecondOrderExpression Plus ArithmeticFirstOrderExpression
 ArithmeticSecondOrderExpression.Subtract -> ArithmeticSecondOrderExpression Minus ArithmeticFirstOrderExpression
@@ -28,20 +32,11 @@ ArithmeticFirstOrderExpression.Multiply -> ArithmeticFirstOrderExpression Asteri
 ArithmeticFirstOrderExpression.Divide -> ArithmeticFirstOrderExpression Slash Application
 ArithmeticFirstOrderExpression.Fallthrough -> Application
 
-Application.Application -> Application AtomExpression
-Application.Fallthrough -> AtomExpression
+Application.Application -> Application TerminalEnclosedExpression
+Application.Fallthrough -> TerminalEnclosedExpression
 
-AtomExpression.Number -> NumberLiteral
-AtomExpression.DoubleQuotedString -> DoubleQuotedString
-AtomExpression.Identifier -> Identifier
-AtomExpression.Paren -> ParenOpening Expression ParenClosing
-AtomExpression.Block -> BlockOpen Expression BlockClose
-
-ParenOpening.Simple -> ParenOpen
-ParenOpening.WithNewLine -> ParenOpen NewLine
-
-ParenClosing.Simple -> ParenClose
-ParenClosing.WithNewLine -> NewLine ParenClose
-
-BindingBody.Semicolon -> Semicolon Expression
-BindingBody.NewLine -> NewLine Expression
+TerminalEnclosedExpression.Number -> NumberLiteral
+TerminalEnclosedExpression.String -> DoubleQuotedString
+TerminalEnclosedExpression.Identifier -> Identifier
+TerminalEnclosedExpression.Paren -> ParenOpen Expression ParenClose
+TerminalEnclosedExpression.Block -> BlockOpen Expression BlockClose

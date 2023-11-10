@@ -12,62 +12,73 @@ type Expression =
     | StringLiteral of string
     | BinaryOperation of Expression * BinaryOperator * Expression
     | Application of Expression * Expression
-    | Let of string * Expression * Expression
+    | Let of string * Expression
+    | Concat of Expression * Expression
 
 type Program = Program of Expression
 
-let private getAtom (e: Parser.AtomExpression) =
+let private mapTerminalEnclosedExpression (e: Parser.TerminalEnclosedExpression) =
     match e with
-    | Parser.AtomExpression.Identifier i -> Identifier i
-    | Parser.AtomExpression.DoubleQuotedString s -> StringLiteral s
-    | Parser.AtomExpression.Number (i, f) -> NumberLiteral (i, f)
-    | Parser.AtomExpression.Paren(_, e, _) -> getExpression e
-    | Parser.AtomExpression.Block((), e, ()) -> getExpression e
+    | Parser.TerminalEnclosedExpression.Identifier i -> Identifier i
+    | Parser.TerminalEnclosedExpression.String s -> StringLiteral s
+    | Parser.TerminalEnclosedExpression.Number (i, f) -> NumberLiteral (i, f)
+    | Parser.TerminalEnclosedExpression.Paren(_, e, _) -> mapExpression e
+    | Parser.TerminalEnclosedExpression.Block((), e, ()) -> mapExpression e
 
-let private getApplication (e: Parser.Application) =
+let private mapApplication (e: Parser.Application) =
     match e with
-    | Parser.Fallthrough e -> getAtom e
-    | Parser.Application (e1, e2) -> Application (getApplication e1, getAtom e2)
+    | Parser.Fallthrough e -> mapTerminalEnclosedExpression e
+    | Parser.Application (e1, e2) -> Application (mapApplication e1, mapTerminalEnclosedExpression e2)
 
-let private getArithmeticFirstOrderExpr (e: Parser.ArithmeticFirstOrderExpression) =
+let private mapArithmeticFirstOrderExpr (e: Parser.ArithmeticFirstOrderExpression) =
     match e with
     | Parser.ArithmeticFirstOrderExpression.Fallthrough e ->
-        getApplication e
+        mapApplication e
     | Parser.ArithmeticFirstOrderExpression.Multiply (e1, (), e2) ->
-        let e1 = getArithmeticFirstOrderExpr e1
-        let e2 = getApplication e2
+        let e1 = mapArithmeticFirstOrderExpr e1
+        let e2 = mapApplication e2
         BinaryOperation (e1, Multiply, e2)
     | Parser.ArithmeticFirstOrderExpression.Divide (e1, (), e2) ->
-        let e1 = getArithmeticFirstOrderExpr e1
-        let e2 = getApplication e2
+        let e1 = mapArithmeticFirstOrderExpr e1
+        let e2 = mapApplication e2
         BinaryOperation (e1, Divide, e2)
 
-let private getArithmeticSecondOrderExpr (e: Parser.ArithmeticSecondOrderExpression) =
+let private mapArithmeticSecondOrderExpr (e: Parser.ArithmeticSecondOrderExpression) =
     match e with
     | Parser.ArithmeticSecondOrderExpression.Fallthrough e ->
-        getArithmeticFirstOrderExpr e
+        mapArithmeticFirstOrderExpr e
     | Parser.ArithmeticSecondOrderExpression.Add (e1, (), e2) ->
-        let e1 = getArithmeticSecondOrderExpr e1
-        let e2 = getArithmeticFirstOrderExpr e2
+        let e1 = mapArithmeticSecondOrderExpr e1
+        let e2 = mapArithmeticFirstOrderExpr e2
         BinaryOperation (e1, Add, e2)
     | Parser.ArithmeticSecondOrderExpression.Subtract (e1, (), e2) ->
-        let e1 = getArithmeticSecondOrderExpr e1
-        let e2 = getArithmeticFirstOrderExpr e2
+        let e1 = mapArithmeticSecondOrderExpr e1
+        let e2 = mapArithmeticFirstOrderExpr e2
         BinaryOperation (e1, Subtract, e2)
 
-let private getExpression (e: Parser.Expression) =
+let private mapBindingExpression (e: Parser.BindingExpression) =
     match e with
-    | Parser.Expression.Value e -> getArithmeticSecondOrderExpr e
-    | Parser.Expression.Binding ((), i, (), v, bindingBody) ->
-        let body =
-            match bindingBody with
-            | Parser.BindingBody.Semicolon ((), body)
-            | Parser.BindingBody.NewLine ((), body) -> body
+    | Parser.BindingExpression.Binding ((), i, (), v) ->
+        let v = mapArithmeticSecondOrderExpr v
+        Let (i, v)
+    | Parser.BindingExpression.Fallthrough e ->
+        mapArithmeticSecondOrderExpr e
 
-        let v = getExpression v
-        let body = getExpression body
-        Let (i, v, body)
+let private mapExpressionConcatenation (e: Parser.ExpressionConcatenation) =
+    match e with
+    | Parser.ExpressionConcatenation.Concat (e1, (), e2) ->
+        let e1 = mapExpressionConcatenation e1
+        let e2 = mapBindingExpression e2
+        Concat (e1, e2)
+    | Parser.ExpressionConcatenation.Fallthrough e ->
+        mapBindingExpression e
 
-let fromParseTree (Parser.Program e): Program =
-    let e = getExpression e
-    Program e
+let private mapExpression (e: Parser.Expression) =
+    match e with
+    | Parser.Expression e -> mapExpressionConcatenation e
+
+let fromParseTree (parseTree: Parser.Program): Program =
+    match parseTree with
+    | Parser.Program e ->
+        let e = mapExpression e
+        Program e

@@ -1,4 +1,4 @@
-print (intToStr (
-let y = 6
-y
-))
+println "Hello"
+let x = 1
+println ", World!"
+println (intToStr x)

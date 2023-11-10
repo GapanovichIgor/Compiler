@@ -28,7 +28,8 @@ type Expression =
     | BinaryOperation of TypedExpression * BinaryOperator * TypedExpression
     | Application of TypedExpression * TypedExpression
     | Coerce of TypedExpression * Type
-    | Let of Identifier * TypedExpression * TypedExpression
+    | Let of Identifier * TypedExpression
+    | Concat of TypedExpression * TypedExpression
 
 type TypedExpression =
     { expression: Expression
@@ -56,20 +57,20 @@ let private coerce (t: Type) (e: TypedExpression) =
     { expression = Coerce (e, t)
       expressionType = t }
 
-let private getExpression (ctx: Context) (e: UntypedAst.Expression) =
+let private mapExpression (ctx: Context) (e: UntypedAst.Expression) =
     match e with
     | UntypedAst.Identifier i ->
         let t = ctx.resolveType i
         { expression = Identifier i; expressionType = t }
-    | UntypedAst.NumberLiteral(i, f) ->
+    | UntypedAst.NumberLiteral (i, f) ->
         match f with
         | None -> { expression = IntegerLiteral i; expressionType = BuiltInTypes.int }
         | Some f -> { expression = FloatLiteral (i, f); expressionType = BuiltInTypes.float }
     | UntypedAst.StringLiteral s -> { expression = StringLiteral s; expressionType = BuiltInTypes.string }
-    | UntypedAst.BinaryOperation(e1, op, e2) ->
-        let e1 = getExpression ctx e1
+    | UntypedAst.BinaryOperation (e1, op, e2) ->
+        let e1 = mapExpression ctx e1
         let op = mapBinaryOperator op
-        let e2 = getExpression ctx e2
+        let e2 = mapExpression ctx e2
         match e1.expressionType, e2.expressionType with
         | Is BuiltInTypes.string, Is BuiltInTypes.string when op = Add ->
             { expression = BinaryOperation (e1, op, e2)
@@ -89,25 +90,29 @@ let private getExpression (ctx: Context) (e: UntypedAst.Expression) =
             { expression = BinaryOperation (e1, op, e2)
               expressionType = BuiltInTypes.float }
         | _ -> failwith "TODO"
-    | UntypedAst.Application(e1, e2) ->
-        let e1 = getExpression ctx e1
-        let e2 = getExpression ctx e2
+    | UntypedAst.Application (e1, e2) ->
+        let e1 = mapExpression ctx e1
+        let e2 = mapExpression ctx e2
 
         match e1.expressionType with
         | FunctionType (argT, resultT) when e2.expressionType = argT ->
             { expression = Application (e1, e2)
               expressionType = resultT }
         | _ -> failwith "TODO"
-    | UntypedAst.Let(i, v, body) ->
-        let v = getExpression ctx v
+    | UntypedAst.Let (i, v) ->
+        let v = mapExpression ctx v
         ctx.addTyping i v.expressionType
-        let body = getExpression ctx body
-        { expression = Let (i, v, body)
-          expressionType = body.expressionType }
+        { expression = Let (i, v)
+          expressionType = BuiltInTypes.unit }
+    | UntypedAst.Concat (e1, e2) ->
+        let e1 = mapExpression ctx e1
+        let e2 = mapExpression ctx e2
+        { expression = Concat (e1, e2)
+          expressionType = e2.expressionType }
 
 let fromUntypedAst (UntypedAst.Program e): Program =
     let identifierTypes = Dictionary()
-    identifierTypes["print"] <- FunctionType (BuiltInTypes.string, BuiltInTypes.unit)
+    identifierTypes["println"] <- FunctionType (BuiltInTypes.string, BuiltInTypes.unit)
     identifierTypes["intToStr"] <- FunctionType (BuiltInTypes.int, BuiltInTypes.string)
     identifierTypes["floatToStr"] <- FunctionType (BuiltInTypes.float, BuiltInTypes.string)
     let context =
@@ -119,5 +124,5 @@ let fromUntypedAst (UntypedAst.Program e): Program =
             if not (identifierTypes.TryAdd(i, t)) then
                 failwith $"Can't add type for identifier %s{i}" }
 
-    let e = getExpression context e
+    let e = mapExpression context e
     Program e

@@ -51,8 +51,8 @@ let private pParenClose: TokenParser =
 let private pLet: TokenParser =
     constString "let" >> ParseResult.constValue (Token.Let ())
 
-let private pSemicolon: TokenParser =
-    skipOne ';' >> ParseResult.constValue (Token.Semicolon ())
+let private pBreak: TokenParser =
+    skipOne ';' >> ParseResult.constValue (Token.Break ())
 
 let private pEquals: TokenParser =
     skipOne '=' >> ParseResult.constValue (Token.Equals ())
@@ -80,7 +80,7 @@ let tokenize (stream: Stream) =
             pParenOpen
             pParenClose
             pEquals
-            pSemicolon
+            pBreak
             pLet
             pNumber
             pIdentifier
@@ -92,7 +92,7 @@ let tokenize (stream: Stream) =
         IndentationBasedLanguageKit.simpleParseDocument
             { parseToken = parseToken
               blockOpenToken = Token.BlockOpen ()
-              newLineDelimiter = Token.NewLine ()
+              newLineDelimiter = Token.Break ()
               blockCloseToken = Token.BlockClose ()
               isWhiteSpace = isWhiteSpace }
 
