@@ -67,12 +67,9 @@ let private mapExpression (ctx: EnclosingFunctionBodyContext) (e: Ast.TypedExpre
         | Some v -> ctx.addVar t i v
         | None -> ()
         None
-    | Ast.Concat (e1, e2) ->
-        let e1 = mapExpression ctx e1
-        let e2 = mapExpression ctx e2
-        match e1 with
-        | Some _ -> failwith "First expression of a concatenation should be a unit expression"
-        | None -> e2
+    | Ast.Sequence es ->
+        let es = es |> List.map (mapExpression ctx)
+        es |> List.last
 
 let private mapStatement (ctx: EnclosingFunctionBodyContext) (e: Ast.TypedExpression): CsAst.Statement list =
     match e.expression with
@@ -92,10 +89,8 @@ let private mapStatement (ctx: EnclosingFunctionBodyContext) (e: Ast.TypedExpres
                 | None -> []
             [ CsAst.Statement.FunctionCall (i, args) ]
         | _ -> failwith "TODO handle case when function is not represented by an identifier"
-    | Ast.Concat (e1, e2) ->
-        let statements1 = mapStatement ctx e1
-        let statements2 = mapStatement ctx e2
-        statements1 @ statements2
+    | Ast.Sequence es ->
+        es |> List.collect (mapStatement ctx)
     | _ -> failwith "TODO handle other statements"
 
 let private mapFunctionBody (e: Ast.TypedExpression): CsAst.Statement list =
@@ -105,7 +100,12 @@ let private mapFunctionBody (e: Ast.TypedExpression): CsAst.Statement list =
         { addVar = fun t i v ->
             statements.Add(CsAst.Statement.Var (t, i, v)) }
 
-    statements.AddRange(mapStatement context e)
+    match e.expression with
+    | Ast.Sequence es ->
+        for e in es do
+            statements.AddRange(mapStatement context e)
+    | _ ->
+        statements.AddRange(mapStatement context e)
 
     List.ofSeq statements
 

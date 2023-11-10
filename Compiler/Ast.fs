@@ -29,7 +29,7 @@ type Expression =
     | Application of TypedExpression * TypedExpression
     | Coerce of TypedExpression * Type
     | Let of Identifier * TypedExpression
-    | Concat of TypedExpression * TypedExpression
+    | Sequence of TypedExpression list
 
 type TypedExpression =
     { expression: Expression
@@ -104,11 +104,11 @@ let private mapExpression (ctx: Context) (e: UntypedAst.Expression) =
         ctx.addTyping i v.expressionType
         { expression = Let (i, v)
           expressionType = BuiltInTypes.unit }
-    | UntypedAst.Concat (e1, e2) ->
-        let e1 = mapExpression ctx e1
-        let e2 = mapExpression ctx e2
-        { expression = Concat (e1, e2)
-          expressionType = e2.expressionType }
+    | UntypedAst.Sequence es ->
+        let es = es |> List.map (mapExpression ctx)
+        let t = (es |> List.last).expressionType
+        { expression = Sequence es
+          expressionType = t }
 
 let fromUntypedAst (UntypedAst.Program e): Program =
     let identifierTypes = Dictionary()

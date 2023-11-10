@@ -13,7 +13,7 @@ type Expression =
     | BinaryOperation of Expression * BinaryOperator * Expression
     | Application of Expression * Expression
     | Let of string * Expression
-    | Concat of Expression * Expression
+    | Sequence of Expression list
 
 type Program = Program of Expression
 
@@ -69,7 +69,10 @@ let private mapExpressionConcatenation (e: Parser.ExpressionConcatenation) =
     | Parser.ExpressionConcatenation.Concat (e1, (), e2) ->
         let e1 = mapExpressionConcatenation e1
         let e2 = mapBindingExpression e2
-        Concat (e1, e2)
+
+        match e1 with
+        | Sequence s -> Sequence (s @ [e2])
+        | _ -> Sequence [e1; e2]
     | Parser.ExpressionConcatenation.Fallthrough e ->
         mapBindingExpression e
 
