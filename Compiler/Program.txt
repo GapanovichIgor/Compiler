@@ -1,6 +1,5 @@
-println "Hello"
 let x =
-    let y = 2
-    1 + y
+    println "Hello"
+    1
 println ", World!"
 println (intToStr x)
