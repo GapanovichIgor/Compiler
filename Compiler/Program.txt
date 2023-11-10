@@ -1,2 +1,4 @@
-let f = intToStr2
-println (f 1 "F")
+let x = (
+    let y = "Hello, ";
+    y + "World!")
+println x
