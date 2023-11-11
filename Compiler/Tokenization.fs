@@ -179,7 +179,6 @@ let private mapToBlocks (tokens: TokenInternal list) : Token list =
                 | _ :: restIndentations ->
                     // Indentation is decreased, possibly several levels
                     tokens'.Add(Token.BlockClose())
-                    tokens'.Add(Token.Break())
                     indentationLevels <- restIndentations
                     keepGoing <- true
 
