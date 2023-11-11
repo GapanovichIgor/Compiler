@@ -1,8 +1,15 @@
 ﻿module internal rec Compiler.Ast
 
+open System
 open Compiler.Type
 
-type Identifier = string
+type Identifier =
+    { name: string
+      identity: Guid }
+
+let createIdentifier name =
+    { name = name
+      identity = Guid.NewGuid() }
 
 type BinaryOperator =
     | Add
@@ -17,7 +24,7 @@ type Expression<'t> =
     | BinaryOperation of TypedExpression<'t> * BinaryOperator * TypedExpression<'t>
     | Application of TypedExpression<'t> * TypedExpression<'t>
     | Coerce of TypedExpression<'t> * Type
-    | Let of Identifier * TypedExpression<'t>
+    | Binding of Identifier * TypedExpression<'t>
     | Sequence of TypedExpression<'t> list
 
 type TypedExpression<'t> =

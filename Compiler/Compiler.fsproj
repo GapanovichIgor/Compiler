@@ -15,6 +15,7 @@
         <Compile Include="Tokenization.fs" />
         <Compile Include="Type.fs" />
         <Compile Include="Ast.fs" />
+        <Compile Include="BuiltIn.fs" />
         <Compile Include="AstBuilder.fs" />
         <Compile Include="TypeChecker.fs" />
         <Compile Include="CsAst.fs" />

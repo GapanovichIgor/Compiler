@@ -1,68 +1,112 @@
 ﻿module internal rec Compiler.AstBuilder
 
+type private LexicalContext =
+    { identifiers: Map<string, Ast.Identifier> }
+
+    static member Empty = { identifiers = Map.empty }
+
+    member this.AttachIdentifier(identifier: Ast.Identifier) =
+        { this with
+            identifiers = this.identifiers |> Map.add identifier.name identifier }
+
+    member this.CreateIdentifier(identifierName: string) =
+        let identifier = Ast.createIdentifier identifierName
+
+        let newContext =
+            { this with
+                identifiers = this.identifiers |> Map.add identifierName identifier }
+
+        identifier, newContext
+
+    member this.GetIdentifier(identifierName: string) =
+        this.identifiers |> Map.find identifierName
+
 let private untyped e : Ast.TypedExpression<unit> = { expression = e; expressionType = () }
 
-let private mapTerminalEnclosedExpression (e: Parser.TerminalEnclosedExpression) =
+let private mapTerminalEnclosedExpression (ctx: LexicalContext) (e: Parser.TerminalEnclosedExpression) : Ast.TypedExpression<unit> * LexicalContext =
     match e with
-    | Parser.TerminalEnclosedExpression.Identifier i -> Ast.Identifier i |> untyped
-    | Parser.TerminalEnclosedExpression.String s -> Ast.StringLiteral s |> untyped
-    | Parser.TerminalEnclosedExpression.Number(i, f) -> Ast.NumberLiteral(i, f) |> untyped
-    | Parser.TerminalEnclosedExpression.Paren(_, e, _) -> mapExpression e
-    | Parser.TerminalEnclosedExpression.Block((), e, ()) -> mapExpression e
+    | Parser.TerminalEnclosedExpression.Identifier i -> Ast.Identifier(ctx.GetIdentifier(i)) |> untyped, ctx
+    | Parser.TerminalEnclosedExpression.String s -> Ast.StringLiteral s |> untyped, ctx
+    | Parser.TerminalEnclosedExpression.Number(i, f) -> Ast.NumberLiteral(i, f) |> untyped, ctx
+    | Parser.TerminalEnclosedExpression.Paren(_, e, _) ->
+        let e, _ = mapExpression ctx e
+        e, ctx
+    | Parser.TerminalEnclosedExpression.Block((), e, ()) ->
+        let e, _ = mapExpression ctx e
+        e, ctx
 
-let private mapApplication (e: Parser.Application) =
+let private mapApplication (ctx: LexicalContext) (e: Parser.Application) =
     match e with
-    | Parser.Fallthrough e -> mapTerminalEnclosedExpression e
-    | Parser.Application(e1, e2) -> Ast.Application(mapApplication e1, mapTerminalEnclosedExpression e2) |> untyped
+    | Parser.Fallthrough e -> mapTerminalEnclosedExpression ctx e
+    | Parser.Application(e1, e2) ->
+        let e1, _ = mapApplication ctx e1
+        let e2, _ = mapTerminalEnclosedExpression ctx e2
+        let e = Ast.Application(e1, e2) |> untyped
+        e, ctx
 
-let private mapArithmeticFirstOrderExpr (e: Parser.ArithmeticFirstOrderExpression) =
+let private mapArithmeticFirstOrderExpr (ctx: LexicalContext) (e: Parser.ArithmeticFirstOrderExpression) =
     match e with
-    | Parser.ArithmeticFirstOrderExpression.Fallthrough e -> mapApplication e
+    | Parser.ArithmeticFirstOrderExpression.Fallthrough e -> mapApplication ctx e
     | Parser.ArithmeticFirstOrderExpression.Multiply(e1, (), e2) ->
-        let e1 = mapArithmeticFirstOrderExpr e1
-        let e2 = mapApplication e2
-        Ast.BinaryOperation(e1, Ast.Multiply, e2) |> untyped
+        let e1, _ = mapArithmeticFirstOrderExpr ctx e1
+        let e2, _ = mapApplication ctx e2
+        let e = Ast.BinaryOperation(e1, Ast.Multiply, e2) |> untyped
+        e, ctx
     | Parser.ArithmeticFirstOrderExpression.Divide(e1, (), e2) ->
-        let e1 = mapArithmeticFirstOrderExpr e1
-        let e2 = mapApplication e2
-        Ast.BinaryOperation(e1, Ast.Divide, e2) |> untyped
+        let e1, _ = mapArithmeticFirstOrderExpr ctx e1
+        let e2, _ = mapApplication ctx e2
+        let e = Ast.BinaryOperation(e1, Ast.Divide, e2) |> untyped
+        e, ctx
 
-let private mapArithmeticSecondOrderExpr (e: Parser.ArithmeticSecondOrderExpression) =
+let private mapArithmeticSecondOrderExpr (ctx: LexicalContext) (e: Parser.ArithmeticSecondOrderExpression) =
     match e with
-    | Parser.ArithmeticSecondOrderExpression.Fallthrough e -> mapArithmeticFirstOrderExpr e
+    | Parser.ArithmeticSecondOrderExpression.Fallthrough e -> mapArithmeticFirstOrderExpr ctx e
     | Parser.ArithmeticSecondOrderExpression.Add(e1, (), e2) ->
-        let e1 = mapArithmeticSecondOrderExpr e1
-        let e2 = mapArithmeticFirstOrderExpr e2
-        Ast.BinaryOperation(e1, Ast.Add, e2) |> untyped
+        let e1, _ = mapArithmeticSecondOrderExpr ctx e1
+        let e2, _ = mapArithmeticFirstOrderExpr ctx e2
+        let e = Ast.BinaryOperation(e1, Ast.Add, e2) |> untyped
+        e, ctx
     | Parser.ArithmeticSecondOrderExpression.Subtract(e1, (), e2) ->
-        let e1 = mapArithmeticSecondOrderExpr e1
-        let e2 = mapArithmeticFirstOrderExpr e2
-        Ast.BinaryOperation(e1, Ast.Subtract, e2) |> untyped
+        let e1, _ = mapArithmeticSecondOrderExpr ctx e1
+        let e2, _ = mapArithmeticFirstOrderExpr ctx e2
+        let e = Ast.BinaryOperation(e1, Ast.Subtract, e2) |> untyped
+        e, ctx
 
-let private mapBindingExpression (e: Parser.BindingExpression) =
+let private mapBindingExpression (ctx: LexicalContext) (e: Parser.BindingExpression) =
     match e with
-    | Parser.BindingExpression.Binding((), i, (), v) ->
-        let v = mapArithmeticSecondOrderExpr v
-        Ast.Let(i, v) |> untyped
-    | Parser.BindingExpression.Fallthrough e -> mapArithmeticSecondOrderExpr e
+    | Parser.BindingExpression.Binding((), identifierName, (), value) ->
+        let value, _ = mapArithmeticSecondOrderExpr ctx value
+        let identifier, ctx = ctx.CreateIdentifier(identifierName)
+        Ast.Binding(identifier, value) |> untyped, ctx
+    | Parser.BindingExpression.Fallthrough e -> mapArithmeticSecondOrderExpr ctx e
 
-let private mapExpressionConcatenation (e: Parser.ExpressionConcatenation) : Ast.TypedExpression<unit> =
+let private mapExpressionConcatenation (ctx: LexicalContext) (e: Parser.ExpressionConcatenation) : Ast.TypedExpression<unit> * LexicalContext =
     match e with
     | Parser.ExpressionConcatenation.Concat(e1, (), e2) ->
-        let e1 = mapExpressionConcatenation e1
-        let e2 = mapBindingExpression e2
+        let e1, ctx = mapExpressionConcatenation ctx e1
+        let e2, ctx = mapBindingExpression ctx e2
 
-        match e1.expression with
-        | Ast.Sequence s -> Ast.Sequence(s @ [ e2 ]) |> untyped
-        | _ -> Ast.Sequence [ e1; e2 ] |> untyped
-    | Parser.ExpressionConcatenation.Fallthrough e -> mapBindingExpression e
+        let e =
+            match e1.expression with
+            | Ast.Sequence s -> Ast.Sequence(s @ [ e2 ]) |> untyped
+            | _ -> Ast.Sequence [ e1; e2 ] |> untyped
 
-let private mapExpression (e: Parser.Expression) =
+        e, ctx
+    | Parser.ExpressionConcatenation.Fallthrough e -> mapBindingExpression ctx e
+
+let private mapExpression (ctx: LexicalContext) (e: Parser.Expression) : Ast.TypedExpression<unit> * LexicalContext =
     match e with
-    | Parser.Expression e -> mapExpressionConcatenation e
+    | Parser.Expression e -> mapExpressionConcatenation ctx e
 
 let buildFromParseTree (parseTree: Parser.Program) : Ast.Program<unit> =
+    let context =
+        LexicalContext.Empty
+            .AttachIdentifier(BuiltIn.Identifiers.println)
+            .AttachIdentifier(BuiltIn.Identifiers.intToStr)
+            .AttachIdentifier(BuiltIn.Identifiers.intToStr2)
+            .AttachIdentifier(BuiltIn.Identifiers.floatToStr)
+
     match parseTree with
     | Parser.Program e ->
-        let e = mapExpression e
+        let e, _ = mapExpression context e
         Ast.Program e

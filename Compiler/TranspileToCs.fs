@@ -1,5 +1,6 @@
 ﻿module internal rec Compiler.TranspileToCs
 
+open System
 open System.Collections.Generic
 open Compiler.Type
 
@@ -7,7 +8,48 @@ type private TypedExpression = Ast.TypedExpression<Type>
 
 type private EnclosingFunctionBodyContext =
     { addPrecedingStatement: CsAst.Statement -> unit
-      createIdentifier: unit -> CsAst.Identifier }
+      createIdentifier: unit -> CsAst.Identifier
+      mapIdentifier: Ast.Identifier -> CsAst.Identifier }
+
+let private createEnclosingFunctionBodyContext (statements: List<CsAst.Statement>) =
+    let identifierNameSet = HashSet()
+    let identifierNameMap = Dictionary()
+
+    let mutable identifierNameCounter = 0
+
+    let createUniqueIdentifierName () =
+        let createId () =
+            identifierNameCounter <- identifierNameCounter + 1
+            "id" + string identifierNameCounter
+
+        let mutable i = createId ()
+
+        while not (identifierNameSet.Add(i)) do
+            i <- createId ()
+
+        i
+
+    let createIdentifier () =
+        let i = createUniqueIdentifierName ()
+        identifierNameMap[Guid.NewGuid()] <- i
+        i
+
+    let mapIdentifier (identifier: Ast.Identifier) =
+        match identifierNameMap.TryGetValue(identifier.identity) with
+        | true, identifierName -> identifierName
+        | false, _ ->
+            if identifierNameSet.Add(identifier.name) then
+                identifierNameMap[identifier.identity] <- identifier.name
+                identifier.name
+            else
+                let uniqueIdentifierName = createUniqueIdentifierName ()
+                identifierNameMap[identifier.identity] <- uniqueIdentifierName
+                uniqueIdentifierName
+
+
+    { addPrecedingStatement = statements.Add
+      createIdentifier = createIdentifier
+      mapIdentifier = mapIdentifier }
 
 let private mapBinaryOperator (o: Ast.BinaryOperator) =
     match o with
@@ -20,10 +62,10 @@ let private (|Is|_|) v1 v2 = if v1 = v2 then Some() else None
 
 let private mapType (t: Type) : CsAst.Type =
     match t with
-    | Is BuiltInTypes.int -> CsAst.ValueType "System.Int32"
-    | Is BuiltInTypes.float -> CsAst.ValueType "System.Single"
-    | Is BuiltInTypes.string -> CsAst.ValueType "System.String"
-    | Is BuiltInTypes.unit -> CsAst.Void
+    | Is BuiltIn.Types.int -> CsAst.ValueType "System.Int32"
+    | Is BuiltIn.Types.float -> CsAst.ValueType "System.Single"
+    | Is BuiltIn.Types.string -> CsAst.ValueType "System.String"
+    | Is BuiltIn.Types.unit -> CsAst.Void
     | FunctionType (argT, resultT) ->
         let argT = mapType argT
         let resultT = mapType resultT
@@ -32,7 +74,7 @@ let private mapType (t: Type) : CsAst.Type =
 
 let private mapExpression (ctx: EnclosingFunctionBodyContext) (e: TypedExpression) : CsAst.Expression option =
     match e.expression with
-    | Ast.Identifier i -> CsAst.Identifier i |> Some
+    | Ast.Identifier i -> CsAst.Identifier (ctx.mapIdentifier i) |> Some
     | Ast.NumberLiteral(i, f) ->
         let t = mapType e.expressionType
         CsAst.NumberLiteral(i, f, t) |> Some
@@ -55,7 +97,7 @@ let private mapExpression (ctx: EnclosingFunctionBodyContext) (e: TypedExpressio
                 | Some arg -> [ arg ]
                 | None -> []
 
-            CsAst.FunctionCall(i, args) |> Some
+            CsAst.FunctionCall(ctx.mapIdentifier i, args) |> Some
         | _ ->
             let varT = mapType f.expressionType
             let varId = ctx.createIdentifier ()
@@ -80,12 +122,12 @@ let private mapExpression (ctx: EnclosingFunctionBodyContext) (e: TypedExpressio
         match e with
         | Some e -> CsAst.Cast(e, t) |> Some
         | None -> failwith "Coerce on a statement"
-    | Ast.Let(i, v) ->
+    | Ast.Binding(i, v) ->
         let t = mapType v.expressionType
         let v = mapExpression ctx v
 
         match v with
-        | Some v -> ctx.addPrecedingStatement (CsAst.Var(t, i, v))
+        | Some v -> ctx.addPrecedingStatement (CsAst.Var(t, ctx.mapIdentifier i, v))
         | None -> ()
 
         None
@@ -105,12 +147,12 @@ let private mapExpression (ctx: EnclosingFunctionBodyContext) (e: TypedExpressio
 
 let private mapStatement (ctx: EnclosingFunctionBodyContext) (e: TypedExpression) : CsAst.Statement list =
     match e.expression with
-    | Ast.Let(i, v) ->
+    | Ast.Binding(i, v) ->
         let t = mapType v.expressionType
         let v = mapExpression ctx v
 
         match v with
-        | Some v -> [ CsAst.Statement.Var(t, i, v) ]
+        | Some v -> [ CsAst.Statement.Var(t, ctx.mapIdentifier i, v) ]
         | None -> failwith "Let binding has statement as its value"
     | Ast.Application(f, arg) ->
         match f.expression with
@@ -122,7 +164,7 @@ let private mapStatement (ctx: EnclosingFunctionBodyContext) (e: TypedExpression
                 | Some arg -> [ arg ]
                 | None -> []
 
-            [ CsAst.Statement.FunctionCall(i, args) ]
+            [ CsAst.Statement.FunctionCall(ctx.mapIdentifier i, args) ]
         | _ -> failwith "TODO handle case when function is not represented by an identifier"
     | Ast.Sequence es -> es |> List.collect (mapStatement ctx)
     | _ -> failwith "TODO handle other statements"
@@ -130,25 +172,7 @@ let private mapStatement (ctx: EnclosingFunctionBodyContext) (e: TypedExpression
 let private mapFunctionBody (e: TypedExpression) : CsAst.Statement list =
     let statements = List()
 
-    let identifiers = HashSet()
-
-    let mutable identifierCounter = 0
-
-    let createIdentifier () =
-        let createId () =
-            identifierCounter <- identifierCounter + 1
-            "id" + string identifierCounter
-
-        let mutable i = createId ()
-
-        while not (identifiers.Add(i)) do
-            i <- createId ()
-
-        i
-
-    let context =
-        { addPrecedingStatement = statements.Add
-          createIdentifier = createIdentifier }
+    let context = createEnclosingFunctionBodyContext statements
 
     match e.expression with
     | Ast.Sequence es ->
