@@ -1,6 +1,10 @@
 let intToStr = intToStrFmt "F"
 let x = 1
-let y = 2
+let y = 2.0
+let y = (
+    let y = 1
+    y + 1
+    )
 let z = x + y
 let w = intToStr z
 println w

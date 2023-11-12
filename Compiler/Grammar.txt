@@ -1,17 +1,6 @@
 NumberLiteral : int * int option
 DoubleQuotedString : string
 Identifier : string
-Plus : unit
-Minus : unit
-Asterisk : unit
-Slash : unit
-ParenOpen : unit
-ParenClose : unit
-Let : unit
-Equals : unit
-Break : unit
-BlockOpen : unit
-BlockClose : unit
 InvalidToken : string
 
 Program -> Expression

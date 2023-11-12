@@ -36,31 +36,31 @@ let private pIdentifier: Parser<Token> =
     >> ParseResult.mapValue (fun (firstChar, rest) -> Token.Identifier(string firstChar + String(rest)))
 
 let private pPlus: Parser<Token> =
-    skipOne '+' >> ParseResult.constValue (Token.Plus())
+    skipOne '+' >> ParseResult.constValue Token.Plus
 
 let private pMinus: Parser<Token> =
-    skipOne '-' >> ParseResult.constValue (Token.Minus())
+    skipOne '-' >> ParseResult.constValue Token.Minus
 
 let private pAsterisk: Parser<Token> =
-    skipOne '*' >> ParseResult.constValue (Token.Asterisk())
+    skipOne '*' >> ParseResult.constValue Token.Asterisk
 
 let private pSlash: Parser<Token> =
-    skipOne '/' >> ParseResult.constValue (Token.Slash())
+    skipOne '/' >> ParseResult.constValue Token.Slash
 
 let private pParenOpen: Parser<Token> =
-    skipOne '(' >> ParseResult.constValue (Token.ParenOpen())
+    skipOne '(' >> ParseResult.constValue Token.ParenOpen
 
 let private pParenClose: Parser<Token> =
-    skipOne ')' >> ParseResult.constValue (Token.ParenClose())
+    skipOne ')' >> ParseResult.constValue Token.ParenClose
 
 let private pLet: Parser<Token> =
-    constString "let" >> ParseResult.constValue (Token.Let())
+    constString "let" >> ParseResult.constValue Token.Let
 
 let private pBreak: Parser<Token> =
-    skipOne ';' >> ParseResult.constValue (Token.Break())
+    skipOne ';' >> ParseResult.constValue Token.Break
 
 let private pEquals: Parser<Token> =
-    skipOne '=' >> ParseResult.constValue (Token.Equals())
+    skipOne '=' >> ParseResult.constValue Token.Equals
 
 let private pInvalidToken: Parser<Token> =
     oneOrMoreCond (fun c -> not (isWhiteSpace c) && c <> '\n' && c <> '\r')
@@ -102,7 +102,7 @@ let private pIndentation: Parser<TokenInternal> =
         Indentation indentationValue)
 
 let private indentationSubContextEnclosingTokens: list<Token * Token> =
-    [ Token.ParenOpen(), Token.ParenClose() ]
+    [ Token.ParenOpen, Token.ParenClose ]
 
 let private indentationSubContextClosingTokens: Set<Token> =
     indentationSubContextEnclosingTokens
@@ -122,7 +122,7 @@ let private mapToBlocks (tokens: TokenInternal list) : Token list =
 
     let closeBlocksOfIndentationContext (indentationLevels: int list) =
         for _ = 0 to indentationLevels.Length - 2 do
-            tokens'.Add(Token.BlockClose())
+            tokens'.Add(Token.BlockClose)
 
     for token in tokens do
         match token with
@@ -160,25 +160,25 @@ let private mapToBlocks (tokens: TokenInternal list) : Token list =
                     // Indentation is decreased below the first level - consider that the level is maintained.
                     // This is normal for sub-contexts, although it is bad formatting if the next token is part of the context body
                     // and not a context closing token.
-                    tokens'.Add(Token.Break())
+                    tokens'.Add(Token.Break)
                 | currentIndentation :: _ when indentation = currentIndentation ->
                     // Indentation level is maintained
-                    tokens'.Add(Token.Break())
+                    tokens'.Add(Token.Break)
                 | currentIndentation :: _ when indentation > currentIndentation ->
                     // Indentation increased
-                    tokens'.Add(Token.BlockOpen())
+                    tokens'.Add(Token.BlockOpen)
                     indentationLevels <- indentation :: indentationLevels
                 | _ :: nextIndentation :: _ when indentation > nextIndentation ->
                     // Indentation is decreased, but it's still greater than the previous level - consider that the level is maintained
-                    tokens'.Add(Token.Break())
+                    tokens'.Add(Token.Break)
                 | _ :: nextIndentation :: restIndentations when indentation = nextIndentation ->
                     // Indentation is decreased to the previous level
-                    tokens'.Add(Token.BlockClose())
-                    tokens'.Add(Token.Break())
+                    tokens'.Add(Token.BlockClose)
+                    tokens'.Add(Token.Break)
                     indentationLevels <- nextIndentation :: restIndentations
                 | _ :: restIndentations ->
                     // Indentation is decreased, possibly several levels
-                    tokens'.Add(Token.BlockClose())
+                    tokens'.Add(Token.BlockClose)
                     indentationLevels <- restIndentations
                     keepGoing <- true
 
@@ -202,14 +202,14 @@ let private stripUnnecessaryBreaks (tokens: Token list) : Token list =
 
     for i = 0 to tokens.Length - 1 do
         match i, tokens[i] with
-        | i, Token.Break() when i = 0 || i = tokens.Length - 1 -> ()
-        | _, Token.Break() ->
+        | i, Token.Break when i = 0 || i = tokens.Length - 1 -> ()
+        | _, Token.Break ->
             match tokens[i - 1], tokens[i + 1] with
-            | Token.Break(), _
-            | Token.BlockOpen(), _
-            | _, Token.BlockClose() -> ()
+            | Token.Break, _
+            | Token.BlockOpen, _
+            | _, Token.BlockClose -> ()
             | _, t when indentationSubContextClosingTokens.Contains(t) -> ()
-            | _ -> tokens'.Add(Token.Break())
+            | _ -> tokens'.Add(Token.Break)
         | _, token -> tokens'.Add(token)
 
     tokens' |> List.ofSeq

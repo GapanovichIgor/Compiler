@@ -30,10 +30,10 @@ let private mapTerminalEnclosedExpression (ctx: LexicalContext) (e: Parser.Termi
     | Parser.TerminalEnclosedExpression.Identifier identifier -> Ast.IdentifierReference(ctx.GetIdentifier(identifier)) |> expression, ctx
     | Parser.TerminalEnclosedExpression.String string -> Ast.StringLiteral string |> expression, ctx
     | Parser.TerminalEnclosedExpression.Number(integerPart, fractionalPart) -> Ast.NumberLiteral(integerPart, fractionalPart) |> expression, ctx
-    | Parser.TerminalEnclosedExpression.Paren(_, content, _) ->
+    | Parser.TerminalEnclosedExpression.Paren content ->
         let content, _ = mapExpression ctx content
         content, ctx
-    | Parser.TerminalEnclosedExpression.Block((), content, ()) ->
+    | Parser.TerminalEnclosedExpression.Block content ->
         let content, _ = mapExpression ctx content
         content, ctx
 
@@ -52,13 +52,13 @@ let private opDivideIdentifierReference = Ast.IdentifierReference(BuiltIn.Identi
 let private mapArithmeticFirstOrderExpr (ctx: LexicalContext) (e: Parser.ArithmeticFirstOrderExpression) =
     match e with
     | Parser.ArithmeticFirstOrderExpression.Fallthrough e -> mapApplication ctx e
-    | Parser.ArithmeticFirstOrderExpression.Multiply(leftOp, (), rightOp) ->
+    | Parser.ArithmeticFirstOrderExpression.Multiply(leftOp, rightOp) ->
         let leftOp, _ = mapArithmeticFirstOrderExpr ctx leftOp
         let rightOp, _ = mapApplication ctx rightOp
         let applyLeft = Ast.Application(opMultiplyIdentifierReference, leftOp) |> expression
         let applyRight = Ast.Application(applyLeft, rightOp) |> expression
         applyRight, ctx
-    | Parser.ArithmeticFirstOrderExpression.Divide(leftOp, (), rightOp) ->
+    | Parser.ArithmeticFirstOrderExpression.Divide(leftOp, rightOp) ->
         let leftOp, _ = mapArithmeticFirstOrderExpr ctx leftOp
         let rightOp, _ = mapApplication ctx rightOp
         let applyLeft = Ast.Application(opDivideIdentifierReference, leftOp) |> expression
@@ -71,13 +71,13 @@ let private opSubtractIdentifierReference = Ast.IdentifierReference(BuiltIn.Iden
 let private mapArithmeticSecondOrderExpr (ctx: LexicalContext) (e: Parser.ArithmeticSecondOrderExpression) =
     match e with
     | Parser.ArithmeticSecondOrderExpression.Fallthrough e -> mapArithmeticFirstOrderExpr ctx e
-    | Parser.ArithmeticSecondOrderExpression.Add(leftOp, (), rightOp) ->
+    | Parser.ArithmeticSecondOrderExpression.Add(leftOp, rightOp) ->
         let leftOp, _ = mapArithmeticSecondOrderExpr ctx leftOp
         let rightOp, _ = mapArithmeticFirstOrderExpr ctx rightOp
         let applyLeft = Ast.Application(opAddIdentifierReference, leftOp) |> expression
         let applyRight = Ast.Application(applyLeft, rightOp) |> expression
         applyRight, ctx
-    | Parser.ArithmeticSecondOrderExpression.Subtract(leftOp, (), rightOp) ->
+    | Parser.ArithmeticSecondOrderExpression.Subtract(leftOp, rightOp) ->
         let leftOp, _ = mapArithmeticSecondOrderExpr ctx leftOp
         let rightOp, _ = mapArithmeticFirstOrderExpr ctx rightOp
         let applyLeft = Ast.Application(opDivideIdentifierReference, leftOp) |> expression
@@ -86,7 +86,7 @@ let private mapArithmeticSecondOrderExpr (ctx: LexicalContext) (e: Parser.Arithm
 
 let private mapBindingExpression (ctx: LexicalContext) (e: Parser.BindingExpression) =
     match e with
-    | Parser.BindingExpression.Binding((), identifierName, (), value) ->
+    | Parser.BindingExpression.Binding(identifierName, value) ->
         let value, _ = mapArithmeticSecondOrderExpr ctx value
         let identifier, ctx = ctx.CreateIdentifier(identifierName)
         let binding = Ast.Binding(identifier, value) |> expression
@@ -95,7 +95,7 @@ let private mapBindingExpression (ctx: LexicalContext) (e: Parser.BindingExpress
 
 let private mapExpressionConcatenation (ctx: LexicalContext) (e: Parser.ExpressionConcatenation) : Ast.Expression * LexicalContext =
     match e with
-    | Parser.ExpressionConcatenation.Concat(head, (), tail) ->
+    | Parser.ExpressionConcatenation.Concat(head, tail) ->
         let head, ctx = mapExpressionConcatenation ctx head
         let tail, ctx = mapBindingExpression ctx tail
 
