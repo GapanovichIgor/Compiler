@@ -47,6 +47,9 @@ type private TypeRelation =
     | ApplicationFunction of arg: TypeConstraintSet * result: TypeConstraintSet
     | ApplicationArgument of fn: TypeConstraintSet
     | ApplicationResult of fn: TypeConstraintSet
+    | FunctionIdentifier of parameter: TypeConstraintSet * result: TypeConstraintSet
+    | FunctionParameter of fnIdentifier: TypeConstraintSet
+    | FunctionResult of fnIdentifier: TypeConstraintSet
 
 [<DebuggerDisplay("{ToString()}")>]
 type private TypeConstraintSet() =
@@ -72,11 +75,11 @@ type private TypeConstraintSet() =
 
     member this.PropagateShapeChange(relation: TypeRelation) =
         match relation with
-        | Same other -> other.ConstrainShape(shape)
+        | Same other -> other.ConstrainShape(this.Shape)
         | ApplicationFunction(argument, result) ->
             this.ConstrainShape(FunctionType(argument.Shape, result.Shape))
 
-            match shape with
+            match this.Shape with
             | FunctionType(parameterShape, resultShape) ->
                 argument.ConstrainShape(parameterShape)
                 result.ConstrainShape(resultShape)
@@ -90,6 +93,28 @@ type private TypeConstraintSet() =
             | FunctionType(parameterShape, _) -> this.ConstrainShape(parameterShape)
             | _ -> this.ConstrainShape(Void)
         | ApplicationResult fn ->
+            fn.ConstrainShape(FunctionType(Unknown, this.Shape))
+
+            match fn.Shape with
+            | FunctionType(_, resultShape) -> this.ConstrainShape(resultShape)
+            | _ -> this.ConstrainShape(Void)
+        | FunctionIdentifier(parameter, result) ->
+            this.ConstrainShape(FunctionType(parameter.Shape, result.Shape))
+
+            match this.Shape with
+            | FunctionType(parameterShape, resultShape) ->
+                parameter.ConstrainShape(parameterShape)
+                result.ConstrainShape(resultShape)
+            | _ ->
+                parameter.ConstrainShape(Void)
+                result.ConstrainShape(Void)
+        | FunctionParameter fn ->
+            fn.ConstrainShape(FunctionType(this.Shape, Unknown))
+
+            match fn.Shape with
+            | FunctionType(parameterShape, _) -> this.ConstrainShape(parameterShape)
+            | _ -> this.ConstrainShape(Void)
+        | FunctionResult fn ->
             fn.ConstrainShape(FunctionType(Unknown, this.Shape))
 
             match fn.Shape with
@@ -158,16 +183,35 @@ type private TypeContext() =
         arg.AddRelation(ApplicationArgument fn)
         result.AddRelation(ApplicationResult fn)
 
-    member _.GetTypeMap() : TypeMap =
-        constraints
-        |> Seq.map (fun kv ->
-            let t =
-                match kv.Value.Resolve() with
-                | Some t -> t
-                | None -> failwith "TODO"
+    member _.ConstrainFunctionDefinition(functionIdentifier: TypeReference, parameter: TypeReference, result: TypeReference) =
+        let functionIdentifier = getConstraints functionIdentifier
+        let parameter = getConstraints parameter
+        let result = getConstraints result
+        functionIdentifier.AddRelation(FunctionIdentifier(parameter, result))
+        parameter.AddRelation(FunctionParameter functionIdentifier)
+        result.AddRelation(FunctionResult functionIdentifier)
 
-            kv.Key, t)
-        |> Map.ofSeq
+    member _.GetTypeInformation() : TypeInformation =
+        let typeReferenceTypes =
+            constraints
+            |> Seq.map (fun kv ->
+                let typeReference = kv.Key
+                let constraintSet = kv.Value
+                match constraintSet.Resolve() with
+                | Some t -> typeReference, t
+                | None -> failwith "TODO")
+            |> Map.ofSeq
+
+        let identifierTypes =
+            identifierTypes
+            |> Seq.map (fun kv ->
+                let identifier = kv.Key
+                let typeReference = kv.Value
+                identifier, typeReferenceTypes[typeReference])
+            |> Map.ofSeq
+
+        { typeReferenceTypes = typeReferenceTypes
+          identifierTypes = identifierTypes }
 
     override _.ToString() =
         let constraintSetInfo =
@@ -203,9 +247,27 @@ let private traverseExpression (ctx: TypeContext) (e: Expression) =
         ctx.ConstrainApplication(fn.expressionType, argument.expressionType, e.expressionType)
         traverseExpression ctx fn
         traverseExpression ctx argument
-    | Binding(identifier, bindingValue) ->
+    | Binding(identifier, parameters, bindingValue) ->
         let identifierType = ctx.GetIdentifierType(identifier)
-        ctx.ConstrainSame(identifierType, bindingValue.expressionType)
+        let parameterTypes = parameters |> List.map ctx.GetIdentifierType
+
+        let rec loop identifierType parameterTypes =
+            match parameterTypes with
+            | [] ->
+                // let identifier = bindingValue
+                ctx.ConstrainSame(identifierType, bindingValue.expressionType)
+            | [ parameterType ] ->
+                // let identifier parameter = bindingValue
+                ctx.ConstrainFunctionDefinition(identifierType, parameterType, bindingValue.expressionType)
+            | parameterType :: parameterTypesRest ->
+                // let identifier (parameter : 'parameterType) : 'subFunctionType =
+                //     let subFunctionIdentifier : 'subFunctionType = fun ... -> bindingValue
+                //     subFunctionIdentifier
+                let subFunctionIdentifierType = createTypeReference ()
+                ctx.ConstrainFunctionDefinition(identifierType, parameterType, subFunctionIdentifierType)
+                loop subFunctionIdentifierType parameterTypesRest
+        loop identifierType parameterTypes
+
         ctx.ConstrainExact(e.expressionType, BuiltIn.Types.unit)
         traverseExpression ctx bindingValue
     | Sequence expressions ->
@@ -219,9 +281,11 @@ let private traverseProgram (ctx: TypeContext) (program: Program) =
     match program with
     | Program e -> traverseExpression ctx e
 
-type TypeMap = Map<TypeReference, Type>
+type TypeInformation =
+    { typeReferenceTypes: Map<TypeReference, Type>
+      identifierTypes: Map<Identifier, Type> }
 
-let getTypeMap (ast: Program) : TypeMap =
+let getTypeInformation (ast: Program) : TypeInformation =
     let context = TypeContext()
 
     let addBuiltIn (identifier: Identifier) (t: Type) =
@@ -239,4 +303,4 @@ let getTypeMap (ast: Program) : TypeMap =
 
     traverseProgram context ast
 
-    context.GetTypeMap()
+    context.GetTypeInformation()

@@ -16,7 +16,7 @@ match parse tokens with
 
 let ast = AstBuilder.buildFromParseTree parseTree
 
-let typeMap = TypeSolver.getTypeMap ast
+let typeMap = TypeSolver.getTypeInformation ast
 
 let csAst = CsTranspiler.transpile (ast, typeMap)
 

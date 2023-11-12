@@ -195,6 +195,8 @@ let private mapToBlocks (tokens: TokenInternal list) : Token list =
         | Root indentationLevels ->
             closeBlocksOfIndentationContext indentationLevels
 
+    loop indentationContextStack
+
     tokens' |> List.ofSeq
 
 let private stripUnnecessaryBreaks (tokens: Token list) : Token list =

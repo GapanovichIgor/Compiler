@@ -17,28 +17,31 @@ type private Output(streamWriter: StreamWriter) =
 
 let private getTypeSignature (t: Type) =
     match t with
-    | Void -> "void"
     | ValueType t -> t
-    | FunctionType (args, result) ->
+    | FunctionType (parameters, result) ->
         match result with
-        | Void ->
-            if args.Length = 0 then
-                "System.Action"
-            else
-                args
-                |> List.map getTypeSignature
-                |> String.concat ", "
-                |> sprintf "System.Action<%s>"
-        | _ ->
-            if args.Length = 0 then
+        | Some result ->
+            if parameters.Length = 0 then
                 $"System.Func<%s{getTypeSignature result}>"
             else
                 let args =
-                    args
-                    |> List.map getTypeSignature
+                    parameters
+                    |> Seq.map getTypeSignature
                     |> String.concat ", "
                 $"System.Func<%s{args}, %s{getTypeSignature result}>"
+        | None ->
+            if parameters.Length = 0 then
+                "System.Action"
+            else
+                parameters
+                |> Seq.map getTypeSignature
+                |> String.concat ", "
+                |> sprintf "System.Action<%s>"
 
+let private getTypeOrVoidSignature (t: Type option) =
+    match t with
+    | None -> "void"
+    | Some t -> getTypeSignature t
 
 let private generateBinaryOperator (operator: BinaryOperator) (output: Output) =
     match operator with
@@ -70,7 +73,7 @@ let private generateCast (e: Expression, t: Type) (output: Output) =
 
 let rec private generateExpression (expression: Expression) (output: Output) =
     match expression with
-    | Expression.Identifier i ->
+    | Expression.IdentifierReference i ->
         output.Write(i)
     | Expression.NumberLiteral (i, f, t) ->
         match t with
@@ -103,23 +106,55 @@ let rec private generateExpression (expression: Expression) (output: Output) =
     | Expression.Cast (e, t) ->
         generateCast (e, t) output
 
+let private generateFunctionCallStatement (functionName: Identifier, args: Expression list) (output: Output) =
+    generateFunctionCallExpression (functionName, args) output
+    output.WriteLine(";")
+
+let private generateLocalFunction (resultType: Type option, functionName: Identifier, parameters: (Type * Identifier) list, statements: StatementSequence) (output: Output) =
+    output.Write(getTypeOrVoidSignature resultType)
+    output.Write(" ")
+    output.Write(functionName)
+    output.Write("(")
+    let mutable firstParameter = true
+    for paramType, paramName in parameters do
+        if firstParameter then
+            firstParameter <- false
+        else
+            output.Write(", ")
+        output.Write(getTypeSignature paramType)
+        output.Write(" ")
+        output.Write(paramName)
+    output.WriteLine(") {")
+    generateStatements statements output
+    output.WriteLine("}")
+
 let private generateVar (t: Type, i: Identifier, v: Expression) (output: Output) =
     output.Write(getTypeSignature t)
     output.Write(" ")
     output.Write(i)
     output.Write(" = ")
     generateExpression v output
+    output.WriteLine(";")
+
+let private generateReturn (e: Expression) (output: Output) =
+    output.Write("return ")
+    generateExpression e output
+    output.WriteLine(";")
 
 let private generateStatement (statement: Statement) (output: Output) =
     match statement with
-    | Statement.FunctionCall (functionName, args) -> generateFunctionCallExpression (functionName, args) output
+    | Statement.FunctionCall (functionName, args) -> generateFunctionCallStatement (functionName, args) output
+    | Statement.LocalFunction (resultType, functionName, parameters, statements) -> generateLocalFunction (resultType, functionName, parameters, statements) output
     | Statement.Var (t, i, v) -> generateVar (t, i, v) output
-    output.WriteLine(";")
+    | Statement.Return e -> generateReturn e output
+
+let private generateStatements (statements: StatementSequence) (output: Output) =
+    for statement in statements do
+        generateStatement statement output
 
 let generate (program: Program) (output: Stream) : unit =
     let streamWriter = new StreamWriter(output)
     let output = Output(streamWriter)
     let (Program statements) = program
-    for statement in statements do
-        generateStatement statement output
+    generateStatements statements output
     streamWriter.Flush()

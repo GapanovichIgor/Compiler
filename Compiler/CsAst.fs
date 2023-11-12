@@ -2,12 +2,9 @@
 
 type Identifier = string
 
-type FunctionSignature = Type list * Type
-
 type Type =
-    | Void
     | ValueType of string
-    | FunctionType of FunctionSignature
+    | FunctionType of parameters: Type list * result: Type option
 
 type BinaryOperator =
     | Add
@@ -16,7 +13,7 @@ type BinaryOperator =
     | Divide
 
 type Expression =
-    | Identifier of Identifier
+    | IdentifierReference of Identifier
     | NumberLiteral of int * int option * Type
     | StringLiteral of string
     | BinaryOperation of Expression * BinaryOperator * Expression
@@ -24,8 +21,10 @@ type Expression =
     | Cast of Expression * Type
 
 type Statement =
-    | Var of Type * Identifier * Expression
-    | FunctionCall of Identifier * Expression list
+    | Var of variableType: Type * variableName: Identifier * assignedExpression: Expression
+    | LocalFunction of resultType: Type option * functionName: Identifier * parameters: (Type * Identifier) list * body: StatementSequence
+    | FunctionCall of functionName: Identifier * arguments: Expression list
+    | Return of Expression
 
 type StatementSequence = Statement list
 

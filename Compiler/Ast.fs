@@ -23,7 +23,7 @@ type ExpressionShape =
     | NumberLiteral of integerPart: int * fractionalPart: int option
     | StringLiteral of text: string
     | Application of fn: Expression * argument: Expression
-    | Binding of identifier: Identifier * body: Expression
+    | Binding of identifier: Identifier * parameters: Identifier list * body: Expression
     | Sequence of expressions: Expression list
 
 type Expression =

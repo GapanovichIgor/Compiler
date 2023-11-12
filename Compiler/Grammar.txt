@@ -10,8 +10,11 @@ Expression -> ExpressionConcatenation
 ExpressionConcatenation.Concat -> ExpressionConcatenation Break BindingExpression
 ExpressionConcatenation.Fallthrough -> BindingExpression
 
-BindingExpression.Binding -> Let Identifier Equals ArithmeticSecondOrderExpression
+BindingExpression.Binding -> Let Identifier BindingParameters Equals ArithmeticSecondOrderExpression
 BindingExpression.Fallthrough -> ArithmeticSecondOrderExpression
+
+BindingParameters.Empty ->
+BindingParameters.Cons -> BindingParameters Identifier
 
 ArithmeticSecondOrderExpression.Add -> ArithmeticSecondOrderExpression Plus ArithmeticFirstOrderExpression
 ArithmeticSecondOrderExpression.Subtract -> ArithmeticSecondOrderExpression Minus ArithmeticFirstOrderExpression

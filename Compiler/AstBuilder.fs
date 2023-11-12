@@ -84,12 +84,22 @@ let private mapArithmeticSecondOrderExpr (ctx: LexicalContext) (e: Parser.Arithm
         let applyRight = Ast.Application(applyLeft, rightOp) |> expression
         applyRight, ctx
 
+let private mapBindingParameters (ctx: LexicalContext) (e: Parser.BindingParameters) =
+    match e with
+    | Parser.BindingParameters.Empty -> [], ctx
+    | Parser.BindingParameters.Cons (head, p) ->
+        let parameter, ctx = ctx.CreateIdentifier(p)
+        let headParameters, ctx = mapBindingParameters ctx head
+        let parameters = parameter :: headParameters
+        parameters, ctx
+
 let private mapBindingExpression (ctx: LexicalContext) (e: Parser.BindingExpression) =
     match e with
-    | Parser.BindingExpression.Binding(identifierName, value) ->
-        let value, _ = mapArithmeticSecondOrderExpr ctx value
+    | Parser.BindingExpression.Binding(identifierName, parameters, value) ->
+        let parameters, subCtx = mapBindingParameters ctx parameters
+        let value, _ = mapArithmeticSecondOrderExpr subCtx value
         let identifier, ctx = ctx.CreateIdentifier(identifierName)
-        let binding = Ast.Binding(identifier, value) |> expression
+        let binding = Ast.Binding(identifier, parameters, value) |> expression
         binding, ctx
     | Parser.BindingExpression.Fallthrough e -> mapArithmeticSecondOrderExpr ctx e
 
