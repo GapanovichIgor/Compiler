@@ -1,17 +1,16 @@
-﻿module internal rec Compiler.TranspileToCs
+﻿module internal rec Compiler.CsTranspiler
 
 open System
 open System.Collections.Generic
 open Compiler.Type
 
-type private TypedExpression = Ast.TypedExpression<Type>
-
 type private EnclosingFunctionBodyContext =
     { addPrecedingStatement: CsAst.Statement -> unit
       createIdentifier: unit -> CsAst.Identifier
-      mapIdentifier: Ast.Identifier -> CsAst.Identifier }
+      mapIdentifier: Ast.Identifier -> CsAst.Identifier
+      getCsType: Ast.TypeReference -> CsAst.Type }
 
-let private createEnclosingFunctionBodyContext (statements: List<CsAst.Statement>) =
+let private createEnclosingFunctionBodyContext (statements: List<CsAst.Statement>, getCsType: Ast.TypeReference -> CsAst.Type) =
     let identifierNameSet = HashSet()
     let identifierNameMap = Dictionary()
 
@@ -49,47 +48,50 @@ let private createEnclosingFunctionBodyContext (statements: List<CsAst.Statement
 
     { addPrecedingStatement = statements.Add
       createIdentifier = createIdentifier
-      mapIdentifier = mapIdentifier }
-
-let private mapBinaryOperator (o: Ast.BinaryOperator) =
-    match o with
-    | Ast.BinaryOperator.Add -> CsAst.BinaryOperator.Add
-    | Ast.BinaryOperator.Subtract -> CsAst.BinaryOperator.Subtract
-    | Ast.BinaryOperator.Multiply -> CsAst.BinaryOperator.Multiply
-    | Ast.BinaryOperator.Divide -> CsAst.BinaryOperator.Divide
+      mapIdentifier = mapIdentifier
+      getCsType = getCsType }
 
 let private (|Is|_|) v1 v2 = if v1 = v2 then Some() else None
 
-let private mapType (t: Type) : CsAst.Type =
+let private mapBinaryOperator (operator: Ast.Identifier) =
+    match operator with
+    | Is BuiltIn.Identifiers.opAdd -> Some CsAst.BinaryOperator.Add
+    | Is BuiltIn.Identifiers.opSubtract -> Some CsAst.BinaryOperator.Subtract
+    | Is BuiltIn.Identifiers.opMultiply -> Some CsAst.BinaryOperator.Multiply
+    | Is BuiltIn.Identifiers.opDivide -> Some CsAst.BinaryOperator.Divide
+    | _ -> None
+
+let private (|BinaryOp|_|) identifier = mapBinaryOperator identifier
+
+let private mapToCsType (t: Type) : CsAst.Type =
     match t with
     | Is BuiltIn.Types.int -> CsAst.ValueType "System.Int32"
     | Is BuiltIn.Types.float -> CsAst.ValueType "System.Single"
     | Is BuiltIn.Types.string -> CsAst.ValueType "System.String"
     | Is BuiltIn.Types.unit -> CsAst.Void
-    | FunctionType (argT, resultT) ->
-        let argT = mapType argT
-        let resultT = mapType resultT
-        CsAst.FunctionType ([argT], resultT)
+    | FunctionType(argT, resultT) ->
+        let argT = mapToCsType argT
+        let resultT = mapToCsType resultT
+        CsAst.FunctionType([ argT ], resultT)
     | _ -> failwith "TODO handle other types"
 
-let private mapExpression (ctx: EnclosingFunctionBodyContext) (e: TypedExpression) : CsAst.Expression option =
-    match e.expression with
-    | Ast.Identifier i -> CsAst.Identifier (ctx.mapIdentifier i) |> Some
+let private mapExpression (ctx: EnclosingFunctionBodyContext) (e: Ast.Expression) : CsAst.Expression option =
+    match e.expressionShape with
+    | Ast.IdentifierReference i -> CsAst.Identifier(ctx.mapIdentifier i) |> Some
     | Ast.NumberLiteral(i, f) ->
-        let t = mapType e.expressionType
+        let t = ctx.getCsType e.expressionType
         CsAst.NumberLiteral(i, f, t) |> Some
     | Ast.StringLiteral s -> CsAst.StringLiteral s |> Some
-    | Ast.BinaryOperation(e1, op, e2) ->
-        let e1 = mapExpression ctx e1
-        let op = mapBinaryOperator op
-        let e2 = mapExpression ctx e2
-
-        match e1, e2 with
-        | Some e1, Some e2 -> CsAst.BinaryOperation(e1, op, e2) |> Some
-        | _ -> failwith "Operands of a binary operation should not be statements"
     | Ast.Application(f, arg) ->
-        match f.expression with
-        | Ast.Identifier i ->
+        match f.expressionShape with
+        | Ast.Application({ expressionShape = Ast.IdentifierReference(BinaryOp op) }, leftOp) ->
+            let leftOp = mapExpression ctx leftOp
+            let rightOp = mapExpression ctx arg
+
+            match leftOp, rightOp with
+            | Some e1, Some e2 -> CsAst.BinaryOperation(e1, op, e2) |> Some
+            | _ -> failwith "Operands of a binary operation should not be statements"
+        | Ast.IdentifierReference i ->
             let arg = mapExpression ctx arg
 
             let args =
@@ -99,7 +101,7 @@ let private mapExpression (ctx: EnclosingFunctionBodyContext) (e: TypedExpressio
 
             CsAst.FunctionCall(ctx.mapIdentifier i, args) |> Some
         | _ ->
-            let varT = mapType f.expressionType
+            let varT = ctx.getCsType f.expressionType
             let varId = ctx.createIdentifier ()
             let varBody = mapExpression ctx f
 
@@ -115,15 +117,8 @@ let private mapExpression (ctx: EnclosingFunctionBodyContext) (e: TypedExpressio
 
                 CsAst.FunctionCall(varId, args) |> Some
             | None -> failwith "Expression was expected to evaluate to a function, but it evaluated to nothing"
-    | Ast.Coerce(e, t) ->
-        let e = mapExpression ctx e
-        let t = mapType t
-
-        match e with
-        | Some e -> CsAst.Cast(e, t) |> Some
-        | None -> failwith "Coerce on a statement"
     | Ast.Binding(i, v) ->
-        let t = mapType v.expressionType
+        let t = ctx.getCsType v.expressionType
         let v = mapExpression ctx v
 
         match v with
@@ -145,18 +140,18 @@ let private mapExpression (ctx: EnclosingFunctionBodyContext) (e: TypedExpressio
 
         es.Head
 
-let private mapStatement (ctx: EnclosingFunctionBodyContext) (e: TypedExpression) : CsAst.Statement list =
-    match e.expression with
+let private mapStatement (ctx: EnclosingFunctionBodyContext) (e: Ast.Expression) : CsAst.Statement list =
+    match e.expressionShape with
     | Ast.Binding(i, v) ->
-        let t = mapType v.expressionType
+        let t = ctx.getCsType v.expressionType
         let v = mapExpression ctx v
 
         match v with
         | Some v -> [ CsAst.Statement.Var(t, ctx.mapIdentifier i, v) ]
         | None -> failwith "Let binding has statement as its value"
     | Ast.Application(f, arg) ->
-        match f.expression with
-        | Ast.Identifier i ->
+        match f.expressionShape with
+        | Ast.IdentifierReference i ->
             let arg = mapExpression ctx arg
 
             let args =
@@ -169,12 +164,12 @@ let private mapStatement (ctx: EnclosingFunctionBodyContext) (e: TypedExpression
     | Ast.Sequence es -> es |> List.collect (mapStatement ctx)
     | _ -> failwith "TODO handle other statements"
 
-let private mapFunctionBody (e: TypedExpression) : CsAst.Statement list =
+let private mapFunctionBody (getCsType: Ast.TypeReference -> CsAst.Type) (e: Ast.Expression) : CsAst.Statement list =
     let statements = List()
 
-    let context = createEnclosingFunctionBodyContext statements
+    let context = createEnclosingFunctionBodyContext (statements, getCsType)
 
-    match e.expression with
+    match e.expressionShape with
     | Ast.Sequence es ->
         for e in es do
             statements.AddRange(mapStatement context e)
@@ -182,9 +177,12 @@ let private mapFunctionBody (e: TypedExpression) : CsAst.Statement list =
 
     List.ofSeq statements
 
-let transpile (ast: Ast.Program<Type>) : CsAst.Program =
+let transpile (ast: Ast.Program, typeMap: TypeSolver.TypeMap) : CsAst.Program =
     let (Ast.Program e) = ast
 
-    let statements = mapFunctionBody e
+    let getCsType typeReference =
+        typeMap |> Map.find typeReference |> mapToCsType
+
+    let statements = mapFunctionBody getCsType e
 
     CsAst.Program statements

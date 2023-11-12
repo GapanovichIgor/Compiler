@@ -21,84 +21,97 @@ type private LexicalContext =
     member this.GetIdentifier(identifierName: string) =
         this.identifiers |> Map.find identifierName
 
-let private untyped e : Ast.TypedExpression<unit> = { expression = e; expressionType = () }
+let private expression shape : Ast.Expression =
+    { expressionShape = shape
+      expressionType = Ast.createTypeReference () }
 
-let private mapTerminalEnclosedExpression (ctx: LexicalContext) (e: Parser.TerminalEnclosedExpression) : Ast.TypedExpression<unit> * LexicalContext =
+let private mapTerminalEnclosedExpression (ctx: LexicalContext) (e: Parser.TerminalEnclosedExpression) : Ast.Expression * LexicalContext =
     match e with
-    | Parser.TerminalEnclosedExpression.Identifier i -> Ast.Identifier(ctx.GetIdentifier(i)) |> untyped, ctx
-    | Parser.TerminalEnclosedExpression.String s -> Ast.StringLiteral s |> untyped, ctx
-    | Parser.TerminalEnclosedExpression.Number(i, f) -> Ast.NumberLiteral(i, f) |> untyped, ctx
-    | Parser.TerminalEnclosedExpression.Paren(_, e, _) ->
-        let e, _ = mapExpression ctx e
-        e, ctx
-    | Parser.TerminalEnclosedExpression.Block((), e, ()) ->
-        let e, _ = mapExpression ctx e
-        e, ctx
+    | Parser.TerminalEnclosedExpression.Identifier identifier -> Ast.IdentifierReference(ctx.GetIdentifier(identifier)) |> expression, ctx
+    | Parser.TerminalEnclosedExpression.String string -> Ast.StringLiteral string |> expression, ctx
+    | Parser.TerminalEnclosedExpression.Number(integerPart, fractionalPart) -> Ast.NumberLiteral(integerPart, fractionalPart) |> expression, ctx
+    | Parser.TerminalEnclosedExpression.Paren(_, content, _) ->
+        let content, _ = mapExpression ctx content
+        content, ctx
+    | Parser.TerminalEnclosedExpression.Block((), content, ()) ->
+        let content, _ = mapExpression ctx content
+        content, ctx
 
 let private mapApplication (ctx: LexicalContext) (e: Parser.Application) =
     match e with
     | Parser.Fallthrough e -> mapTerminalEnclosedExpression ctx e
-    | Parser.Application(e1, e2) ->
-        let e1, _ = mapApplication ctx e1
-        let e2, _ = mapTerminalEnclosedExpression ctx e2
-        let e = Ast.Application(e1, e2) |> untyped
-        e, ctx
+    | Parser.Application(fn, arg) ->
+        let fn, _ = mapApplication ctx fn
+        let arg, _ = mapTerminalEnclosedExpression ctx arg
+        let application = Ast.Application(fn, arg) |> expression
+        application, ctx
+
+let private opMultiplyIdentifierReference = Ast.IdentifierReference(BuiltIn.Identifiers.opMultiply) |> expression
+let private opDivideIdentifierReference = Ast.IdentifierReference(BuiltIn.Identifiers.opDivide) |> expression
 
 let private mapArithmeticFirstOrderExpr (ctx: LexicalContext) (e: Parser.ArithmeticFirstOrderExpression) =
     match e with
     | Parser.ArithmeticFirstOrderExpression.Fallthrough e -> mapApplication ctx e
-    | Parser.ArithmeticFirstOrderExpression.Multiply(e1, (), e2) ->
-        let e1, _ = mapArithmeticFirstOrderExpr ctx e1
-        let e2, _ = mapApplication ctx e2
-        let e = Ast.BinaryOperation(e1, Ast.Multiply, e2) |> untyped
-        e, ctx
-    | Parser.ArithmeticFirstOrderExpression.Divide(e1, (), e2) ->
-        let e1, _ = mapArithmeticFirstOrderExpr ctx e1
-        let e2, _ = mapApplication ctx e2
-        let e = Ast.BinaryOperation(e1, Ast.Divide, e2) |> untyped
-        e, ctx
+    | Parser.ArithmeticFirstOrderExpression.Multiply(leftOp, (), rightOp) ->
+        let leftOp, _ = mapArithmeticFirstOrderExpr ctx leftOp
+        let rightOp, _ = mapApplication ctx rightOp
+        let applyLeft = Ast.Application(opMultiplyIdentifierReference, leftOp) |> expression
+        let applyRight = Ast.Application(applyLeft, rightOp) |> expression
+        applyRight, ctx
+    | Parser.ArithmeticFirstOrderExpression.Divide(leftOp, (), rightOp) ->
+        let leftOp, _ = mapArithmeticFirstOrderExpr ctx leftOp
+        let rightOp, _ = mapApplication ctx rightOp
+        let applyLeft = Ast.Application(opDivideIdentifierReference, leftOp) |> expression
+        let applyRight = Ast.Application(applyLeft, rightOp) |> expression
+        applyRight, ctx
+
+let private opAddIdentifierReference = Ast.IdentifierReference(BuiltIn.Identifiers.opAdd) |> expression
+let private opSubtractIdentifierReference = Ast.IdentifierReference(BuiltIn.Identifiers.opSubtract) |> expression
 
 let private mapArithmeticSecondOrderExpr (ctx: LexicalContext) (e: Parser.ArithmeticSecondOrderExpression) =
     match e with
     | Parser.ArithmeticSecondOrderExpression.Fallthrough e -> mapArithmeticFirstOrderExpr ctx e
-    | Parser.ArithmeticSecondOrderExpression.Add(e1, (), e2) ->
-        let e1, _ = mapArithmeticSecondOrderExpr ctx e1
-        let e2, _ = mapArithmeticFirstOrderExpr ctx e2
-        let e = Ast.BinaryOperation(e1, Ast.Add, e2) |> untyped
-        e, ctx
-    | Parser.ArithmeticSecondOrderExpression.Subtract(e1, (), e2) ->
-        let e1, _ = mapArithmeticSecondOrderExpr ctx e1
-        let e2, _ = mapArithmeticFirstOrderExpr ctx e2
-        let e = Ast.BinaryOperation(e1, Ast.Subtract, e2) |> untyped
-        e, ctx
+    | Parser.ArithmeticSecondOrderExpression.Add(leftOp, (), rightOp) ->
+        let leftOp, _ = mapArithmeticSecondOrderExpr ctx leftOp
+        let rightOp, _ = mapArithmeticFirstOrderExpr ctx rightOp
+        let applyLeft = Ast.Application(opAddIdentifierReference, leftOp) |> expression
+        let applyRight = Ast.Application(applyLeft, rightOp) |> expression
+        applyRight, ctx
+    | Parser.ArithmeticSecondOrderExpression.Subtract(leftOp, (), rightOp) ->
+        let leftOp, _ = mapArithmeticSecondOrderExpr ctx leftOp
+        let rightOp, _ = mapArithmeticFirstOrderExpr ctx rightOp
+        let applyLeft = Ast.Application(opDivideIdentifierReference, leftOp) |> expression
+        let applyRight = Ast.Application(applyLeft, rightOp) |> expression
+        applyRight, ctx
 
 let private mapBindingExpression (ctx: LexicalContext) (e: Parser.BindingExpression) =
     match e with
     | Parser.BindingExpression.Binding((), identifierName, (), value) ->
         let value, _ = mapArithmeticSecondOrderExpr ctx value
         let identifier, ctx = ctx.CreateIdentifier(identifierName)
-        Ast.Binding(identifier, value) |> untyped, ctx
+        let binding = Ast.Binding(identifier, value) |> expression
+        binding, ctx
     | Parser.BindingExpression.Fallthrough e -> mapArithmeticSecondOrderExpr ctx e
 
-let private mapExpressionConcatenation (ctx: LexicalContext) (e: Parser.ExpressionConcatenation) : Ast.TypedExpression<unit> * LexicalContext =
+let private mapExpressionConcatenation (ctx: LexicalContext) (e: Parser.ExpressionConcatenation) : Ast.Expression * LexicalContext =
     match e with
-    | Parser.ExpressionConcatenation.Concat(e1, (), e2) ->
-        let e1, ctx = mapExpressionConcatenation ctx e1
-        let e2, ctx = mapBindingExpression ctx e2
+    | Parser.ExpressionConcatenation.Concat(head, (), tail) ->
+        let head, ctx = mapExpressionConcatenation ctx head
+        let tail, ctx = mapBindingExpression ctx tail
 
         let e =
-            match e1.expression with
-            | Ast.Sequence s -> Ast.Sequence(s @ [ e2 ]) |> untyped
-            | _ -> Ast.Sequence [ e1; e2 ] |> untyped
+            match head.expressionShape with
+            | Ast.Sequence headSequence -> Ast.Sequence(headSequence @ [ tail ]) |> expression
+            | _ -> Ast.Sequence [ head; tail ] |> expression
 
         e, ctx
     | Parser.ExpressionConcatenation.Fallthrough e -> mapBindingExpression ctx e
 
-let private mapExpression (ctx: LexicalContext) (e: Parser.Expression) : Ast.TypedExpression<unit> * LexicalContext =
+let private mapExpression (ctx: LexicalContext) (e: Parser.Expression) : Ast.Expression * LexicalContext =
     match e with
     | Parser.Expression e -> mapExpressionConcatenation ctx e
 
-let buildFromParseTree (parseTree: Parser.Program) : Ast.Program<unit> =
+let buildFromParseTree (parseTree: Parser.Program) : Ast.Program =
     let context =
         LexicalContext.Empty
             .AttachIdentifier(BuiltIn.Identifiers.println)

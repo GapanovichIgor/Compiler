@@ -17,9 +17,9 @@
         <Compile Include="Ast.fs" />
         <Compile Include="BuiltIn.fs" />
         <Compile Include="AstBuilder.fs" />
-        <Compile Include="TypeChecker.fs" />
+        <Compile Include="TypeSolver.fs" />
         <Compile Include="CsAst.fs" />
-        <Compile Include="TranspileToCs.fs" />
+        <Compile Include="CsTranspiler.fs" />
         <Compile Include="CsCodeGenerator.fs" />
         <Compile Include="Build.fs" />
         <Compile Include="Program.fs" />

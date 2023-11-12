@@ -14,10 +14,10 @@ match parse tokens with
 | Error e -> failwith "TODO"
 | Ok parseTree ->
 
-let untypedAst = AstBuilder.buildFromParseTree parseTree
+let ast = AstBuilder.buildFromParseTree parseTree
 
-let ast = TypeChecker.check untypedAst
+let typeMap = TypeSolver.getTypeMap ast
 
-let csAst = TranspileToCs.transpile ast
+let csAst = CsTranspiler.transpile (ast, typeMap)
 
 Build.build (csAst, "Build")
