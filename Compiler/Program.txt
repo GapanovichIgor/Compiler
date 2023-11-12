@@ -1,6 +1,6 @@
-let f = intToStr2 "F"
+let intToStr = intToStrFmt "F"
 let x = 1
 let y = 2
 let z = x + y
-let w = f z
+let w = intToStr z
 println w

@@ -3,20 +3,22 @@
 open Compiler.Type
 
 module Types =
-    let unit = ValueType "System.Unit"
-    let int = ValueType "System.Int"
-    let float = ValueType "System.Float"
-    let string = ValueType "System.String"
+    let unit = ValueType "Unit"
+    let int = ValueType "Int"
+    let float = ValueType "Float"
+    let string = ValueType "String"
 
 module Identifiers =
-    let opAdd = Ast.createIdentifier "+"
-    let opSubtract = Ast.createIdentifier "-"
-    let opMultiply = Ast.createIdentifier "*"
-    let opDivide = Ast.createIdentifier "/"
-    let println = Ast.createIdentifier "println"
-    let intToStr = Ast.createIdentifier "intToStr"
-    let intToStr2 = Ast.createIdentifier "intToStr2"
-    let floatToStr = Ast.createIdentifier "floatToStr"
+    open Ast
+
+    let opAdd = createIdentifier "+"
+    let opSubtract = createIdentifier "-"
+    let opMultiply = createIdentifier "*"
+    let opDivide = createIdentifier "/"
+    let println = createIdentifier "println"
+    let intToStr = createIdentifier "intToStr"
+    let intToStrFmt = createIdentifier "intToStrFmt"
+    let floatToStr = createIdentifier "floatToStr"
 
 module IdentifierTypes =
     open Types
@@ -27,5 +29,5 @@ module IdentifierTypes =
     let opDivide = FunctionType(int, FunctionType(int, int))
     let println = FunctionType(string, unit)
     let intToStr = FunctionType(int, string)
-    let intToStr2 = FunctionType(string, FunctionType(int, string))
+    let intToStrFmt = FunctionType(string, FunctionType(int, string))
     let floatToStr = FunctionType(float, string)

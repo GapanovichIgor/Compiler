@@ -116,7 +116,7 @@ let buildFromParseTree (parseTree: Parser.Program) : Ast.Program =
         LexicalContext.Empty
             .AttachIdentifier(BuiltIn.Identifiers.println)
             .AttachIdentifier(BuiltIn.Identifiers.intToStr)
-            .AttachIdentifier(BuiltIn.Identifiers.intToStr2)
+            .AttachIdentifier(BuiltIn.Identifiers.intToStrFmt)
             .AttachIdentifier(BuiltIn.Identifiers.floatToStr)
 
     match parseTree with

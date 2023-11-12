@@ -10,4 +10,9 @@ type Type =
     override this.ToString() =
         match this with
         | ValueType t -> t
-        | FunctionType (arg, result) -> $"({arg}) -> ({result})"
+        | FunctionType (arg, result) ->
+            let arg =
+                match arg with
+                | FunctionType _ -> $"({arg})"
+                | _ -> arg.ToString()
+            $"{arg} -> {result}"

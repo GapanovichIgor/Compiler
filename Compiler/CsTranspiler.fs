@@ -16,10 +16,10 @@ let private createEnclosingFunctionBodyContext (statements: List<CsAst.Statement
 
     let mutable identifierNameCounter = 0
 
-    let createUniqueIdentifierName () =
+    let createUniqueIdentifierName baseName =
         let createId () =
             identifierNameCounter <- identifierNameCounter + 1
-            "id" + string identifierNameCounter
+            baseName + string identifierNameCounter
 
         let mutable i = createId ()
 
@@ -29,7 +29,7 @@ let private createEnclosingFunctionBodyContext (statements: List<CsAst.Statement
         i
 
     let createIdentifier () =
-        let i = createUniqueIdentifierName ()
+        let i = createUniqueIdentifierName "id"
         identifierNameMap[Guid.NewGuid()] <- i
         i
 
@@ -41,10 +41,18 @@ let private createEnclosingFunctionBodyContext (statements: List<CsAst.Statement
                 identifierNameMap[identifier.identity] <- identifier.name
                 identifier.name
             else
-                let uniqueIdentifierName = createUniqueIdentifierName ()
+                let uniqueIdentifierName = createUniqueIdentifierName identifier.name
                 identifierNameMap[identifier.identity] <- uniqueIdentifierName
                 uniqueIdentifierName
 
+    mapIdentifier BuiltIn.Identifiers.opAdd |> ignore
+    mapIdentifier BuiltIn.Identifiers.opSubtract |> ignore
+    mapIdentifier BuiltIn.Identifiers.opMultiply |> ignore
+    mapIdentifier BuiltIn.Identifiers.opDivide |> ignore
+    mapIdentifier BuiltIn.Identifiers.println |> ignore
+    mapIdentifier BuiltIn.Identifiers.intToStr |> ignore
+    mapIdentifier BuiltIn.Identifiers.intToStrFmt |> ignore
+    mapIdentifier BuiltIn.Identifiers.floatToStr |> ignore
 
     { addPrecedingStatement = statements.Add
       createIdentifier = createIdentifier

@@ -11,34 +11,36 @@ type private TypeShape =
     | Conflict of TypeShape Set
     | Unknown
     | ValueType of string
-    | FunctionType of parameter:TypeShape * result:TypeShape
+    | FunctionType of parameter: TypeShape * result: TypeShape
 
     override this.ToString() =
         match this with
         | Void -> "#void"
         | Conflict shapes ->
-            let shapeText =
-                shapes
-                |> Seq.map string
-                |> String.concat " & "
+            let shapeText = shapes |> Seq.map string |> String.concat " & "
             $"#conflict({shapeText})"
         | Unknown -> "#unknown"
         | ValueType t -> t.ToString()
-        | FunctionType (arg, result) -> $"({arg}) -> ({result})"
+        | FunctionType(arg, result) ->
+            let arg =
+                match arg with
+                | FunctionType _ -> $"({arg})"
+                | _ -> arg.ToString()
+            $"{arg} -> {result}"
 
     static member Combine(a: TypeShape, b: TypeShape) =
         match a, b with
         | a, b when a = b -> a
-        | Conflict a, Conflict b -> Conflict (a + b)
-        | Conflict a, b -> Conflict (a |> Set.add b)
-        | a, Conflict b -> Conflict (b |> Set.add a)
+        | Conflict a, Conflict b -> Conflict(a + b)
+        | Conflict a, b -> Conflict(a |> Set.add b)
+        | a, Conflict b -> Conflict(b |> Set.add a)
         | Unknown, b -> b
         | a, Unknown -> a
-        | FunctionType (fnA, resultA), FunctionType (fnB, resultB) ->
-            let fn = TypeShape.Combine(fnA, fnB)
+        | FunctionType(parameterA, resultA), FunctionType(parameterB, resultB) ->
+            let parameter = TypeShape.Combine(parameterA, parameterB)
             let result = TypeShape.Combine(resultA, resultB)
-            FunctionType (fn, result)
-        | a, b -> Conflict (set [a; b])
+            FunctionType(parameter, result)
+        | a, b -> Conflict(set [ a; b ])
 
 type private TypeRelation =
     | Same of TypeConstraintSet
@@ -47,11 +49,9 @@ type private TypeRelation =
     | ApplicationResult of fn: TypeConstraintSet
 
 [<DebuggerDisplay("{ToString()}")>]
-type private TypeConstraintSet private (shape: TypeShape, relations: HashSet<TypeRelation>) =
-    let mutable shape = shape
-    let relations = relations
-
-    new() = TypeConstraintSet(Unknown, HashSet())
+type private TypeConstraintSet() =
+    let mutable shape = Unknown
+    let relations = HashSet()
 
     override _.ToString() = shape.ToString()
 
@@ -61,6 +61,7 @@ type private TypeConstraintSet private (shape: TypeShape, relations: HashSet<Typ
 
     member this.ConstrainShape(newShapeInfo: TypeShape) =
         let newShape = TypeShape.Combine(shape, newShapeInfo)
+
         if shape <> newShape then
             shape <- newShape
             this.PropagateShapeChangeAll()
@@ -74,8 +75,9 @@ type private TypeConstraintSet private (shape: TypeShape, relations: HashSet<Typ
         | Same other -> other.ConstrainShape(shape)
         | ApplicationFunction(argument, result) ->
             this.ConstrainShape(FunctionType(argument.Shape, result.Shape))
+
             match shape with
-            | FunctionType (parameterShape, resultShape) ->
+            | FunctionType(parameterShape, resultShape) ->
                 argument.ConstrainShape(parameterShape)
                 result.ConstrainShape(resultShape)
             | _ ->
@@ -83,13 +85,15 @@ type private TypeConstraintSet private (shape: TypeShape, relations: HashSet<Typ
                 result.ConstrainShape(Void)
         | ApplicationArgument fn ->
             fn.ConstrainShape(FunctionType(this.Shape, Unknown))
+
             match fn.Shape with
-            | FunctionType (parameterShape, _) -> this.ConstrainShape(parameterShape)
+            | FunctionType(parameterShape, _) -> this.ConstrainShape(parameterShape)
             | _ -> this.ConstrainShape(Void)
         | ApplicationResult fn ->
             fn.ConstrainShape(FunctionType(Unknown, this.Shape))
+
             match fn.Shape with
-            | FunctionType (_, resultShape) -> this.ConstrainShape(resultShape)
+            | FunctionType(_, resultShape) -> this.ConstrainShape(resultShape)
             | _ -> this.ConstrainShape(Void)
 
     member this.AddRelation(relation: TypeRelation) =
@@ -102,10 +106,10 @@ type private TypeConstraintSet private (shape: TypeShape, relations: HashSet<Typ
             | Void
             | Conflict _
             | Unknown -> None
-            | ValueType t -> Some (Type.ValueType t)
-            | FunctionType (p, r) ->
+            | ValueType t -> Some(Type.ValueType t)
+            | FunctionType(p, r) ->
                 match mapShapeToType p, mapShapeToType r with
-                | Some p, Some r -> Some (Type.FunctionType (p, r))
+                | Some p, Some r -> Some(Type.FunctionType(p, r))
                 | _ -> None
 
         mapShapeToType shape
@@ -123,10 +127,10 @@ type private TypeContext() =
             constraints[typeReference] <- c
             c
 
-    let rec mapToTypeShape (t: Type): TypeShape =
+    let rec mapToTypeShape (t: Type) : TypeShape =
         match t with
         | Type.ValueType t -> ValueType t
-        | Type.FunctionType (p, r) -> FunctionType (mapToTypeShape p, mapToTypeShape r)
+        | Type.FunctionType(p, r) -> FunctionType(mapToTypeShape p, mapToTypeShape r)
 
     member _.GetIdentifierType(identifier: Identifier) =
         match identifierTypes.TryGetValue(identifier) with
@@ -150,7 +154,7 @@ type private TypeContext() =
         let fn = getConstraints fn
         let arg = getConstraints arg
         let result = getConstraints result
-        fn.AddRelation(ApplicationFunction (arg, result))
+        fn.AddRelation(ApplicationFunction(arg, result))
         arg.AddRelation(ApplicationArgument fn)
         result.AddRelation(ApplicationResult fn)
 
@@ -230,7 +234,7 @@ let getTypeMap (ast: Program) : TypeMap =
     addBuiltIn BuiltIn.Identifiers.opDivide BuiltIn.IdentifierTypes.opDivide
     addBuiltIn BuiltIn.Identifiers.println BuiltIn.IdentifierTypes.println
     addBuiltIn BuiltIn.Identifiers.intToStr BuiltIn.IdentifierTypes.intToStr
-    addBuiltIn BuiltIn.Identifiers.intToStr2 BuiltIn.IdentifierTypes.intToStr2
+    addBuiltIn BuiltIn.Identifiers.intToStrFmt BuiltIn.IdentifierTypes.intToStrFmt
     addBuiltIn BuiltIn.Identifiers.floatToStr BuiltIn.IdentifierTypes.floatToStr
 
     traverseProgram context ast
