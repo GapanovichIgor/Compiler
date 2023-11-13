@@ -27,10 +27,12 @@ let internal build (ast: Program, outputPath: string) =
     csprojFile.Dispose()
 
     let programFile = File.CreateText($"{csDir}\\Program.cs")
-    programFile.WriteLine("""void println(string text) => System.Console.WriteLine(text);""")
-    programFile.WriteLine("""string intToStr(int x) => x.ToString();""")
-    programFile.WriteLine("""System.Func<int, string> intToStrFmt(string format) => (int x) => x.ToString(format);""")
-    programFile.WriteLine("""string floatToStr(float x) => x.ToString();""")
+    programFile.WriteLine("#pragma warning disable CS8321")
+    programFile.WriteLine("void println(string text) => System.Console.WriteLine(text);")
+    programFile.WriteLine("string intToStr(int x) => x.ToString();")
+    programFile.WriteLine("System.Func<int, string> intToStrFmt(string format) => (int x) => x.ToString(format);")
+    programFile.WriteLine("string floatToStr(float x) => x.ToString();")
+    programFile.WriteLine("#pragma warning restore CS8321")
     programFile.WriteLine()
     programFile.Flush()
     CsCodeGenerator.generate ast programFile.BaseStream
