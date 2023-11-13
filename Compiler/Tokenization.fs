@@ -3,10 +3,10 @@
 open System
 open System.Collections.Generic
 open System.IO
-open HnkParserCombinator
-open HnkParserCombinator.Composition
-open HnkParserCombinator.Primitives
-open HnkParserCombinator.CharPrimitives
+open ParserCombinator
+open ParserCombinator.Composition
+open ParserCombinator.Primitives
+open ParserCombinator.CharPrimitives
 
 type Token = Parser.InputItem
 

@@ -2,11 +2,11 @@
 Microsoft Visual Studio Solution File, Format Version 12.00
 Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "Compiler", "Compiler\Compiler.fsproj", "{6D39D416-0D14-48C3-BB9B-0B5E8942F35D}"
 EndProject
-Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "HnkParserCombinator", "Libs\HnkParserCombinator\HnkParserCombinator\HnkParserCombinator.fsproj", "{B85B9FD9-88A7-4B87-8996-E5B8A3CED34B}"
-EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Libs", "Libs", "{C3B73BDA-4EA8-4239-9DDC-31631F4BF671}"
 EndProject
-Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "HnkParserGenerator", "Libs\HnkParserGenerator\HnkParserGenerator\HnkParserGenerator.fsproj", "{3D66392C-906D-44E8-89FF-49159908C2D0}"
+Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "ParserCombinator", "Libs\ParserCombinator\ParserCombinator\ParserCombinator.fsproj", "{1FFDFE2C-2713-4122-8327-AE49518D75DF}"
+EndProject
+Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "ParserGenerator", "Libs\ParserGenerator\ParserGenerator\ParserGenerator.fsproj", "{8CBA5121-E917-4353-ADE0-730F302D62B7}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -18,17 +18,17 @@ Global
 		{6D39D416-0D14-48C3-BB9B-0B5E8942F35D}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{6D39D416-0D14-48C3-BB9B-0B5E8942F35D}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{6D39D416-0D14-48C3-BB9B-0B5E8942F35D}.Release|Any CPU.Build.0 = Release|Any CPU
-		{B85B9FD9-88A7-4B87-8996-E5B8A3CED34B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{B85B9FD9-88A7-4B87-8996-E5B8A3CED34B}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{B85B9FD9-88A7-4B87-8996-E5B8A3CED34B}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{B85B9FD9-88A7-4B87-8996-E5B8A3CED34B}.Release|Any CPU.Build.0 = Release|Any CPU
-		{3D66392C-906D-44E8-89FF-49159908C2D0}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{3D66392C-906D-44E8-89FF-49159908C2D0}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{3D66392C-906D-44E8-89FF-49159908C2D0}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{3D66392C-906D-44E8-89FF-49159908C2D0}.Release|Any CPU.Build.0 = Release|Any CPU
+		{1FFDFE2C-2713-4122-8327-AE49518D75DF}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{1FFDFE2C-2713-4122-8327-AE49518D75DF}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{1FFDFE2C-2713-4122-8327-AE49518D75DF}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{1FFDFE2C-2713-4122-8327-AE49518D75DF}.Release|Any CPU.Build.0 = Release|Any CPU
+		{8CBA5121-E917-4353-ADE0-730F302D62B7}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{8CBA5121-E917-4353-ADE0-730F302D62B7}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{8CBA5121-E917-4353-ADE0-730F302D62B7}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{8CBA5121-E917-4353-ADE0-730F302D62B7}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
-		{B85B9FD9-88A7-4B87-8996-E5B8A3CED34B} = {C3B73BDA-4EA8-4239-9DDC-31631F4BF671}
-		{3D66392C-906D-44E8-89FF-49159908C2D0} = {C3B73BDA-4EA8-4239-9DDC-31631F4BF671}
+		{1FFDFE2C-2713-4122-8327-AE49518D75DF} = {C3B73BDA-4EA8-4239-9DDC-31631F4BF671}
+		{8CBA5121-E917-4353-ADE0-730F302D62B7} = {C3B73BDA-4EA8-4239-9DDC-31631F4BF671}
 	EndGlobalSection
 EndGlobal

@@ -27,7 +27,7 @@
     </ItemGroup>
 
     <ItemGroup>
-      <ProjectReference Include="..\Libs\HnkParserCombinator\HnkParserCombinator\HnkParserCombinator.fsproj" />
+      <ProjectReference Include="..\Libs\ParserCombinator\ParserCombinator\ParserCombinator.fsproj" />
     </ItemGroup>
 
 </Project>
