@@ -3,22 +3,24 @@
 open Compiler.Type
 
 module Types =
-    let unit = ValueType "Unit"
-    let int = ValueType "Int"
-    let float = ValueType "Float"
-    let string = ValueType "String"
+    let private create name = FixedType (TypeIdentifier.Create(name))
+
+    let unit = create "Unit"
+    let int = create "Int"
+    let float = create "Float"
+    let string = create "String"
 
 module Identifiers =
-    open Ast
+    open type Ast.Identifier
 
-    let opAdd = createIdentifier "+"
-    let opSubtract = createIdentifier "-"
-    let opMultiply = createIdentifier "*"
-    let opDivide = createIdentifier "/"
-    let println = createIdentifier "println"
-    let intToStr = createIdentifier "intToStr"
-    let intToStrFmt = createIdentifier "intToStrFmt"
-    let floatToStr = createIdentifier "floatToStr"
+    let opAdd = Create "opAdd"
+    let opSubtract = Create "opSubtract"
+    let opMultiply = Create "opMultiply"
+    let opDivide = Create "opDivide"
+    let println = Create "println"
+    let intToStr = Create "intToStr"
+    let intToStrFmt = Create "intToStrFmt"
+    let floatToStr = Create "floatToStr"
 
 module IdentifierTypes =
     open Types

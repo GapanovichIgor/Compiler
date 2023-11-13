@@ -5,18 +5,36 @@ open System.Diagnostics
 
 [<DebuggerDisplay("{ToString()}")>]
 type Identifier =
-    { name: string
-      identity: Guid }
+    private
+        { name: string
+          identity: Guid }
+
+    member this.Name = this.name
 
     override this.ToString() = this.name
 
-let createIdentifier name =
-    { name = name
-      identity = Guid.NewGuid() }
+    static member Create(name: string) =
+        if name.Length = 0 then
+            failwith "Identifier can not be empty"
+        elif not (Char.IsLetter name[0]) then
+            failwith "Identifier must start with a letter"
+        elif name |> Seq.exists (Char.IsLetterOrDigit >> not) then
+            failwith "Identifier must only contain letters and digits"
+        else
+            { name = name
+              identity = Guid.NewGuid() }
 
-type TypeReference = TypeReference of Guid
+[<DebuggerDisplay("{ToString()}")>]
+type TypeReference =
+    private
+    | TypeReference of Guid
 
-let createTypeReference () = TypeReference(Guid.NewGuid())
+    override this.ToString() =
+        let (TypeReference guid) = this
+        let last3 = guid.ToString("N").Substring(29)
+        $"TypeRef({last3})"
+
+    static member Create() = TypeReference(Guid.NewGuid())
 
 type ExpressionShape =
     | IdentifierReference of identifier: Identifier

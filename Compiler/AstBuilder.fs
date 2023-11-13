@@ -7,10 +7,10 @@ type private LexicalContext =
 
     member this.AttachIdentifier(identifier: Ast.Identifier) =
         { this with
-            identifiers = this.identifiers |> Map.add identifier.name identifier }
+            identifiers = this.identifiers |> Map.add identifier.Name identifier }
 
     member this.CreateIdentifier(identifierName: string) =
-        let identifier = Ast.createIdentifier identifierName
+        let identifier = Ast.Identifier.Create(identifierName)
 
         let newContext =
             { this with
@@ -23,7 +23,7 @@ type private LexicalContext =
 
 let private expression shape : Ast.Expression =
     { expressionShape = shape
-      expressionType = Ast.createTypeReference () }
+      expressionType = Ast.TypeReference.Create() }
 
 let private mapTerminalEnclosedExpression (ctx: LexicalContext) (e: Parser.TerminalEnclosedExpression) : Ast.Expression * LexicalContext =
     match e with
@@ -46,8 +46,11 @@ let private mapApplication (ctx: LexicalContext) (e: Parser.Application) =
         let application = Ast.Application(fn, arg) |> expression
         application, ctx
 
-let private opMultiplyIdentifierReference = Ast.IdentifierReference(BuiltIn.Identifiers.opMultiply) |> expression
-let private opDivideIdentifierReference = Ast.IdentifierReference(BuiltIn.Identifiers.opDivide) |> expression
+let private opMultiplyIdentifierReference =
+    Ast.IdentifierReference(BuiltIn.Identifiers.opMultiply) |> expression
+
+let private opDivideIdentifierReference =
+    Ast.IdentifierReference(BuiltIn.Identifiers.opDivide) |> expression
 
 let private mapArithmeticFirstOrderExpr (ctx: LexicalContext) (e: Parser.ArithmeticFirstOrderExpression) =
     match e with
@@ -65,8 +68,11 @@ let private mapArithmeticFirstOrderExpr (ctx: LexicalContext) (e: Parser.Arithme
         let applyRight = Ast.Application(applyLeft, rightOp) |> expression
         applyRight, ctx
 
-let private opAddIdentifierReference = Ast.IdentifierReference(BuiltIn.Identifiers.opAdd) |> expression
-let private opSubtractIdentifierReference = Ast.IdentifierReference(BuiltIn.Identifiers.opSubtract) |> expression
+let private opAddIdentifierReference =
+    Ast.IdentifierReference(BuiltIn.Identifiers.opAdd) |> expression
+
+let private opSubtractIdentifierReference =
+    Ast.IdentifierReference(BuiltIn.Identifiers.opSubtract) |> expression
 
 let private mapArithmeticSecondOrderExpr (ctx: LexicalContext) (e: Parser.ArithmeticSecondOrderExpression) =
     match e with
@@ -87,7 +93,7 @@ let private mapArithmeticSecondOrderExpr (ctx: LexicalContext) (e: Parser.Arithm
 let private mapBindingParameters (ctx: LexicalContext) (e: Parser.BindingParameters) =
     match e with
     | Parser.BindingParameters.Empty -> [], ctx
-    | Parser.BindingParameters.Cons (head, p) ->
+    | Parser.BindingParameters.Cons(head, p) ->
         let parameter, ctx = ctx.CreateIdentifier(p)
         let headParameters, ctx = mapBindingParameters ctx head
         let parameters = parameter :: headParameters

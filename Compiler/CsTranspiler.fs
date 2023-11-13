@@ -1,6 +1,5 @@
 ﻿module internal rec Compiler.CsTranspiler
 
-open System
 open System.Collections.Generic
 open Compiler.Type
 
@@ -17,8 +16,8 @@ type private EnclosingFunctionBodyContext =
 
 let private createEnclosingFunctionBodyContext (typeInformation: TypeInformation) =
     let statements = List()
-    let identifierNameSet = HashSet()
-    let identifierNameMap = Dictionary()
+    let identifierNameSet = HashSet<string>()
+    let identifierMap = Dictionary<Ast.Identifier, CsAst.Identifier>()
 
     let mutable identifierNameCounter = 0
 
@@ -26,30 +25,31 @@ let private createEnclosingFunctionBodyContext (typeInformation: TypeInformation
         let createId () =
             identifierNameCounter <- identifierNameCounter + 1
             baseName + string identifierNameCounter
+            |> Ast.Identifier.Create
 
-        let mutable i = createId ()
+        let mutable identifier = createId ()
 
-        while not (identifierNameSet.Add(i)) do
-            i <- createId ()
+        while not (identifierNameSet.Add(identifier.Name)) do
+            identifier <- createId ()
 
-        i
+        identifier
 
     let createIdentifier () =
         let i = createUniqueIdentifierName "id"
-        identifierNameMap[Guid.NewGuid()] <- i
-        i
+        identifierMap[i] <- i.Name
+        i.Name
 
     let mapIdentifier (identifier: Ast.Identifier) =
-        match identifierNameMap.TryGetValue(identifier.identity) with
+        match identifierMap.TryGetValue(identifier) with
         | true, identifierName -> identifierName
         | false, _ ->
-            if identifierNameSet.Add(identifier.name) then
-                identifierNameMap[identifier.identity] <- identifier.name
-                identifier.name
+            if identifierNameSet.Add(identifier.Name) then
+                identifierMap[identifier] <- identifier.Name
+                identifier.Name
             else
-                let uniqueIdentifierName = createUniqueIdentifierName identifier.name
-                identifierNameMap[identifier.identity] <- uniqueIdentifierName
-                uniqueIdentifierName
+                let uniqueIdentifierName = createUniqueIdentifierName identifier.Name
+                identifierMap[identifier] <- uniqueIdentifierName.Name
+                uniqueIdentifierName.Name
 
     mapIdentifier BuiltIn.Identifiers.opAdd |> ignore
     mapIdentifier BuiltIn.Identifiers.opSubtract |> ignore

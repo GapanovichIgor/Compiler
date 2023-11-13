@@ -2,15 +2,15 @@
 
 open System.Collections.Generic
 open System.Diagnostics
-open Compiler.Type
 open Compiler.Ast
+open Compiler.Type
 
 [<DebuggerDisplay("{ToString()}")>]
 type private TypeShape =
     | Void
     | Conflict of TypeShape Set
     | Unknown
-    | ValueType of string
+    | FixedType of TypeIdentifier
     | FunctionType of parameter: TypeShape * result: TypeShape
 
     override this.ToString() =
@@ -20,7 +20,7 @@ type private TypeShape =
             let shapeText = shapes |> Seq.map string |> String.concat " & "
             $"#conflict({shapeText})"
         | Unknown -> "#unknown"
-        | ValueType t -> t.ToString()
+        | FixedType t -> t.ToString()
         | FunctionType(arg, result) ->
             let arg =
                 match arg with
@@ -131,7 +131,7 @@ type private TypeConstraintSet() =
             | Void
             | Conflict _
             | Unknown -> None
-            | ValueType t -> Some(Type.ValueType t)
+            | FixedType t -> Some(Type.FixedType t)
             | FunctionType(p, r) ->
                 match mapShapeToType p, mapShapeToType r with
                 | Some p, Some r -> Some(Type.FunctionType(p, r))
@@ -141,7 +141,7 @@ type private TypeConstraintSet() =
 
 [<DebuggerDisplay("{ToString()}")>]
 type private TypeContext() =
-    let identifierTypes = Dictionary<Identifier, TypeReference>()
+    let identifierTypeReference = Dictionary<Identifier, TypeReference>()
     let constraints = Dictionary<TypeReference, TypeConstraintSet>()
 
     let getConstraints (typeReference: TypeReference) =
@@ -154,16 +154,16 @@ type private TypeContext() =
 
     let rec mapToTypeShape (t: Type) : TypeShape =
         match t with
-        | Type.ValueType t -> ValueType t
+        | Type.FixedType t -> FixedType t
         | Type.FunctionType(p, r) -> FunctionType(mapToTypeShape p, mapToTypeShape r)
 
-    member _.GetIdentifierType(identifier: Identifier) =
-        match identifierTypes.TryGetValue(identifier) with
+    member _.GetIdentifierTypeReference(identifier: Identifier) =
+        match identifierTypeReference.TryGetValue(identifier) with
         | true, t -> t
         | false, _ ->
-            let t = createTypeReference ()
-            identifierTypes[identifier] <- t
-            t
+            let typeReference = TypeReference.Create()
+            identifierTypeReference[identifier] <- typeReference
+            typeReference
 
     member _.ConstrainExact(typeReference: TypeReference, t: Type) =
         let constraints = getConstraints typeReference
@@ -203,7 +203,7 @@ type private TypeContext() =
             |> Map.ofSeq
 
         let identifierTypes =
-            identifierTypes
+            identifierTypeReference
             |> Seq.map (fun kv ->
                 let identifier = kv.Key
                 let typeReference = kv.Value
@@ -226,14 +226,14 @@ type private TypeContext() =
                 cs, {| name = name; isSolved = isSolved |})
             |> dict
 
-        identifierTypes
-        |> Seq.map (fun kv -> $"{kv.Key.name} : {constraintSetInfo[constraints[kv.Value]].name}")
+        identifierTypeReference
+        |> Seq.map (fun kv -> $"{kv.Key} : {constraintSetInfo[constraints[kv.Value]].name}")
         |> String.concat "\n"
 
 let private traverseExpression (ctx: TypeContext) (e: Expression) =
     match e.expressionShape with
     | IdentifierReference identifier ->
-        let identifierType = ctx.GetIdentifierType(identifier)
+        let identifierType = ctx.GetIdentifierTypeReference(identifier)
         ctx.ConstrainSame(e.expressionType, identifierType)
     | NumberLiteral(_, f) ->
         let t =
@@ -248,8 +248,8 @@ let private traverseExpression (ctx: TypeContext) (e: Expression) =
         traverseExpression ctx fn
         traverseExpression ctx argument
     | Binding(identifier, parameters, bindingValue) ->
-        let identifierType = ctx.GetIdentifierType(identifier)
-        let parameterTypes = parameters |> List.map ctx.GetIdentifierType
+        let identifierType = ctx.GetIdentifierTypeReference(identifier)
+        let parameterTypes = parameters |> List.map ctx.GetIdentifierTypeReference
 
         let rec loop identifierType parameterTypes =
             match parameterTypes with
@@ -263,7 +263,7 @@ let private traverseExpression (ctx: TypeContext) (e: Expression) =
                 // let identifier (parameter : 'parameterType) : 'subFunctionType =
                 //     let subFunctionIdentifier : 'subFunctionType = fun ... -> bindingValue
                 //     subFunctionIdentifier
-                let subFunctionIdentifierType = createTypeReference ()
+                let subFunctionIdentifierType = TypeReference.Create()
                 ctx.ConstrainFunctionDefinition(identifierType, parameterType, subFunctionIdentifierType)
                 loop subFunctionIdentifierType parameterTypesRest
         loop identifierType parameterTypes
@@ -289,7 +289,7 @@ let getTypeInformation (ast: Program) : TypeInformation =
     let context = TypeContext()
 
     let addBuiltIn (identifier: Identifier) (t: Type) =
-        let typeReference = context.GetIdentifierType(identifier)
+        let typeReference = context.GetIdentifierTypeReference(identifier)
         context.ConstrainExact(typeReference, t)
 
     addBuiltIn BuiltIn.Identifiers.opAdd BuiltIn.IdentifierTypes.opAdd
