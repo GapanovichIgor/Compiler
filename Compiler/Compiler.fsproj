@@ -6,9 +6,7 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <Content Include="Program.txt">
-          <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-        </Content>
+        <None Include="Properties\launchSettings.json" />
         <Content Include="Grammar.txt" />
         <Content Include="RegenerateParser.cmd" />
         <Compile Include="Utils.fs" />
@@ -23,7 +21,7 @@
         <Compile Include="CsAst.fs" />
         <Compile Include="CsTranspiler.fs" />
         <Compile Include="CsCodeGenerator.fs" />
-        <Compile Include="Build.fs" />
+        <Compile Include="CsProjectGenerator.fs" />
         <Compile Include="Program.fs" />
     </ItemGroup>
 

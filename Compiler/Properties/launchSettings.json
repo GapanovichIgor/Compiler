@@ -1,0 +1,17 @@
+﻿{
+  "$schema": "http://json.schemastore.org/launchsettings.json",
+  "profiles": {
+    "RunExample": {
+      "commandName": "Project",
+      "commandLineArgs": "run --source ../../../../ExampleProject/Program.txt"
+    },
+    "BuildExample": {
+      "commandName": "Project",
+      "commandLineArgs": "build --source ../../../../ExampleProject/Program.txt --output ../../../../ExampleProject/build"
+    },
+    "TranspileExample": {
+      "commandName": "Project",
+      "commandLineArgs": "generate csharp project --source ../../../../ExampleProject/Program.txt --output ../../../../ExampleProject/cs"
+    }
+  }
+}

@@ -1,19 +1,13 @@
-﻿module Compiler.Build
+﻿module Compiler.CsProjectGenerator
 
-open System.Diagnostics
 open System.IO
 open Compiler.CsAst
 
-let internal build (ast: Program, outputPath: string) =
-    let buildDir = "tmp"
-    let csDir = $"{buildDir}\\cs"
+let generate (ast: Program, outputDirectory: string) =
+    if not (Directory.Exists(outputDirectory)) then
+        Directory.CreateDirectory(outputDirectory) |> ignore
 
-    if Directory.Exists(buildDir) then
-        Directory.Delete(buildDir, true)
-
-    Directory.CreateDirectory(csDir) |> ignore
-
-    let csprojFile = File.CreateText($"{csDir}\\Program.csproj")
+    let csprojFile = File.CreateText(Path.Combine(outputDirectory, "Program.csproj"))
     csprojFile.Write("""<Project Sdk="Microsoft.NET.Sdk">""")
     csprojFile.Write("""<PropertyGroup>""")
     csprojFile.Write("""<OutputType>Exe</OutputType>""")
@@ -26,7 +20,7 @@ let internal build (ast: Program, outputPath: string) =
     csprojFile.Write("""</Project>""")
     csprojFile.Dispose()
 
-    let programFile = File.CreateText($"{csDir}\\Program.cs")
+    let programFile = File.CreateText(Path.Combine(outputDirectory, "Program.cs"))
     programFile.WriteLine("#pragma warning disable CS8321")
     programFile.WriteLine("void println(string text) => System.Console.WriteLine(text);")
     programFile.WriteLine("string intToStr(int x) => x.ToString();")
@@ -37,15 +31,3 @@ let internal build (ast: Program, outputPath: string) =
     programFile.Flush()
     CsCodeGenerator.generate ast programFile.BaseStream
     programFile.Dispose()
-
-    let dotnetProcessStartInfo = ProcessStartInfo("dotnet.exe", "publish -c Release -o ..\\output")
-    dotnetProcessStartInfo.WorkingDirectory <- csDir
-    let dotnetProcess = Process.Start(dotnetProcessStartInfo)
-    dotnetProcess.WaitForExit()
-
-    if Directory.Exists(outputPath) then
-        Directory.Delete(outputPath, true)
-
-    Directory.Move($"{buildDir}\\output", outputPath)
-
-    // Directory.Delete(buildDir, true)
