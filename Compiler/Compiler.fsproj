@@ -12,6 +12,7 @@
         <Content Include="Grammar.txt" />
         <Content Include="RegenerateParser.cmd" />
         <Compile Include="Utils.fs" />
+        <Compile Include="SourceMap.fs" />
         <Compile Include="Parser.fs" />
         <Compile Include="Tokenization.fs" />
         <Compile Include="Type.fs" />

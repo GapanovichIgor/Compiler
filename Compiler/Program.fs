@@ -1,23 +1,23 @@
-﻿
-open System.IO
+﻿open System.IO
 open Compiler
 open Compiler.Parser
 open Compiler.Tokenization
 
-let sourceCodeStream = File.OpenRead("Program.txt")
+[<EntryPoint>]
+let main _ =
+    let sourceCodeStream = File.OpenRead("Program.txt")
 
-match tokenize sourceCodeStream with
-| Error e -> failwith "TODO"
-| Ok tokens ->
+    let tokens, tokenToCharSourceMap = tokenize sourceCodeStream
 
-match parse tokens with
-| Error e -> failwith "TODO"
-| Ok parseTree ->
+    match parse tokens with
+    | Error e -> failwith "TODO"
+    | Ok parseTree ->
+        let ast = AstBuilder.buildFromParseTree parseTree
 
-let ast = AstBuilder.buildFromParseTree parseTree
+        let typeMap = TypeSolver.getTypeInformation ast
 
-let typeMap = TypeSolver.getTypeInformation ast
+        let csAst = CsTranspiler.transpile (ast, typeMap)
 
-let csAst = CsTranspiler.transpile (ast, typeMap)
+        Build.build (csAst, "Build")
 
-Build.build (csAst, "Build")
+        0
