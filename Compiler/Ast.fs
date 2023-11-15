@@ -43,6 +43,7 @@ type ExpressionShape =
     | Application of fn: Expression * argument: Expression
     | Binding of identifier: Identifier * parameters: Identifier list * body: Expression
     | Sequence of expressions: Expression list
+    | InvalidToken of text: string * positionInSource: PositionInSource
 
 type Expression =
     { expressionShape: ExpressionShape

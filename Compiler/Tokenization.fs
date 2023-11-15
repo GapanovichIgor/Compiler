@@ -18,22 +18,31 @@ type private Parser<'a> = CharParser<unit, 'a>
 
 let private isWhiteSpace char = char = ' '
 
+let private getSourcePosition (success: ParseSuccess<_, _>) =
+    { startIndex = success.position
+      length = success.length }
+
 let private pNumber: Parser<Token> =
     let pDigits = oneOrMoreCond "digit" Char.IsDigit
 
     pDigits .>>. optional (skipOne '.' >>. pDigits)
-    >> ParseResult.mapValue (fun (integerPart, fractionalPart) ->
+    >> ParseResult.mapSuccess (fun success ->
+        let integerPart, fractionalPart = success.value
         let integerPart = Int32.Parse integerPart
         let fractionalPart = fractionalPart |> Option.map Int32.Parse
-        Token.NumberLiteral(integerPart, fractionalPart))
+
+        Token.NumberLiteral(integerPart, fractionalPart, getSourcePosition success))
 
 let private pDoubleQuotedString: Parser<Token> =
     skipOne '"' >>. zeroOrMoreCond (fun c -> c <> '"') .>> skipOne '"'
-    >> ParseResult.mapValue (String >> Token.DoubleQuotedString)
+    >> ParseResult.mapSuccess (fun success -> Token.DoubleQuotedString(String(success.value), getSourcePosition success))
 
 let private pIdentifier: Parser<Token> =
     oneCond "letter" Char.IsLetter .>>. zeroOrMoreCond Char.IsLetterOrDigit
-    >> ParseResult.mapValue (fun (firstChar, rest) -> Token.Identifier(string firstChar + String(rest)))
+    >> ParseResult.mapSuccess (fun success ->
+        let firstChar, rest = success.value
+
+        Token.Identifier(string firstChar + String(rest), getSourcePosition success))
 
 let private pPlus: Parser<Token> = skipOne '+' >> ParseResult.constValue Token.Plus
 
@@ -61,9 +70,14 @@ let private pBreak: Parser<Token> =
 let private pEquals: Parser<Token> =
     skipOne '=' >> ParseResult.constValue Token.Equals
 
+let private stopInvalidTokenOnCharacters =
+    set [ '\r'; '\n'; '+'; '-'; '*'; '/'; '('; ')'; ';'; '=' ]
+
 let private pInvalidToken: Parser<Token> =
-    oneOrMoreCond "any char except whitespace" (fun c -> not (isWhiteSpace c) && c <> '\n' && c <> '\r')
-    >> ParseResult.mapValue (String >> Token.InvalidToken)
+    let condition c = not (isWhiteSpace c || stopInvalidTokenOnCharacters.Contains(c))
+
+    oneOrMoreCond "any char except whitespace" condition
+    >> ParseResult.mapSuccess (fun success -> Token.InvalidToken(String(success.value), getSourcePosition success))
 
 let private pToken: Parser<TokenInternal> =
     chooseFirstLongest
@@ -110,28 +124,17 @@ type private IndentationContext =
     | Root of indentationLevels: int list
     | SubContext of closingToken: Token * indentationLevels: int list * parent: IndentationContext
 
-let private mapToBlocks (tokens: TokenInternal list, sourceMap: SourceMap) : Token list * SourceMap =
+let private mapToBlocks (tokens: TokenInternal list) : Token list =
     let mutable indentationContextStack = Root []
 
     let openingToClosingTokenMap: Map<Token, Token> =
         indentationSubContextEnclosingTokens |> Map.ofList
 
     let tokens' = List()
-    let sourceMap' = List()
-    let mutable sourcePos = 0
-
-    let addSyntheticToken token =
-        tokens'.Add(token)
-        sourceMap'.Add({ startIndex = sourcePos; length = 0 })
-
-    let addRealToken token sourceRegion =
-        tokens'.Add(token)
-        sourceMap'.Add(sourceRegion)
-        sourcePos <- sourceRegion.startIndex + sourceRegion.length
 
     let closeBlocksOfIndentationContext (indentationLevels: int list) =
         for _ = 0 to indentationLevels.Length - 2 do
-            addSyntheticToken Token.BlockClose
+            tokens'.Add(Token.BlockClose)
 
     for i = 0 to tokens.Length - 1 do
         match tokens[i] with
@@ -152,7 +155,7 @@ let private mapToBlocks (tokens: TokenInternal list, sourceMap: SourceMap) : Tok
                                 keepGoing <- false
                         | Root _ -> keepGoing <- false
 
-            addRealToken token sourceMap[i]
+            tokens'.Add(token)
         | Indentation indentation ->
             let mutable indentationLevels =
                 match indentationContextStack with
@@ -172,25 +175,25 @@ let private mapToBlocks (tokens: TokenInternal list, sourceMap: SourceMap) : Tok
                     // Indentation is decreased below the first level - consider that the level is maintained.
                     // This is normal for sub-contexts, although it is bad formatting if the next token is part of the context body
                     // and not a context closing token.
-                    addSyntheticToken Token.Break
+                    tokens'.Add(Token.Break)
                 | currentIndentation :: _ when indentation = currentIndentation ->
                     // Indentation level is maintained
-                    addSyntheticToken Token.Break
+                    tokens'.Add(Token.Break)
                 | currentIndentation :: _ when indentation > currentIndentation ->
                     // Indentation increased
-                    addSyntheticToken Token.BlockOpen
+                    tokens'.Add(Token.BlockOpen)
                     indentationLevels <- indentation :: indentationLevels
                 | _ :: nextIndentation :: _ when indentation > nextIndentation ->
                     // Indentation is decreased, but it's still greater than the previous level - consider that the level is maintained
-                    addSyntheticToken Token.Break
+                    tokens'.Add(Token.Break)
                 | _ :: nextIndentation :: restIndentations when indentation = nextIndentation ->
                     // Indentation is decreased to the previous level
-                    addSyntheticToken Token.BlockClose
-                    addSyntheticToken Token.Break
+                    tokens'.Add(Token.BlockClose)
+                    tokens'.Add(Token.Break)
                     indentationLevels <- nextIndentation :: restIndentations
                 | _ :: restIndentations ->
                     // Indentation is decreased, possibly several levels
-                    addSyntheticToken Token.BlockClose
+                    tokens'.Add(Token.BlockClose)
                     indentationLevels <- restIndentations
                     keepGoing <- true
 
@@ -208,14 +211,10 @@ let private mapToBlocks (tokens: TokenInternal list, sourceMap: SourceMap) : Tok
 
     loop indentationContextStack
 
-    let tokens' = tokens' |> List.ofSeq
-    let sourceMap' = sourceMap' |> List.ofSeq
-    tokens', sourceMap'
+    tokens' |> List.ofSeq
 
-let private stripUnnecessaryBreaks (tokens: Token list, sourceMap: SourceMap) : Token list * SourceMap =
+let private stripUnnecessaryBreaks (tokens: Token list) : Token list =
     let tokens' = List()
-    let sourceMap' = List()
-    let mutable sourcePos = 0
 
     for i = 0 to tokens.Length - 1 do
         match i, tokens[i] with
@@ -226,23 +225,13 @@ let private stripUnnecessaryBreaks (tokens: Token list, sourceMap: SourceMap) : 
             | Token.BlockOpen, _
             | _, Token.BlockClose -> ()
             | _, t when indentationSubContextClosingTokens.Contains(t) -> ()
-            | _ ->
-                tokens'.Add(Token.Break)
-                sourceMap'.Add({ startIndex = sourcePos; length = 0 })
-        | _, token ->
-            tokens'.Add(token)
-            let sourceRegion = sourceMap[i]
-            sourceMap'.Add(sourceRegion)
-            sourcePos <- sourceRegion.startIndex + sourceRegion.length
+            | _ -> tokens'.Add(Token.Break)
+        | _, token -> tokens'.Add(token)
 
-    let tokens' = tokens' |> List.ofSeq
-    let sourceMap' = sourceMap' |> List.ofSeq
-    tokens', sourceMap'
+    tokens' |> List.ofSeq
 
-let private postProcessTokenSequence (tokens: TokenInternal list, sourceMap: SourceMap) : Token list * SourceMap =
-    (tokens, sourceMap)
-    |> mapToBlocks
-    |> stripUnnecessaryBreaks
+let private postProcessTokenSequence (tokens: TokenInternal list) : Token list =
+    tokens |> mapToBlocks |> stripUnnecessaryBreaks
 
 let private createTape (stream: Stream) : Tape<char> =
     let reader = new StreamReader(stream)
@@ -254,23 +243,11 @@ let private createTape (stream: Stream) : Tape<char> =
 
     Tape(4096, readChar)
 
-let tokenize (stream: Stream) : Token list * SourceMap =
-    let sourceMap = List()
-
-    let addSourceMapRegion (result: ParseResult<_, _>) =
-        match result with
-        | Ok success ->
-            sourceMap.Add
-                { startIndex = success.position
-                  length = success.length }
-        | Error _ -> ()
-
-        result
-
-    let pToken: Parser<TokenInternal> = pToken |> commitOnSuccess >> addSourceMapRegion
+let tokenize (stream: Stream) : Token list =
+    let pToken: Parser<TokenInternal> = pToken |> commitOnSuccess
     let pSkipWhitespace: Parser<unit> = pSkipWhitespace |> commitOnSuccess
     let pSkipNewLine: Parser<unit> = pSkipNewLine |> commitOnSuccess
-    let pIndentation: Parser<TokenInternal> = pIndentation |> commitOnSuccess >> addSourceMapRegion
+    let pIndentation: Parser<TokenInternal> = pIndentation |> commitOnSuccess
 
     let pLineWithTokens: Parser<TokenInternal list> =
         let lineTokens = oneOrMore (pToken .>> pSkipWhitespace)
@@ -282,7 +259,7 @@ let tokenize (stream: Stream) : Token list * SourceMap =
 
     let pLine: Parser<TokenInternal list> = pLineWithTokens |> orElse pEmptyLine
 
-    let pCompilationUnit: Parser<TokenInternal list> =
+    let pFile: Parser<TokenInternal list> =
         let concatLines = ParseResult.mapValue List.concat
 
         zeroOrMoreDelimited pSkipNewLine pLine >> concatLines
@@ -290,10 +267,7 @@ let tokenize (stream: Stream) : Token list * SourceMap =
     let tape = createTape stream
 
     let parseResult =
-        pCompilationUnit (tape, ())
+        pFile (tape, ())
         |> Result.defaultWith (fun _ -> failwith "Failed to tokenize the stream")
 
-    let sourceMap = sourceMap |> List.ofSeq
-    let tokens, sourceMap = postProcessTokenSequence (parseResult.value, sourceMap)
-
-    tokens, sourceMap
+    parseResult.value |> postProcessTokenSequence

@@ -1,2 +1,2 @@
-let id x = x
-println (intToStr (id 1))
+let id x = %%%%%%%%%%
+println (intToStr (id %%%%))

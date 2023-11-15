@@ -206,6 +206,7 @@ let private mapExpression (ctx: EnclosingFunctionBodyContext) (e: Ast.Expression
                 loop esRest
 
         loop es
+    | Ast.InvalidToken _ -> failwith "Invalid AST"
 
 let rec private mapStatements (ctx: EnclosingFunctionBodyContext) (e: Ast.Expression) (generateReturn: bool) : unit =
     match e.expressionShape with

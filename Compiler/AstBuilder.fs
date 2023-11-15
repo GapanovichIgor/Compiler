@@ -27,15 +27,16 @@ let private expression shape : Ast.Expression =
 
 let private mapTerminalEnclosedExpression (ctx: LexicalContext) (e: Parser.TerminalEnclosedExpression) : Ast.Expression * LexicalContext =
     match e with
-    | Parser.TerminalEnclosedExpression.Identifier identifier -> Ast.IdentifierReference(ctx.GetIdentifier(identifier)) |> expression, ctx
-    | Parser.TerminalEnclosedExpression.String string -> Ast.StringLiteral string |> expression, ctx
-    | Parser.TerminalEnclosedExpression.Number(integerPart, fractionalPart) -> Ast.NumberLiteral(integerPart, fractionalPart) |> expression, ctx
+    | Parser.TerminalEnclosedExpression.Identifier(identifier, _) -> Ast.IdentifierReference(ctx.GetIdentifier(identifier)) |> expression, ctx
+    | Parser.TerminalEnclosedExpression.String(string, _) -> Ast.StringLiteral string |> expression, ctx
+    | Parser.TerminalEnclosedExpression.Number(integerPart, fractionalPart, _) -> Ast.NumberLiteral(integerPart, fractionalPart) |> expression, ctx
     | Parser.TerminalEnclosedExpression.Paren content ->
         let content, _ = mapExpression ctx content
         content, ctx
     | Parser.TerminalEnclosedExpression.Block content ->
         let content, _ = mapExpression ctx content
         content, ctx
+    | Parser.TerminalEnclosedExpression.InvalidToken(invalidToken, positionInSource) -> Ast.InvalidToken(invalidToken, positionInSource) |> expression, ctx
 
 let private mapApplication (ctx: LexicalContext) (e: Parser.Application) =
     match e with
@@ -93,15 +94,15 @@ let private mapArithmeticSecondOrderExpr (ctx: LexicalContext) (e: Parser.Arithm
 let private mapBindingParameters (ctx: LexicalContext) (e: Parser.BindingParameters) =
     match e with
     | Parser.BindingParameters.Empty -> [], ctx
-    | Parser.BindingParameters.Cons(head, p) ->
-        let parameter, ctx = ctx.CreateIdentifier(p)
+    | Parser.BindingParameters.Cons(head, (parameterName, _)) ->
+        let parameter, ctx = ctx.CreateIdentifier(parameterName)
         let headParameters, ctx = mapBindingParameters ctx head
         let parameters = parameter :: headParameters
         parameters, ctx
 
 let private mapBindingExpression (ctx: LexicalContext) (e: Parser.BindingExpression) =
     match e with
-    | Parser.BindingExpression.Binding(identifierName, parameters, value) ->
+    | Parser.BindingExpression.Binding((identifierName, _), parameters, value) ->
         let parameters, subCtx = mapBindingParameters ctx parameters
         let value, _ = mapArithmeticSecondOrderExpr subCtx value
         let identifier, ctx = ctx.CreateIdentifier(identifierName)

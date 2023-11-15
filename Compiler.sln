@@ -8,6 +8,11 @@ Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "ParserCombinator", "Libs\Pa
 EndProject
 Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "ParserGenerator", "Libs\ParserGenerator\ParserGenerator\ParserGenerator.fsproj", "{8CBA5121-E917-4353-ADE0-730F302D62B7}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "ExampleProject", "ExampleProject", "{30768D55-A632-4DD7-8705-57D41C182D77}"
+	ProjectSection(SolutionItems) = preProject
+		ExampleProject\Program.txt = ExampleProject\Program.txt
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU

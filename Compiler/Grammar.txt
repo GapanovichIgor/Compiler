@@ -1,7 +1,7 @@
-NumberLiteral : int * int option
-DoubleQuotedString : string
-Identifier : string
-InvalidToken : string
+NumberLiteral : int * int option * PositionInSource
+DoubleQuotedString : string * PositionInSource
+Identifier : string * PositionInSource
+InvalidToken : string * PositionInSource
 
 Program -> Expression
 
@@ -32,3 +32,4 @@ TerminalEnclosedExpression.String -> DoubleQuotedString
 TerminalEnclosedExpression.Identifier -> Identifier
 TerminalEnclosedExpression.Paren -> ParenOpen Expression ParenClose
 TerminalEnclosedExpression.Block -> BlockOpen Expression BlockClose
+TerminalEnclosedExpression.InvalidToken -> InvalidToken

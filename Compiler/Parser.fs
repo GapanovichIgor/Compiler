@@ -2,20 +2,20 @@ module internal rec Compiler.Parser
 
 (*
 STATES
-   0 { Application -> ·Application TerminalEnclosedExpression [] | Application -> ·TerminalEnclosedExpression [] | ArithmeticFirstOrderExpression -> ·Application [] | ArithmeticFirstOrderExpression -> ·ArithmeticFirstOrderExpression Asterisk Application [] | ArithmeticFirstOrderExpression -> ·ArithmeticFirstOrderExpression Slash Application [] | ArithmeticSecondOrderExpression -> ·ArithmeticFirstOrderExpression [] | ArithmeticSecondOrderExpression -> ·ArithmeticSecondOrderExpression Minus ArithmeticFirstOrderExpression [] | ArithmeticSecondOrderExpression -> ·ArithmeticSecondOrderExpression Plus ArithmeticFirstOrderExpression [] | BindingExpression -> ·ArithmeticSecondOrderExpression [] | BindingExpression -> ·Let Identifier BindingParameters Equals ArithmeticSecondOrderExpression [] | Expression -> ·ExpressionConcatenation [] | ExpressionConcatenation -> ·BindingExpression [] | ExpressionConcatenation -> ·ExpressionConcatenation Break BindingExpression [] | Program -> ·Expression [] | TerminalEnclosedExpression -> ·BlockOpen Expression BlockClose [] | TerminalEnclosedExpression -> ·DoubleQuotedString [] | TerminalEnclosedExpression -> ·Identifier [] | TerminalEnclosedExpression -> ·NumberLiteral [] | TerminalEnclosedExpression -> ·ParenOpen Expression ParenClose [] }
-   1 { Application -> ·Application TerminalEnclosedExpression [] | Application -> ·TerminalEnclosedExpression [] | ArithmeticFirstOrderExpression -> ·Application [] | ArithmeticFirstOrderExpression -> ·ArithmeticFirstOrderExpression Asterisk Application [] | ArithmeticFirstOrderExpression -> ·ArithmeticFirstOrderExpression Slash Application [] | ArithmeticSecondOrderExpression -> ·ArithmeticFirstOrderExpression [] | ArithmeticSecondOrderExpression -> ·ArithmeticSecondOrderExpression Minus ArithmeticFirstOrderExpression [] | ArithmeticSecondOrderExpression -> ·ArithmeticSecondOrderExpression Plus ArithmeticFirstOrderExpression [] | BindingExpression -> ·ArithmeticSecondOrderExpression [] | BindingExpression -> ·Let Identifier BindingParameters Equals ArithmeticSecondOrderExpression [] | Expression -> ·ExpressionConcatenation [] | ExpressionConcatenation -> ·BindingExpression [] | ExpressionConcatenation -> ·ExpressionConcatenation Break BindingExpression [] | TerminalEnclosedExpression -> ·BlockOpen Expression BlockClose [] | TerminalEnclosedExpression -> BlockOpen· Expression BlockClose [] | TerminalEnclosedExpression -> ·DoubleQuotedString [] | TerminalEnclosedExpression -> ·Identifier [] | TerminalEnclosedExpression -> ·NumberLiteral [] | TerminalEnclosedExpression -> ·ParenOpen Expression ParenClose [] }
-   2 { Application -> ·Application TerminalEnclosedExpression [] | Application -> ·TerminalEnclosedExpression [] | ArithmeticFirstOrderExpression -> ·Application [] | ArithmeticFirstOrderExpression -> ·ArithmeticFirstOrderExpression Asterisk Application [] | ArithmeticFirstOrderExpression -> ·ArithmeticFirstOrderExpression Slash Application [] | ArithmeticSecondOrderExpression -> ·ArithmeticFirstOrderExpression [] | ArithmeticSecondOrderExpression -> ·ArithmeticSecondOrderExpression Minus ArithmeticFirstOrderExpression [] | ArithmeticSecondOrderExpression -> ·ArithmeticSecondOrderExpression Plus ArithmeticFirstOrderExpression [] | BindingExpression -> ·ArithmeticSecondOrderExpression [] | BindingExpression -> ·Let Identifier BindingParameters Equals ArithmeticSecondOrderExpression [] | Expression -> ·ExpressionConcatenation [] | ExpressionConcatenation -> ·BindingExpression [] | ExpressionConcatenation -> ·ExpressionConcatenation Break BindingExpression [] | TerminalEnclosedExpression -> ·BlockOpen Expression BlockClose [] | TerminalEnclosedExpression -> ·DoubleQuotedString [] | TerminalEnclosedExpression -> ·Identifier [] | TerminalEnclosedExpression -> ·NumberLiteral [] | TerminalEnclosedExpression -> ·ParenOpen Expression ParenClose [] | TerminalEnclosedExpression -> ParenOpen· Expression ParenClose [] }
-   3 { Application -> ·Application TerminalEnclosedExpression [] | Application -> ·TerminalEnclosedExpression [] | ArithmeticFirstOrderExpression -> ·Application [] | ArithmeticFirstOrderExpression -> ·ArithmeticFirstOrderExpression Asterisk Application [] | ArithmeticFirstOrderExpression -> ·ArithmeticFirstOrderExpression Slash Application [] | ArithmeticSecondOrderExpression -> ·ArithmeticFirstOrderExpression [] | ArithmeticSecondOrderExpression -> ·ArithmeticSecondOrderExpression Minus ArithmeticFirstOrderExpression [] | ArithmeticSecondOrderExpression -> ·ArithmeticSecondOrderExpression Plus ArithmeticFirstOrderExpression [] | BindingExpression -> ·ArithmeticSecondOrderExpression [] | BindingExpression -> ·Let Identifier BindingParameters Equals ArithmeticSecondOrderExpression [] | ExpressionConcatenation -> ExpressionConcatenation Break· BindingExpression [] | TerminalEnclosedExpression -> ·BlockOpen Expression BlockClose [] | TerminalEnclosedExpression -> ·DoubleQuotedString [] | TerminalEnclosedExpression -> ·Identifier [] | TerminalEnclosedExpression -> ·NumberLiteral [] | TerminalEnclosedExpression -> ·ParenOpen Expression ParenClose [] }
-   4 { Application -> ·Application TerminalEnclosedExpression [] | Application -> ·TerminalEnclosedExpression [] | ArithmeticFirstOrderExpression -> ·Application [] | ArithmeticFirstOrderExpression -> ·ArithmeticFirstOrderExpression Asterisk Application [] | ArithmeticFirstOrderExpression -> ·ArithmeticFirstOrderExpression Slash Application [] | ArithmeticSecondOrderExpression -> ·ArithmeticFirstOrderExpression [] | ArithmeticSecondOrderExpression -> ·ArithmeticSecondOrderExpression Minus ArithmeticFirstOrderExpression [] | ArithmeticSecondOrderExpression -> ·ArithmeticSecondOrderExpression Plus ArithmeticFirstOrderExpression [] | BindingExpression -> Let Identifier BindingParameters Equals· ArithmeticSecondOrderExpression [] | TerminalEnclosedExpression -> ·BlockOpen Expression BlockClose [] | TerminalEnclosedExpression -> ·DoubleQuotedString [] | TerminalEnclosedExpression -> ·Identifier [] | TerminalEnclosedExpression -> ·NumberLiteral [] | TerminalEnclosedExpression -> ·ParenOpen Expression ParenClose [] }
-   5 { Application -> ·Application TerminalEnclosedExpression [] | Application -> ·TerminalEnclosedExpression [] | ArithmeticFirstOrderExpression -> ·Application [] | ArithmeticFirstOrderExpression -> ·ArithmeticFirstOrderExpression Asterisk Application [] | ArithmeticFirstOrderExpression -> ·ArithmeticFirstOrderExpression Slash Application [] | ArithmeticSecondOrderExpression -> ArithmeticSecondOrderExpression Minus· ArithmeticFirstOrderExpression [] | TerminalEnclosedExpression -> ·BlockOpen Expression BlockClose [] | TerminalEnclosedExpression -> ·DoubleQuotedString [] | TerminalEnclosedExpression -> ·Identifier [] | TerminalEnclosedExpression -> ·NumberLiteral [] | TerminalEnclosedExpression -> ·ParenOpen Expression ParenClose [] }
-   6 { Application -> ·Application TerminalEnclosedExpression [] | Application -> ·TerminalEnclosedExpression [] | ArithmeticFirstOrderExpression -> ·Application [] | ArithmeticFirstOrderExpression -> ·ArithmeticFirstOrderExpression Asterisk Application [] | ArithmeticFirstOrderExpression -> ·ArithmeticFirstOrderExpression Slash Application [] | ArithmeticSecondOrderExpression -> ArithmeticSecondOrderExpression Plus· ArithmeticFirstOrderExpression [] | TerminalEnclosedExpression -> ·BlockOpen Expression BlockClose [] | TerminalEnclosedExpression -> ·DoubleQuotedString [] | TerminalEnclosedExpression -> ·Identifier [] | TerminalEnclosedExpression -> ·NumberLiteral [] | TerminalEnclosedExpression -> ·ParenOpen Expression ParenClose [] }
-   7 { Application -> ·Application TerminalEnclosedExpression [] | Application -> ·TerminalEnclosedExpression [] | ArithmeticFirstOrderExpression -> ArithmeticFirstOrderExpression Asterisk· Application [] | TerminalEnclosedExpression -> ·BlockOpen Expression BlockClose [] | TerminalEnclosedExpression -> ·DoubleQuotedString [] | TerminalEnclosedExpression -> ·Identifier [] | TerminalEnclosedExpression -> ·NumberLiteral [] | TerminalEnclosedExpression -> ·ParenOpen Expression ParenClose [] }
-   8 { Application -> ·Application TerminalEnclosedExpression [] | Application -> ·TerminalEnclosedExpression [] | ArithmeticFirstOrderExpression -> ArithmeticFirstOrderExpression Slash· Application [] | TerminalEnclosedExpression -> ·BlockOpen Expression BlockClose [] | TerminalEnclosedExpression -> ·DoubleQuotedString [] | TerminalEnclosedExpression -> ·Identifier [] | TerminalEnclosedExpression -> ·NumberLiteral [] | TerminalEnclosedExpression -> ·ParenOpen Expression ParenClose [] }
-   9 { Application -> Application· TerminalEnclosedExpression [] | ArithmeticFirstOrderExpression -> Application· [$ Asterisk BlockClose Break Minus ParenClose Plus Slash] | TerminalEnclosedExpression -> ·BlockOpen Expression BlockClose [] | TerminalEnclosedExpression -> ·DoubleQuotedString [] | TerminalEnclosedExpression -> ·Identifier [] | TerminalEnclosedExpression -> ·NumberLiteral [] | TerminalEnclosedExpression -> ·ParenOpen Expression ParenClose [] }
-   10 { Application -> Application· TerminalEnclosedExpression [] | ArithmeticFirstOrderExpression -> ArithmeticFirstOrderExpression Asterisk Application· [$ Asterisk BlockClose Break Minus ParenClose Plus Slash] | TerminalEnclosedExpression -> ·BlockOpen Expression BlockClose [] | TerminalEnclosedExpression -> ·DoubleQuotedString [] | TerminalEnclosedExpression -> ·Identifier [] | TerminalEnclosedExpression -> ·NumberLiteral [] | TerminalEnclosedExpression -> ·ParenOpen Expression ParenClose [] }
-   11 { Application -> Application· TerminalEnclosedExpression [] | ArithmeticFirstOrderExpression -> ArithmeticFirstOrderExpression Slash Application· [$ Asterisk BlockClose Break Minus ParenClose Plus Slash] | TerminalEnclosedExpression -> ·BlockOpen Expression BlockClose [] | TerminalEnclosedExpression -> ·DoubleQuotedString [] | TerminalEnclosedExpression -> ·Identifier [] | TerminalEnclosedExpression -> ·NumberLiteral [] | TerminalEnclosedExpression -> ·ParenOpen Expression ParenClose [] }
-   12 { Application -> Application TerminalEnclosedExpression· [$ Asterisk BlockClose BlockOpen Break DoubleQuotedString Identifier Minus NumberLiteral ParenClose ParenOpen Plus Slash] }
-   13 { Application -> TerminalEnclosedExpression· [$ Asterisk BlockClose BlockOpen Break DoubleQuotedString Identifier Minus NumberLiteral ParenClose ParenOpen Plus Slash] }
+   0 { Application -> ·Application TerminalEnclosedExpression [] | Application -> ·TerminalEnclosedExpression [] | ArithmeticFirstOrderExpression -> ·Application [] | ArithmeticFirstOrderExpression -> ·ArithmeticFirstOrderExpression Asterisk Application [] | ArithmeticFirstOrderExpression -> ·ArithmeticFirstOrderExpression Slash Application [] | ArithmeticSecondOrderExpression -> ·ArithmeticFirstOrderExpression [] | ArithmeticSecondOrderExpression -> ·ArithmeticSecondOrderExpression Minus ArithmeticFirstOrderExpression [] | ArithmeticSecondOrderExpression -> ·ArithmeticSecondOrderExpression Plus ArithmeticFirstOrderExpression [] | BindingExpression -> ·ArithmeticSecondOrderExpression [] | BindingExpression -> ·Let Identifier BindingParameters Equals ArithmeticSecondOrderExpression [] | Expression -> ·ExpressionConcatenation [] | ExpressionConcatenation -> ·BindingExpression [] | ExpressionConcatenation -> ·ExpressionConcatenation Break BindingExpression [] | Program -> ·Expression [] | TerminalEnclosedExpression -> ·BlockOpen Expression BlockClose [] | TerminalEnclosedExpression -> ·DoubleQuotedString [] | TerminalEnclosedExpression -> ·Identifier [] | TerminalEnclosedExpression -> ·InvalidToken [] | TerminalEnclosedExpression -> ·NumberLiteral [] | TerminalEnclosedExpression -> ·ParenOpen Expression ParenClose [] }
+   1 { Application -> ·Application TerminalEnclosedExpression [] | Application -> ·TerminalEnclosedExpression [] | ArithmeticFirstOrderExpression -> ·Application [] | ArithmeticFirstOrderExpression -> ·ArithmeticFirstOrderExpression Asterisk Application [] | ArithmeticFirstOrderExpression -> ·ArithmeticFirstOrderExpression Slash Application [] | ArithmeticSecondOrderExpression -> ·ArithmeticFirstOrderExpression [] | ArithmeticSecondOrderExpression -> ·ArithmeticSecondOrderExpression Minus ArithmeticFirstOrderExpression [] | ArithmeticSecondOrderExpression -> ·ArithmeticSecondOrderExpression Plus ArithmeticFirstOrderExpression [] | BindingExpression -> ·ArithmeticSecondOrderExpression [] | BindingExpression -> ·Let Identifier BindingParameters Equals ArithmeticSecondOrderExpression [] | Expression -> ·ExpressionConcatenation [] | ExpressionConcatenation -> ·BindingExpression [] | ExpressionConcatenation -> ·ExpressionConcatenation Break BindingExpression [] | TerminalEnclosedExpression -> ·BlockOpen Expression BlockClose [] | TerminalEnclosedExpression -> BlockOpen· Expression BlockClose [] | TerminalEnclosedExpression -> ·DoubleQuotedString [] | TerminalEnclosedExpression -> ·Identifier [] | TerminalEnclosedExpression -> ·InvalidToken [] | TerminalEnclosedExpression -> ·NumberLiteral [] | TerminalEnclosedExpression -> ·ParenOpen Expression ParenClose [] }
+   2 { Application -> ·Application TerminalEnclosedExpression [] | Application -> ·TerminalEnclosedExpression [] | ArithmeticFirstOrderExpression -> ·Application [] | ArithmeticFirstOrderExpression -> ·ArithmeticFirstOrderExpression Asterisk Application [] | ArithmeticFirstOrderExpression -> ·ArithmeticFirstOrderExpression Slash Application [] | ArithmeticSecondOrderExpression -> ·ArithmeticFirstOrderExpression [] | ArithmeticSecondOrderExpression -> ·ArithmeticSecondOrderExpression Minus ArithmeticFirstOrderExpression [] | ArithmeticSecondOrderExpression -> ·ArithmeticSecondOrderExpression Plus ArithmeticFirstOrderExpression [] | BindingExpression -> ·ArithmeticSecondOrderExpression [] | BindingExpression -> ·Let Identifier BindingParameters Equals ArithmeticSecondOrderExpression [] | Expression -> ·ExpressionConcatenation [] | ExpressionConcatenation -> ·BindingExpression [] | ExpressionConcatenation -> ·ExpressionConcatenation Break BindingExpression [] | TerminalEnclosedExpression -> ·BlockOpen Expression BlockClose [] | TerminalEnclosedExpression -> ·DoubleQuotedString [] | TerminalEnclosedExpression -> ·Identifier [] | TerminalEnclosedExpression -> ·InvalidToken [] | TerminalEnclosedExpression -> ·NumberLiteral [] | TerminalEnclosedExpression -> ·ParenOpen Expression ParenClose [] | TerminalEnclosedExpression -> ParenOpen· Expression ParenClose [] }
+   3 { Application -> ·Application TerminalEnclosedExpression [] | Application -> ·TerminalEnclosedExpression [] | ArithmeticFirstOrderExpression -> ·Application [] | ArithmeticFirstOrderExpression -> ·ArithmeticFirstOrderExpression Asterisk Application [] | ArithmeticFirstOrderExpression -> ·ArithmeticFirstOrderExpression Slash Application [] | ArithmeticSecondOrderExpression -> ·ArithmeticFirstOrderExpression [] | ArithmeticSecondOrderExpression -> ·ArithmeticSecondOrderExpression Minus ArithmeticFirstOrderExpression [] | ArithmeticSecondOrderExpression -> ·ArithmeticSecondOrderExpression Plus ArithmeticFirstOrderExpression [] | BindingExpression -> ·ArithmeticSecondOrderExpression [] | BindingExpression -> ·Let Identifier BindingParameters Equals ArithmeticSecondOrderExpression [] | ExpressionConcatenation -> ExpressionConcatenation Break· BindingExpression [] | TerminalEnclosedExpression -> ·BlockOpen Expression BlockClose [] | TerminalEnclosedExpression -> ·DoubleQuotedString [] | TerminalEnclosedExpression -> ·Identifier [] | TerminalEnclosedExpression -> ·InvalidToken [] | TerminalEnclosedExpression -> ·NumberLiteral [] | TerminalEnclosedExpression -> ·ParenOpen Expression ParenClose [] }
+   4 { Application -> ·Application TerminalEnclosedExpression [] | Application -> ·TerminalEnclosedExpression [] | ArithmeticFirstOrderExpression -> ·Application [] | ArithmeticFirstOrderExpression -> ·ArithmeticFirstOrderExpression Asterisk Application [] | ArithmeticFirstOrderExpression -> ·ArithmeticFirstOrderExpression Slash Application [] | ArithmeticSecondOrderExpression -> ·ArithmeticFirstOrderExpression [] | ArithmeticSecondOrderExpression -> ·ArithmeticSecondOrderExpression Minus ArithmeticFirstOrderExpression [] | ArithmeticSecondOrderExpression -> ·ArithmeticSecondOrderExpression Plus ArithmeticFirstOrderExpression [] | BindingExpression -> Let Identifier BindingParameters Equals· ArithmeticSecondOrderExpression [] | TerminalEnclosedExpression -> ·BlockOpen Expression BlockClose [] | TerminalEnclosedExpression -> ·DoubleQuotedString [] | TerminalEnclosedExpression -> ·Identifier [] | TerminalEnclosedExpression -> ·InvalidToken [] | TerminalEnclosedExpression -> ·NumberLiteral [] | TerminalEnclosedExpression -> ·ParenOpen Expression ParenClose [] }
+   5 { Application -> ·Application TerminalEnclosedExpression [] | Application -> ·TerminalEnclosedExpression [] | ArithmeticFirstOrderExpression -> ·Application [] | ArithmeticFirstOrderExpression -> ·ArithmeticFirstOrderExpression Asterisk Application [] | ArithmeticFirstOrderExpression -> ·ArithmeticFirstOrderExpression Slash Application [] | ArithmeticSecondOrderExpression -> ArithmeticSecondOrderExpression Minus· ArithmeticFirstOrderExpression [] | TerminalEnclosedExpression -> ·BlockOpen Expression BlockClose [] | TerminalEnclosedExpression -> ·DoubleQuotedString [] | TerminalEnclosedExpression -> ·Identifier [] | TerminalEnclosedExpression -> ·InvalidToken [] | TerminalEnclosedExpression -> ·NumberLiteral [] | TerminalEnclosedExpression -> ·ParenOpen Expression ParenClose [] }
+   6 { Application -> ·Application TerminalEnclosedExpression [] | Application -> ·TerminalEnclosedExpression [] | ArithmeticFirstOrderExpression -> ·Application [] | ArithmeticFirstOrderExpression -> ·ArithmeticFirstOrderExpression Asterisk Application [] | ArithmeticFirstOrderExpression -> ·ArithmeticFirstOrderExpression Slash Application [] | ArithmeticSecondOrderExpression -> ArithmeticSecondOrderExpression Plus· ArithmeticFirstOrderExpression [] | TerminalEnclosedExpression -> ·BlockOpen Expression BlockClose [] | TerminalEnclosedExpression -> ·DoubleQuotedString [] | TerminalEnclosedExpression -> ·Identifier [] | TerminalEnclosedExpression -> ·InvalidToken [] | TerminalEnclosedExpression -> ·NumberLiteral [] | TerminalEnclosedExpression -> ·ParenOpen Expression ParenClose [] }
+   7 { Application -> ·Application TerminalEnclosedExpression [] | Application -> ·TerminalEnclosedExpression [] | ArithmeticFirstOrderExpression -> ArithmeticFirstOrderExpression Asterisk· Application [] | TerminalEnclosedExpression -> ·BlockOpen Expression BlockClose [] | TerminalEnclosedExpression -> ·DoubleQuotedString [] | TerminalEnclosedExpression -> ·Identifier [] | TerminalEnclosedExpression -> ·InvalidToken [] | TerminalEnclosedExpression -> ·NumberLiteral [] | TerminalEnclosedExpression -> ·ParenOpen Expression ParenClose [] }
+   8 { Application -> ·Application TerminalEnclosedExpression [] | Application -> ·TerminalEnclosedExpression [] | ArithmeticFirstOrderExpression -> ArithmeticFirstOrderExpression Slash· Application [] | TerminalEnclosedExpression -> ·BlockOpen Expression BlockClose [] | TerminalEnclosedExpression -> ·DoubleQuotedString [] | TerminalEnclosedExpression -> ·Identifier [] | TerminalEnclosedExpression -> ·InvalidToken [] | TerminalEnclosedExpression -> ·NumberLiteral [] | TerminalEnclosedExpression -> ·ParenOpen Expression ParenClose [] }
+   9 { Application -> Application· TerminalEnclosedExpression [] | ArithmeticFirstOrderExpression -> Application· [$ Asterisk BlockClose Break Minus ParenClose Plus Slash] | TerminalEnclosedExpression -> ·BlockOpen Expression BlockClose [] | TerminalEnclosedExpression -> ·DoubleQuotedString [] | TerminalEnclosedExpression -> ·Identifier [] | TerminalEnclosedExpression -> ·InvalidToken [] | TerminalEnclosedExpression -> ·NumberLiteral [] | TerminalEnclosedExpression -> ·ParenOpen Expression ParenClose [] }
+   10 { Application -> Application· TerminalEnclosedExpression [] | ArithmeticFirstOrderExpression -> ArithmeticFirstOrderExpression Asterisk Application· [$ Asterisk BlockClose Break Minus ParenClose Plus Slash] | TerminalEnclosedExpression -> ·BlockOpen Expression BlockClose [] | TerminalEnclosedExpression -> ·DoubleQuotedString [] | TerminalEnclosedExpression -> ·Identifier [] | TerminalEnclosedExpression -> ·InvalidToken [] | TerminalEnclosedExpression -> ·NumberLiteral [] | TerminalEnclosedExpression -> ·ParenOpen Expression ParenClose [] }
+   11 { Application -> Application· TerminalEnclosedExpression [] | ArithmeticFirstOrderExpression -> ArithmeticFirstOrderExpression Slash Application· [$ Asterisk BlockClose Break Minus ParenClose Plus Slash] | TerminalEnclosedExpression -> ·BlockOpen Expression BlockClose [] | TerminalEnclosedExpression -> ·DoubleQuotedString [] | TerminalEnclosedExpression -> ·Identifier [] | TerminalEnclosedExpression -> ·InvalidToken [] | TerminalEnclosedExpression -> ·NumberLiteral [] | TerminalEnclosedExpression -> ·ParenOpen Expression ParenClose [] }
+   12 { Application -> Application TerminalEnclosedExpression· [$ Asterisk BlockClose BlockOpen Break DoubleQuotedString Identifier InvalidToken Minus NumberLiteral ParenClose ParenOpen Plus Slash] }
+   13 { Application -> TerminalEnclosedExpression· [$ Asterisk BlockClose BlockOpen Break DoubleQuotedString Identifier InvalidToken Minus NumberLiteral ParenClose ParenOpen Plus Slash] }
    14 { ArithmeticFirstOrderExpression -> ArithmeticFirstOrderExpression· Asterisk Application [] | ArithmeticFirstOrderExpression -> ArithmeticFirstOrderExpression· Slash Application [] | ArithmeticSecondOrderExpression -> ArithmeticFirstOrderExpression· [$ BlockClose Break Minus ParenClose Plus] }
    15 { ArithmeticFirstOrderExpression -> ArithmeticFirstOrderExpression· Asterisk Application [] | ArithmeticFirstOrderExpression -> ArithmeticFirstOrderExpression· Slash Application [] | ArithmeticSecondOrderExpression -> ArithmeticSecondOrderExpression Minus ArithmeticFirstOrderExpression· [$ BlockClose Break Minus ParenClose Plus] }
    16 { ArithmeticFirstOrderExpression -> ArithmeticFirstOrderExpression· Asterisk Application [] | ArithmeticFirstOrderExpression -> ArithmeticFirstOrderExpression· Slash Application [] | ArithmeticSecondOrderExpression -> ArithmeticSecondOrderExpression Plus ArithmeticFirstOrderExpression· [$ BlockClose Break Minus ParenClose Plus] }
@@ -30,12 +30,13 @@ STATES
    25 { ExpressionConcatenation -> ExpressionConcatenation Break BindingExpression· [$ BlockClose Break ParenClose] }
    26 { Program -> Expression· [$] }
    27 { TerminalEnclosedExpression -> BlockOpen Expression· BlockClose [] }
-   28 { TerminalEnclosedExpression -> BlockOpen Expression BlockClose· [$ Asterisk BlockClose BlockOpen Break DoubleQuotedString Identifier Minus NumberLiteral ParenClose ParenOpen Plus Slash] }
-   29 { TerminalEnclosedExpression -> DoubleQuotedString· [$ Asterisk BlockClose BlockOpen Break DoubleQuotedString Identifier Minus NumberLiteral ParenClose ParenOpen Plus Slash] }
-   30 { TerminalEnclosedExpression -> Identifier· [$ Asterisk BlockClose BlockOpen Break DoubleQuotedString Identifier Minus NumberLiteral ParenClose ParenOpen Plus Slash] }
-   31 { TerminalEnclosedExpression -> NumberLiteral· [$ Asterisk BlockClose BlockOpen Break DoubleQuotedString Identifier Minus NumberLiteral ParenClose ParenOpen Plus Slash] }
-   32 { TerminalEnclosedExpression -> ParenOpen Expression· ParenClose [] }
-   33 { TerminalEnclosedExpression -> ParenOpen Expression ParenClose· [$ Asterisk BlockClose BlockOpen Break DoubleQuotedString Identifier Minus NumberLiteral ParenClose ParenOpen Plus Slash] }
+   28 { TerminalEnclosedExpression -> BlockOpen Expression BlockClose· [$ Asterisk BlockClose BlockOpen Break DoubleQuotedString Identifier InvalidToken Minus NumberLiteral ParenClose ParenOpen Plus Slash] }
+   29 { TerminalEnclosedExpression -> DoubleQuotedString· [$ Asterisk BlockClose BlockOpen Break DoubleQuotedString Identifier InvalidToken Minus NumberLiteral ParenClose ParenOpen Plus Slash] }
+   30 { TerminalEnclosedExpression -> Identifier· [$ Asterisk BlockClose BlockOpen Break DoubleQuotedString Identifier InvalidToken Minus NumberLiteral ParenClose ParenOpen Plus Slash] }
+   31 { TerminalEnclosedExpression -> InvalidToken· [$ Asterisk BlockClose BlockOpen Break DoubleQuotedString Identifier InvalidToken Minus NumberLiteral ParenClose ParenOpen Plus Slash] }
+   32 { TerminalEnclosedExpression -> NumberLiteral· [$ Asterisk BlockClose BlockOpen Break DoubleQuotedString Identifier InvalidToken Minus NumberLiteral ParenClose ParenOpen Plus Slash] }
+   33 { TerminalEnclosedExpression -> ParenOpen Expression· ParenClose [] }
+   34 { TerminalEnclosedExpression -> ParenOpen Expression ParenClose· [$ Asterisk BlockClose BlockOpen Break DoubleQuotedString Identifier InvalidToken Minus NumberLiteral ParenClose ParenOpen Plus Slash] }
 
 PRODUCTIONS
    ArithmeticFirstOrderExpression -> Application
@@ -56,6 +57,7 @@ PRODUCTIONS
    TerminalEnclosedExpression -> BlockOpen Expression BlockClose
    TerminalEnclosedExpression -> DoubleQuotedString
    TerminalEnclosedExpression -> Identifier
+   TerminalEnclosedExpression -> InvalidToken
    TerminalEnclosedExpression -> NumberLiteral
    TerminalEnclosedExpression -> ParenOpen Expression ParenClose
 
@@ -64,51 +66,60 @@ ACTION
    0     BlockOpen          shift (1)
    0     DoubleQuotedString shift (29)
    0     Identifier         shift (30)
+   0     InvalidToken       shift (31)
    0     Let                shift (19)
-   0     NumberLiteral      shift (31)
+   0     NumberLiteral      shift (32)
    0     ParenOpen          shift (2)
    1     BlockOpen          shift (1)
    1     DoubleQuotedString shift (29)
    1     Identifier         shift (30)
+   1     InvalidToken       shift (31)
    1     Let                shift (19)
-   1     NumberLiteral      shift (31)
+   1     NumberLiteral      shift (32)
    1     ParenOpen          shift (2)
    2     BlockOpen          shift (1)
    2     DoubleQuotedString shift (29)
    2     Identifier         shift (30)
+   2     InvalidToken       shift (31)
    2     Let                shift (19)
-   2     NumberLiteral      shift (31)
+   2     NumberLiteral      shift (32)
    2     ParenOpen          shift (2)
    3     BlockOpen          shift (1)
    3     DoubleQuotedString shift (29)
    3     Identifier         shift (30)
+   3     InvalidToken       shift (31)
    3     Let                shift (19)
-   3     NumberLiteral      shift (31)
+   3     NumberLiteral      shift (32)
    3     ParenOpen          shift (2)
    4     BlockOpen          shift (1)
    4     DoubleQuotedString shift (29)
    4     Identifier         shift (30)
-   4     NumberLiteral      shift (31)
+   4     InvalidToken       shift (31)
+   4     NumberLiteral      shift (32)
    4     ParenOpen          shift (2)
    5     BlockOpen          shift (1)
    5     DoubleQuotedString shift (29)
    5     Identifier         shift (30)
-   5     NumberLiteral      shift (31)
+   5     InvalidToken       shift (31)
+   5     NumberLiteral      shift (32)
    5     ParenOpen          shift (2)
    6     BlockOpen          shift (1)
    6     DoubleQuotedString shift (29)
    6     Identifier         shift (30)
-   6     NumberLiteral      shift (31)
+   6     InvalidToken       shift (31)
+   6     NumberLiteral      shift (32)
    6     ParenOpen          shift (2)
    7     BlockOpen          shift (1)
    7     DoubleQuotedString shift (29)
    7     Identifier         shift (30)
-   7     NumberLiteral      shift (31)
+   7     InvalidToken       shift (31)
+   7     NumberLiteral      shift (32)
    7     ParenOpen          shift (2)
    8     BlockOpen          shift (1)
    8     DoubleQuotedString shift (29)
    8     Identifier         shift (30)
-   8     NumberLiteral      shift (31)
+   8     InvalidToken       shift (31)
+   8     NumberLiteral      shift (32)
    8     ParenOpen          shift (2)
    9     $                  reduce (ArithmeticFirstOrderExpression -> Application)
    9     Asterisk           reduce (ArithmeticFirstOrderExpression -> Application)
@@ -117,8 +128,9 @@ ACTION
    9     Break              reduce (ArithmeticFirstOrderExpression -> Application)
    9     DoubleQuotedString shift (29)
    9     Identifier         shift (30)
+   9     InvalidToken       shift (31)
    9     Minus              reduce (ArithmeticFirstOrderExpression -> Application)
-   9     NumberLiteral      shift (31)
+   9     NumberLiteral      shift (32)
    9     ParenClose         reduce (ArithmeticFirstOrderExpression -> Application)
    9     ParenOpen          shift (2)
    9     Plus               reduce (ArithmeticFirstOrderExpression -> Application)
@@ -130,8 +142,9 @@ ACTION
    10    Break              reduce (ArithmeticFirstOrderExpression -> ArithmeticFirstOrderExpression Asterisk Application)
    10    DoubleQuotedString shift (29)
    10    Identifier         shift (30)
+   10    InvalidToken       shift (31)
    10    Minus              reduce (ArithmeticFirstOrderExpression -> ArithmeticFirstOrderExpression Asterisk Application)
-   10    NumberLiteral      shift (31)
+   10    NumberLiteral      shift (32)
    10    ParenClose         reduce (ArithmeticFirstOrderExpression -> ArithmeticFirstOrderExpression Asterisk Application)
    10    ParenOpen          shift (2)
    10    Plus               reduce (ArithmeticFirstOrderExpression -> ArithmeticFirstOrderExpression Asterisk Application)
@@ -143,8 +156,9 @@ ACTION
    11    Break              reduce (ArithmeticFirstOrderExpression -> ArithmeticFirstOrderExpression Slash Application)
    11    DoubleQuotedString shift (29)
    11    Identifier         shift (30)
+   11    InvalidToken       shift (31)
    11    Minus              reduce (ArithmeticFirstOrderExpression -> ArithmeticFirstOrderExpression Slash Application)
-   11    NumberLiteral      shift (31)
+   11    NumberLiteral      shift (32)
    11    ParenClose         reduce (ArithmeticFirstOrderExpression -> ArithmeticFirstOrderExpression Slash Application)
    11    ParenOpen          shift (2)
    11    Plus               reduce (ArithmeticFirstOrderExpression -> ArithmeticFirstOrderExpression Slash Application)
@@ -156,6 +170,7 @@ ACTION
    12    Break              reduce (Application -> Application TerminalEnclosedExpression)
    12    DoubleQuotedString reduce (Application -> Application TerminalEnclosedExpression)
    12    Identifier         reduce (Application -> Application TerminalEnclosedExpression)
+   12    InvalidToken       reduce (Application -> Application TerminalEnclosedExpression)
    12    Minus              reduce (Application -> Application TerminalEnclosedExpression)
    12    NumberLiteral      reduce (Application -> Application TerminalEnclosedExpression)
    12    ParenClose         reduce (Application -> Application TerminalEnclosedExpression)
@@ -169,6 +184,7 @@ ACTION
    13    Break              reduce (Application -> TerminalEnclosedExpression)
    13    DoubleQuotedString reduce (Application -> TerminalEnclosedExpression)
    13    Identifier         reduce (Application -> TerminalEnclosedExpression)
+   13    InvalidToken       reduce (Application -> TerminalEnclosedExpression)
    13    Minus              reduce (Application -> TerminalEnclosedExpression)
    13    NumberLiteral      reduce (Application -> TerminalEnclosedExpression)
    13    ParenClose         reduce (Application -> TerminalEnclosedExpression)
@@ -239,6 +255,7 @@ ACTION
    28    Break              reduce (TerminalEnclosedExpression -> BlockOpen Expression BlockClose)
    28    DoubleQuotedString reduce (TerminalEnclosedExpression -> BlockOpen Expression BlockClose)
    28    Identifier         reduce (TerminalEnclosedExpression -> BlockOpen Expression BlockClose)
+   28    InvalidToken       reduce (TerminalEnclosedExpression -> BlockOpen Expression BlockClose)
    28    Minus              reduce (TerminalEnclosedExpression -> BlockOpen Expression BlockClose)
    28    NumberLiteral      reduce (TerminalEnclosedExpression -> BlockOpen Expression BlockClose)
    28    ParenClose         reduce (TerminalEnclosedExpression -> BlockOpen Expression BlockClose)
@@ -252,6 +269,7 @@ ACTION
    29    Break              reduce (TerminalEnclosedExpression -> DoubleQuotedString)
    29    DoubleQuotedString reduce (TerminalEnclosedExpression -> DoubleQuotedString)
    29    Identifier         reduce (TerminalEnclosedExpression -> DoubleQuotedString)
+   29    InvalidToken       reduce (TerminalEnclosedExpression -> DoubleQuotedString)
    29    Minus              reduce (TerminalEnclosedExpression -> DoubleQuotedString)
    29    NumberLiteral      reduce (TerminalEnclosedExpression -> DoubleQuotedString)
    29    ParenClose         reduce (TerminalEnclosedExpression -> DoubleQuotedString)
@@ -265,39 +283,56 @@ ACTION
    30    Break              reduce (TerminalEnclosedExpression -> Identifier)
    30    DoubleQuotedString reduce (TerminalEnclosedExpression -> Identifier)
    30    Identifier         reduce (TerminalEnclosedExpression -> Identifier)
+   30    InvalidToken       reduce (TerminalEnclosedExpression -> Identifier)
    30    Minus              reduce (TerminalEnclosedExpression -> Identifier)
    30    NumberLiteral      reduce (TerminalEnclosedExpression -> Identifier)
    30    ParenClose         reduce (TerminalEnclosedExpression -> Identifier)
    30    ParenOpen          reduce (TerminalEnclosedExpression -> Identifier)
    30    Plus               reduce (TerminalEnclosedExpression -> Identifier)
    30    Slash              reduce (TerminalEnclosedExpression -> Identifier)
-   31    $                  reduce (TerminalEnclosedExpression -> NumberLiteral)
-   31    Asterisk           reduce (TerminalEnclosedExpression -> NumberLiteral)
-   31    BlockClose         reduce (TerminalEnclosedExpression -> NumberLiteral)
-   31    BlockOpen          reduce (TerminalEnclosedExpression -> NumberLiteral)
-   31    Break              reduce (TerminalEnclosedExpression -> NumberLiteral)
-   31    DoubleQuotedString reduce (TerminalEnclosedExpression -> NumberLiteral)
-   31    Identifier         reduce (TerminalEnclosedExpression -> NumberLiteral)
-   31    Minus              reduce (TerminalEnclosedExpression -> NumberLiteral)
-   31    NumberLiteral      reduce (TerminalEnclosedExpression -> NumberLiteral)
-   31    ParenClose         reduce (TerminalEnclosedExpression -> NumberLiteral)
-   31    ParenOpen          reduce (TerminalEnclosedExpression -> NumberLiteral)
-   31    Plus               reduce (TerminalEnclosedExpression -> NumberLiteral)
-   31    Slash              reduce (TerminalEnclosedExpression -> NumberLiteral)
-   32    ParenClose         shift (33)
-   33    $                  reduce (TerminalEnclosedExpression -> ParenOpen Expression ParenClose)
-   33    Asterisk           reduce (TerminalEnclosedExpression -> ParenOpen Expression ParenClose)
-   33    BlockClose         reduce (TerminalEnclosedExpression -> ParenOpen Expression ParenClose)
-   33    BlockOpen          reduce (TerminalEnclosedExpression -> ParenOpen Expression ParenClose)
-   33    Break              reduce (TerminalEnclosedExpression -> ParenOpen Expression ParenClose)
-   33    DoubleQuotedString reduce (TerminalEnclosedExpression -> ParenOpen Expression ParenClose)
-   33    Identifier         reduce (TerminalEnclosedExpression -> ParenOpen Expression ParenClose)
-   33    Minus              reduce (TerminalEnclosedExpression -> ParenOpen Expression ParenClose)
-   33    NumberLiteral      reduce (TerminalEnclosedExpression -> ParenOpen Expression ParenClose)
-   33    ParenClose         reduce (TerminalEnclosedExpression -> ParenOpen Expression ParenClose)
-   33    ParenOpen          reduce (TerminalEnclosedExpression -> ParenOpen Expression ParenClose)
-   33    Plus               reduce (TerminalEnclosedExpression -> ParenOpen Expression ParenClose)
-   33    Slash              reduce (TerminalEnclosedExpression -> ParenOpen Expression ParenClose)
+   31    $                  reduce (TerminalEnclosedExpression -> InvalidToken)
+   31    Asterisk           reduce (TerminalEnclosedExpression -> InvalidToken)
+   31    BlockClose         reduce (TerminalEnclosedExpression -> InvalidToken)
+   31    BlockOpen          reduce (TerminalEnclosedExpression -> InvalidToken)
+   31    Break              reduce (TerminalEnclosedExpression -> InvalidToken)
+   31    DoubleQuotedString reduce (TerminalEnclosedExpression -> InvalidToken)
+   31    Identifier         reduce (TerminalEnclosedExpression -> InvalidToken)
+   31    InvalidToken       reduce (TerminalEnclosedExpression -> InvalidToken)
+   31    Minus              reduce (TerminalEnclosedExpression -> InvalidToken)
+   31    NumberLiteral      reduce (TerminalEnclosedExpression -> InvalidToken)
+   31    ParenClose         reduce (TerminalEnclosedExpression -> InvalidToken)
+   31    ParenOpen          reduce (TerminalEnclosedExpression -> InvalidToken)
+   31    Plus               reduce (TerminalEnclosedExpression -> InvalidToken)
+   31    Slash              reduce (TerminalEnclosedExpression -> InvalidToken)
+   32    $                  reduce (TerminalEnclosedExpression -> NumberLiteral)
+   32    Asterisk           reduce (TerminalEnclosedExpression -> NumberLiteral)
+   32    BlockClose         reduce (TerminalEnclosedExpression -> NumberLiteral)
+   32    BlockOpen          reduce (TerminalEnclosedExpression -> NumberLiteral)
+   32    Break              reduce (TerminalEnclosedExpression -> NumberLiteral)
+   32    DoubleQuotedString reduce (TerminalEnclosedExpression -> NumberLiteral)
+   32    Identifier         reduce (TerminalEnclosedExpression -> NumberLiteral)
+   32    InvalidToken       reduce (TerminalEnclosedExpression -> NumberLiteral)
+   32    Minus              reduce (TerminalEnclosedExpression -> NumberLiteral)
+   32    NumberLiteral      reduce (TerminalEnclosedExpression -> NumberLiteral)
+   32    ParenClose         reduce (TerminalEnclosedExpression -> NumberLiteral)
+   32    ParenOpen          reduce (TerminalEnclosedExpression -> NumberLiteral)
+   32    Plus               reduce (TerminalEnclosedExpression -> NumberLiteral)
+   32    Slash              reduce (TerminalEnclosedExpression -> NumberLiteral)
+   33    ParenClose         shift (34)
+   34    $                  reduce (TerminalEnclosedExpression -> ParenOpen Expression ParenClose)
+   34    Asterisk           reduce (TerminalEnclosedExpression -> ParenOpen Expression ParenClose)
+   34    BlockClose         reduce (TerminalEnclosedExpression -> ParenOpen Expression ParenClose)
+   34    BlockOpen          reduce (TerminalEnclosedExpression -> ParenOpen Expression ParenClose)
+   34    Break              reduce (TerminalEnclosedExpression -> ParenOpen Expression ParenClose)
+   34    DoubleQuotedString reduce (TerminalEnclosedExpression -> ParenOpen Expression ParenClose)
+   34    Identifier         reduce (TerminalEnclosedExpression -> ParenOpen Expression ParenClose)
+   34    InvalidToken       reduce (TerminalEnclosedExpression -> ParenOpen Expression ParenClose)
+   34    Minus              reduce (TerminalEnclosedExpression -> ParenOpen Expression ParenClose)
+   34    NumberLiteral      reduce (TerminalEnclosedExpression -> ParenOpen Expression ParenClose)
+   34    ParenClose         reduce (TerminalEnclosedExpression -> ParenOpen Expression ParenClose)
+   34    ParenOpen          reduce (TerminalEnclosedExpression -> ParenOpen Expression ParenClose)
+   34    Plus               reduce (TerminalEnclosedExpression -> ParenOpen Expression ParenClose)
+   34    Slash              reduce (TerminalEnclosedExpression -> ParenOpen Expression ParenClose)
 
 GOTO
    Source state Symbol                          Destination state
@@ -319,7 +354,7 @@ GOTO
    2            ArithmeticFirstOrderExpression  14
    2            ArithmeticSecondOrderExpression 17
    2            BindingExpression               24
-   2            Expression                      32
+   2            Expression                      33
    2            ExpressionConcatenation         23
    2            TerminalEnclosedExpression      13
    3            Application                     9
@@ -348,10 +383,10 @@ GOTO
 
 *)
 
-type DoubleQuotedString = string
-type Identifier = string
-type InvalidToken = string
-type NumberLiteral = int * int option
+type DoubleQuotedString = string * PositionInSource
+type Identifier = string * PositionInSource
+type InvalidToken = string * PositionInSource
+type NumberLiteral = int * int option * PositionInSource
 
 type Application =
     | Application of Application * TerminalEnclosedExpression
@@ -388,6 +423,7 @@ type Program =
 type TerminalEnclosedExpression =
     | Block of Expression
     | Identifier of Identifier
+    | InvalidToken of InvalidToken
     | Number of NumberLiteral
     | Paren of Expression
     | String of DoubleQuotedString
@@ -479,6 +515,14 @@ let parse (input: #seq<InputItem>) : Result<Program, ParseError> =
                 else
                     lookaheadIsEof <- true
                 stateStack.Push(30)
+            | InputItem.InvalidToken x ->
+                // shift
+                lhsStack.Push(x)
+                if inputEnumerator.MoveNext() then
+                    lookahead <- inputEnumerator.Current
+                else
+                    lookaheadIsEof <- true
+                stateStack.Push(31)
             | InputItem.Let ->
                 // shift
                 if inputEnumerator.MoveNext() then
@@ -493,7 +537,7 @@ let parse (input: #seq<InputItem>) : Result<Program, ParseError> =
                     lookahead <- inputEnumerator.Current
                 else
                     lookaheadIsEof <- true
-                stateStack.Push(31)
+                stateStack.Push(32)
             | InputItem.ParenOpen ->
                 // shift
                 if inputEnumerator.MoveNext() then
@@ -503,7 +547,7 @@ let parse (input: #seq<InputItem>) : Result<Program, ParseError> =
                 stateStack.Push(2)
             | _ ->
                 // error
-                expected <- [ExpectedItem.BlockOpen; ExpectedItem.DoubleQuotedString; ExpectedItem.Identifier; ExpectedItem.Let; ExpectedItem.NumberLiteral; ExpectedItem.ParenOpen]
+                expected <- [ExpectedItem.BlockOpen; ExpectedItem.DoubleQuotedString; ExpectedItem.Identifier; ExpectedItem.InvalidToken; ExpectedItem.Let; ExpectedItem.NumberLiteral; ExpectedItem.ParenOpen]
                 keepGoing <- false
         | 1 ->
             match lookahead with
@@ -530,6 +574,14 @@ let parse (input: #seq<InputItem>) : Result<Program, ParseError> =
                 else
                     lookaheadIsEof <- true
                 stateStack.Push(30)
+            | InputItem.InvalidToken x ->
+                // shift
+                lhsStack.Push(x)
+                if inputEnumerator.MoveNext() then
+                    lookahead <- inputEnumerator.Current
+                else
+                    lookaheadIsEof <- true
+                stateStack.Push(31)
             | InputItem.Let ->
                 // shift
                 if inputEnumerator.MoveNext() then
@@ -544,7 +596,7 @@ let parse (input: #seq<InputItem>) : Result<Program, ParseError> =
                     lookahead <- inputEnumerator.Current
                 else
                     lookaheadIsEof <- true
-                stateStack.Push(31)
+                stateStack.Push(32)
             | InputItem.ParenOpen ->
                 // shift
                 if inputEnumerator.MoveNext() then
@@ -554,7 +606,7 @@ let parse (input: #seq<InputItem>) : Result<Program, ParseError> =
                 stateStack.Push(2)
             | _ ->
                 // error
-                expected <- [ExpectedItem.BlockOpen; ExpectedItem.DoubleQuotedString; ExpectedItem.Identifier; ExpectedItem.Let; ExpectedItem.NumberLiteral; ExpectedItem.ParenOpen]
+                expected <- [ExpectedItem.BlockOpen; ExpectedItem.DoubleQuotedString; ExpectedItem.Identifier; ExpectedItem.InvalidToken; ExpectedItem.Let; ExpectedItem.NumberLiteral; ExpectedItem.ParenOpen]
                 keepGoing <- false
         | 2 ->
             match lookahead with
@@ -581,6 +633,14 @@ let parse (input: #seq<InputItem>) : Result<Program, ParseError> =
                 else
                     lookaheadIsEof <- true
                 stateStack.Push(30)
+            | InputItem.InvalidToken x ->
+                // shift
+                lhsStack.Push(x)
+                if inputEnumerator.MoveNext() then
+                    lookahead <- inputEnumerator.Current
+                else
+                    lookaheadIsEof <- true
+                stateStack.Push(31)
             | InputItem.Let ->
                 // shift
                 if inputEnumerator.MoveNext() then
@@ -595,7 +655,7 @@ let parse (input: #seq<InputItem>) : Result<Program, ParseError> =
                     lookahead <- inputEnumerator.Current
                 else
                     lookaheadIsEof <- true
-                stateStack.Push(31)
+                stateStack.Push(32)
             | InputItem.ParenOpen ->
                 // shift
                 if inputEnumerator.MoveNext() then
@@ -605,7 +665,7 @@ let parse (input: #seq<InputItem>) : Result<Program, ParseError> =
                 stateStack.Push(2)
             | _ ->
                 // error
-                expected <- [ExpectedItem.BlockOpen; ExpectedItem.DoubleQuotedString; ExpectedItem.Identifier; ExpectedItem.Let; ExpectedItem.NumberLiteral; ExpectedItem.ParenOpen]
+                expected <- [ExpectedItem.BlockOpen; ExpectedItem.DoubleQuotedString; ExpectedItem.Identifier; ExpectedItem.InvalidToken; ExpectedItem.Let; ExpectedItem.NumberLiteral; ExpectedItem.ParenOpen]
                 keepGoing <- false
         | 3 ->
             match lookahead with
@@ -632,6 +692,14 @@ let parse (input: #seq<InputItem>) : Result<Program, ParseError> =
                 else
                     lookaheadIsEof <- true
                 stateStack.Push(30)
+            | InputItem.InvalidToken x ->
+                // shift
+                lhsStack.Push(x)
+                if inputEnumerator.MoveNext() then
+                    lookahead <- inputEnumerator.Current
+                else
+                    lookaheadIsEof <- true
+                stateStack.Push(31)
             | InputItem.Let ->
                 // shift
                 if inputEnumerator.MoveNext() then
@@ -646,7 +714,7 @@ let parse (input: #seq<InputItem>) : Result<Program, ParseError> =
                     lookahead <- inputEnumerator.Current
                 else
                     lookaheadIsEof <- true
-                stateStack.Push(31)
+                stateStack.Push(32)
             | InputItem.ParenOpen ->
                 // shift
                 if inputEnumerator.MoveNext() then
@@ -656,7 +724,7 @@ let parse (input: #seq<InputItem>) : Result<Program, ParseError> =
                 stateStack.Push(2)
             | _ ->
                 // error
-                expected <- [ExpectedItem.BlockOpen; ExpectedItem.DoubleQuotedString; ExpectedItem.Identifier; ExpectedItem.Let; ExpectedItem.NumberLiteral; ExpectedItem.ParenOpen]
+                expected <- [ExpectedItem.BlockOpen; ExpectedItem.DoubleQuotedString; ExpectedItem.Identifier; ExpectedItem.InvalidToken; ExpectedItem.Let; ExpectedItem.NumberLiteral; ExpectedItem.ParenOpen]
                 keepGoing <- false
         | 4 ->
             match lookahead with
@@ -683,7 +751,7 @@ let parse (input: #seq<InputItem>) : Result<Program, ParseError> =
                 else
                     lookaheadIsEof <- true
                 stateStack.Push(30)
-            | InputItem.NumberLiteral x ->
+            | InputItem.InvalidToken x ->
                 // shift
                 lhsStack.Push(x)
                 if inputEnumerator.MoveNext() then
@@ -691,6 +759,14 @@ let parse (input: #seq<InputItem>) : Result<Program, ParseError> =
                 else
                     lookaheadIsEof <- true
                 stateStack.Push(31)
+            | InputItem.NumberLiteral x ->
+                // shift
+                lhsStack.Push(x)
+                if inputEnumerator.MoveNext() then
+                    lookahead <- inputEnumerator.Current
+                else
+                    lookaheadIsEof <- true
+                stateStack.Push(32)
             | InputItem.ParenOpen ->
                 // shift
                 if inputEnumerator.MoveNext() then
@@ -700,7 +776,7 @@ let parse (input: #seq<InputItem>) : Result<Program, ParseError> =
                 stateStack.Push(2)
             | _ ->
                 // error
-                expected <- [ExpectedItem.BlockOpen; ExpectedItem.DoubleQuotedString; ExpectedItem.Identifier; ExpectedItem.NumberLiteral; ExpectedItem.ParenOpen]
+                expected <- [ExpectedItem.BlockOpen; ExpectedItem.DoubleQuotedString; ExpectedItem.Identifier; ExpectedItem.InvalidToken; ExpectedItem.NumberLiteral; ExpectedItem.ParenOpen]
                 keepGoing <- false
         | 5 ->
             match lookahead with
@@ -727,7 +803,7 @@ let parse (input: #seq<InputItem>) : Result<Program, ParseError> =
                 else
                     lookaheadIsEof <- true
                 stateStack.Push(30)
-            | InputItem.NumberLiteral x ->
+            | InputItem.InvalidToken x ->
                 // shift
                 lhsStack.Push(x)
                 if inputEnumerator.MoveNext() then
@@ -735,6 +811,14 @@ let parse (input: #seq<InputItem>) : Result<Program, ParseError> =
                 else
                     lookaheadIsEof <- true
                 stateStack.Push(31)
+            | InputItem.NumberLiteral x ->
+                // shift
+                lhsStack.Push(x)
+                if inputEnumerator.MoveNext() then
+                    lookahead <- inputEnumerator.Current
+                else
+                    lookaheadIsEof <- true
+                stateStack.Push(32)
             | InputItem.ParenOpen ->
                 // shift
                 if inputEnumerator.MoveNext() then
@@ -744,7 +828,7 @@ let parse (input: #seq<InputItem>) : Result<Program, ParseError> =
                 stateStack.Push(2)
             | _ ->
                 // error
-                expected <- [ExpectedItem.BlockOpen; ExpectedItem.DoubleQuotedString; ExpectedItem.Identifier; ExpectedItem.NumberLiteral; ExpectedItem.ParenOpen]
+                expected <- [ExpectedItem.BlockOpen; ExpectedItem.DoubleQuotedString; ExpectedItem.Identifier; ExpectedItem.InvalidToken; ExpectedItem.NumberLiteral; ExpectedItem.ParenOpen]
                 keepGoing <- false
         | 6 ->
             match lookahead with
@@ -771,7 +855,7 @@ let parse (input: #seq<InputItem>) : Result<Program, ParseError> =
                 else
                     lookaheadIsEof <- true
                 stateStack.Push(30)
-            | InputItem.NumberLiteral x ->
+            | InputItem.InvalidToken x ->
                 // shift
                 lhsStack.Push(x)
                 if inputEnumerator.MoveNext() then
@@ -779,6 +863,14 @@ let parse (input: #seq<InputItem>) : Result<Program, ParseError> =
                 else
                     lookaheadIsEof <- true
                 stateStack.Push(31)
+            | InputItem.NumberLiteral x ->
+                // shift
+                lhsStack.Push(x)
+                if inputEnumerator.MoveNext() then
+                    lookahead <- inputEnumerator.Current
+                else
+                    lookaheadIsEof <- true
+                stateStack.Push(32)
             | InputItem.ParenOpen ->
                 // shift
                 if inputEnumerator.MoveNext() then
@@ -788,7 +880,7 @@ let parse (input: #seq<InputItem>) : Result<Program, ParseError> =
                 stateStack.Push(2)
             | _ ->
                 // error
-                expected <- [ExpectedItem.BlockOpen; ExpectedItem.DoubleQuotedString; ExpectedItem.Identifier; ExpectedItem.NumberLiteral; ExpectedItem.ParenOpen]
+                expected <- [ExpectedItem.BlockOpen; ExpectedItem.DoubleQuotedString; ExpectedItem.Identifier; ExpectedItem.InvalidToken; ExpectedItem.NumberLiteral; ExpectedItem.ParenOpen]
                 keepGoing <- false
         | 7 ->
             match lookahead with
@@ -815,7 +907,7 @@ let parse (input: #seq<InputItem>) : Result<Program, ParseError> =
                 else
                     lookaheadIsEof <- true
                 stateStack.Push(30)
-            | InputItem.NumberLiteral x ->
+            | InputItem.InvalidToken x ->
                 // shift
                 lhsStack.Push(x)
                 if inputEnumerator.MoveNext() then
@@ -823,6 +915,14 @@ let parse (input: #seq<InputItem>) : Result<Program, ParseError> =
                 else
                     lookaheadIsEof <- true
                 stateStack.Push(31)
+            | InputItem.NumberLiteral x ->
+                // shift
+                lhsStack.Push(x)
+                if inputEnumerator.MoveNext() then
+                    lookahead <- inputEnumerator.Current
+                else
+                    lookaheadIsEof <- true
+                stateStack.Push(32)
             | InputItem.ParenOpen ->
                 // shift
                 if inputEnumerator.MoveNext() then
@@ -832,7 +932,7 @@ let parse (input: #seq<InputItem>) : Result<Program, ParseError> =
                 stateStack.Push(2)
             | _ ->
                 // error
-                expected <- [ExpectedItem.BlockOpen; ExpectedItem.DoubleQuotedString; ExpectedItem.Identifier; ExpectedItem.NumberLiteral; ExpectedItem.ParenOpen]
+                expected <- [ExpectedItem.BlockOpen; ExpectedItem.DoubleQuotedString; ExpectedItem.Identifier; ExpectedItem.InvalidToken; ExpectedItem.NumberLiteral; ExpectedItem.ParenOpen]
                 keepGoing <- false
         | 8 ->
             match lookahead with
@@ -859,7 +959,7 @@ let parse (input: #seq<InputItem>) : Result<Program, ParseError> =
                 else
                     lookaheadIsEof <- true
                 stateStack.Push(30)
-            | InputItem.NumberLiteral x ->
+            | InputItem.InvalidToken x ->
                 // shift
                 lhsStack.Push(x)
                 if inputEnumerator.MoveNext() then
@@ -867,6 +967,14 @@ let parse (input: #seq<InputItem>) : Result<Program, ParseError> =
                 else
                     lookaheadIsEof <- true
                 stateStack.Push(31)
+            | InputItem.NumberLiteral x ->
+                // shift
+                lhsStack.Push(x)
+                if inputEnumerator.MoveNext() then
+                    lookahead <- inputEnumerator.Current
+                else
+                    lookaheadIsEof <- true
+                stateStack.Push(32)
             | InputItem.ParenOpen ->
                 // shift
                 if inputEnumerator.MoveNext() then
@@ -876,7 +984,7 @@ let parse (input: #seq<InputItem>) : Result<Program, ParseError> =
                 stateStack.Push(2)
             | _ ->
                 // error
-                expected <- [ExpectedItem.BlockOpen; ExpectedItem.DoubleQuotedString; ExpectedItem.Identifier; ExpectedItem.NumberLiteral; ExpectedItem.ParenOpen]
+                expected <- [ExpectedItem.BlockOpen; ExpectedItem.DoubleQuotedString; ExpectedItem.Identifier; ExpectedItem.InvalidToken; ExpectedItem.NumberLiteral; ExpectedItem.ParenOpen]
                 keepGoing <- false
         | 9 ->
             match lookahead with
@@ -971,6 +1079,14 @@ let parse (input: #seq<InputItem>) : Result<Program, ParseError> =
                 else
                     lookaheadIsEof <- true
                 stateStack.Push(30)
+            | InputItem.InvalidToken x ->
+                // shift
+                lhsStack.Push(x)
+                if inputEnumerator.MoveNext() then
+                    lookahead <- inputEnumerator.Current
+                else
+                    lookaheadIsEof <- true
+                stateStack.Push(31)
             | InputItem.Minus _ ->
                 // reduce
                 stateStack.Pop() |> ignore
@@ -995,7 +1111,7 @@ let parse (input: #seq<InputItem>) : Result<Program, ParseError> =
                     lookahead <- inputEnumerator.Current
                 else
                     lookaheadIsEof <- true
-                stateStack.Push(31)
+                stateStack.Push(32)
             | InputItem.ParenClose _ ->
                 // reduce
                 stateStack.Pop() |> ignore
@@ -1056,7 +1172,7 @@ let parse (input: #seq<InputItem>) : Result<Program, ParseError> =
                 stateStack.Push(nextState)
             | _ ->
                 // error
-                expected <- [ExpectedItem.EndOfStream; ExpectedItem.Asterisk; ExpectedItem.BlockClose; ExpectedItem.BlockOpen; ExpectedItem.Break; ExpectedItem.DoubleQuotedString; ExpectedItem.Identifier; ExpectedItem.Minus; ExpectedItem.NumberLiteral; ExpectedItem.ParenClose; ExpectedItem.ParenOpen; ExpectedItem.Plus; ExpectedItem.Slash]
+                expected <- [ExpectedItem.EndOfStream; ExpectedItem.Asterisk; ExpectedItem.BlockClose; ExpectedItem.BlockOpen; ExpectedItem.Break; ExpectedItem.DoubleQuotedString; ExpectedItem.Identifier; ExpectedItem.InvalidToken; ExpectedItem.Minus; ExpectedItem.NumberLiteral; ExpectedItem.ParenClose; ExpectedItem.ParenOpen; ExpectedItem.Plus; ExpectedItem.Slash]
                 keepGoing <- false
         | 10 ->
             match lookahead with
@@ -1163,6 +1279,14 @@ let parse (input: #seq<InputItem>) : Result<Program, ParseError> =
                 else
                     lookaheadIsEof <- true
                 stateStack.Push(30)
+            | InputItem.InvalidToken x ->
+                // shift
+                lhsStack.Push(x)
+                if inputEnumerator.MoveNext() then
+                    lookahead <- inputEnumerator.Current
+                else
+                    lookaheadIsEof <- true
+                stateStack.Push(31)
             | InputItem.Minus _ ->
                 // reduce
                 stateStack.Pop() |> ignore
@@ -1190,7 +1314,7 @@ let parse (input: #seq<InputItem>) : Result<Program, ParseError> =
                     lookahead <- inputEnumerator.Current
                 else
                     lookaheadIsEof <- true
-                stateStack.Push(31)
+                stateStack.Push(32)
             | InputItem.ParenClose _ ->
                 // reduce
                 stateStack.Pop() |> ignore
@@ -1260,7 +1384,7 @@ let parse (input: #seq<InputItem>) : Result<Program, ParseError> =
                 stateStack.Push(nextState)
             | _ ->
                 // error
-                expected <- [ExpectedItem.EndOfStream; ExpectedItem.Asterisk; ExpectedItem.BlockClose; ExpectedItem.BlockOpen; ExpectedItem.Break; ExpectedItem.DoubleQuotedString; ExpectedItem.Identifier; ExpectedItem.Minus; ExpectedItem.NumberLiteral; ExpectedItem.ParenClose; ExpectedItem.ParenOpen; ExpectedItem.Plus; ExpectedItem.Slash]
+                expected <- [ExpectedItem.EndOfStream; ExpectedItem.Asterisk; ExpectedItem.BlockClose; ExpectedItem.BlockOpen; ExpectedItem.Break; ExpectedItem.DoubleQuotedString; ExpectedItem.Identifier; ExpectedItem.InvalidToken; ExpectedItem.Minus; ExpectedItem.NumberLiteral; ExpectedItem.ParenClose; ExpectedItem.ParenOpen; ExpectedItem.Plus; ExpectedItem.Slash]
                 keepGoing <- false
         | 11 ->
             match lookahead with
@@ -1367,6 +1491,14 @@ let parse (input: #seq<InputItem>) : Result<Program, ParseError> =
                 else
                     lookaheadIsEof <- true
                 stateStack.Push(30)
+            | InputItem.InvalidToken x ->
+                // shift
+                lhsStack.Push(x)
+                if inputEnumerator.MoveNext() then
+                    lookahead <- inputEnumerator.Current
+                else
+                    lookaheadIsEof <- true
+                stateStack.Push(31)
             | InputItem.Minus _ ->
                 // reduce
                 stateStack.Pop() |> ignore
@@ -1394,7 +1526,7 @@ let parse (input: #seq<InputItem>) : Result<Program, ParseError> =
                     lookahead <- inputEnumerator.Current
                 else
                     lookaheadIsEof <- true
-                stateStack.Push(31)
+                stateStack.Push(32)
             | InputItem.ParenClose _ ->
                 // reduce
                 stateStack.Pop() |> ignore
@@ -1464,7 +1596,7 @@ let parse (input: #seq<InputItem>) : Result<Program, ParseError> =
                 stateStack.Push(nextState)
             | _ ->
                 // error
-                expected <- [ExpectedItem.EndOfStream; ExpectedItem.Asterisk; ExpectedItem.BlockClose; ExpectedItem.BlockOpen; ExpectedItem.Break; ExpectedItem.DoubleQuotedString; ExpectedItem.Identifier; ExpectedItem.Minus; ExpectedItem.NumberLiteral; ExpectedItem.ParenClose; ExpectedItem.ParenOpen; ExpectedItem.Plus; ExpectedItem.Slash]
+                expected <- [ExpectedItem.EndOfStream; ExpectedItem.Asterisk; ExpectedItem.BlockClose; ExpectedItem.BlockOpen; ExpectedItem.Break; ExpectedItem.DoubleQuotedString; ExpectedItem.Identifier; ExpectedItem.InvalidToken; ExpectedItem.Minus; ExpectedItem.NumberLiteral; ExpectedItem.ParenClose; ExpectedItem.ParenOpen; ExpectedItem.Plus; ExpectedItem.Slash]
                 keepGoing <- false
         | 12 ->
             match lookahead with
@@ -1615,6 +1747,27 @@ let parse (input: #seq<InputItem>) : Result<Program, ParseError> =
                     | 8 -> 11
                     | _ -> failwith "Parser is in an invalid state. This is a bug in the parser generator."
                 stateStack.Push(nextState)
+            | InputItem.InvalidToken _ ->
+                // reduce
+                stateStack.Pop() |> ignore
+                stateStack.Pop() |> ignore
+                let arg2 = lhsStack.Pop() :?> TerminalEnclosedExpression
+                let arg1 = lhsStack.Pop() :?> Application
+                let reductionResult = Application.Application (arg1, arg2)
+                lhsStack.Push(reductionResult)
+                let nextState =
+                    match stateStack.Peek() with
+                    | 0 -> 9
+                    | 1 -> 9
+                    | 2 -> 9
+                    | 3 -> 9
+                    | 4 -> 9
+                    | 5 -> 9
+                    | 6 -> 9
+                    | 7 -> 10
+                    | 8 -> 11
+                    | _ -> failwith "Parser is in an invalid state. This is a bug in the parser generator."
+                stateStack.Push(nextState)
             | InputItem.Minus _ ->
                 // reduce
                 stateStack.Pop() |> ignore
@@ -1743,7 +1896,7 @@ let parse (input: #seq<InputItem>) : Result<Program, ParseError> =
                 stateStack.Push(nextState)
             | _ ->
                 // error
-                expected <- [ExpectedItem.EndOfStream; ExpectedItem.Asterisk; ExpectedItem.BlockClose; ExpectedItem.BlockOpen; ExpectedItem.Break; ExpectedItem.DoubleQuotedString; ExpectedItem.Identifier; ExpectedItem.Minus; ExpectedItem.NumberLiteral; ExpectedItem.ParenClose; ExpectedItem.ParenOpen; ExpectedItem.Plus; ExpectedItem.Slash]
+                expected <- [ExpectedItem.EndOfStream; ExpectedItem.Asterisk; ExpectedItem.BlockClose; ExpectedItem.BlockOpen; ExpectedItem.Break; ExpectedItem.DoubleQuotedString; ExpectedItem.Identifier; ExpectedItem.InvalidToken; ExpectedItem.Minus; ExpectedItem.NumberLiteral; ExpectedItem.ParenClose; ExpectedItem.ParenOpen; ExpectedItem.Plus; ExpectedItem.Slash]
                 keepGoing <- false
         | 13 ->
             match lookahead with
@@ -1880,6 +2033,25 @@ let parse (input: #seq<InputItem>) : Result<Program, ParseError> =
                     | 8 -> 11
                     | _ -> failwith "Parser is in an invalid state. This is a bug in the parser generator."
                 stateStack.Push(nextState)
+            | InputItem.InvalidToken _ ->
+                // reduce
+                stateStack.Pop() |> ignore
+                let arg1 = lhsStack.Pop() :?> TerminalEnclosedExpression
+                let reductionResult = Application.Fallthrough arg1
+                lhsStack.Push(reductionResult)
+                let nextState =
+                    match stateStack.Peek() with
+                    | 0 -> 9
+                    | 1 -> 9
+                    | 2 -> 9
+                    | 3 -> 9
+                    | 4 -> 9
+                    | 5 -> 9
+                    | 6 -> 9
+                    | 7 -> 10
+                    | 8 -> 11
+                    | _ -> failwith "Parser is in an invalid state. This is a bug in the parser generator."
+                stateStack.Push(nextState)
             | InputItem.Minus _ ->
                 // reduce
                 stateStack.Pop() |> ignore
@@ -1996,7 +2168,7 @@ let parse (input: #seq<InputItem>) : Result<Program, ParseError> =
                 stateStack.Push(nextState)
             | _ ->
                 // error
-                expected <- [ExpectedItem.EndOfStream; ExpectedItem.Asterisk; ExpectedItem.BlockClose; ExpectedItem.BlockOpen; ExpectedItem.Break; ExpectedItem.DoubleQuotedString; ExpectedItem.Identifier; ExpectedItem.Minus; ExpectedItem.NumberLiteral; ExpectedItem.ParenClose; ExpectedItem.ParenOpen; ExpectedItem.Plus; ExpectedItem.Slash]
+                expected <- [ExpectedItem.EndOfStream; ExpectedItem.Asterisk; ExpectedItem.BlockClose; ExpectedItem.BlockOpen; ExpectedItem.Break; ExpectedItem.DoubleQuotedString; ExpectedItem.Identifier; ExpectedItem.InvalidToken; ExpectedItem.Minus; ExpectedItem.NumberLiteral; ExpectedItem.ParenClose; ExpectedItem.ParenOpen; ExpectedItem.Plus; ExpectedItem.Slash]
                 keepGoing <- false
         | 14 ->
             match lookahead with
@@ -2643,7 +2815,7 @@ let parse (input: #seq<InputItem>) : Result<Program, ParseError> =
                     match stateStack.Peek() with
                     | 0 -> 26
                     | 1 -> 27
-                    | 2 -> 32
+                    | 2 -> 33
                     | _ -> failwith "Parser is in an invalid state. This is a bug in the parser generator."
                 stateStack.Push(nextState)
             | InputItem.BlockClose _ ->
@@ -2656,7 +2828,7 @@ let parse (input: #seq<InputItem>) : Result<Program, ParseError> =
                     match stateStack.Peek() with
                     | 0 -> 26
                     | 1 -> 27
-                    | 2 -> 32
+                    | 2 -> 33
                     | _ -> failwith "Parser is in an invalid state. This is a bug in the parser generator."
                 stateStack.Push(nextState)
             | InputItem.Break ->
@@ -2676,7 +2848,7 @@ let parse (input: #seq<InputItem>) : Result<Program, ParseError> =
                     match stateStack.Peek() with
                     | 0 -> 26
                     | 1 -> 27
-                    | 2 -> 32
+                    | 2 -> 33
                     | _ -> failwith "Parser is in an invalid state. This is a bug in the parser generator."
                 stateStack.Push(nextState)
             | _ ->
@@ -3008,6 +3180,30 @@ let parse (input: #seq<InputItem>) : Result<Program, ParseError> =
                     | 11 -> 12
                     | _ -> failwith "Parser is in an invalid state. This is a bug in the parser generator."
                 stateStack.Push(nextState)
+            | InputItem.InvalidToken _ ->
+                // reduce
+                stateStack.Pop() |> ignore
+                stateStack.Pop() |> ignore
+                stateStack.Pop() |> ignore
+                let arg1 = lhsStack.Pop() :?> Expression
+                let reductionResult = TerminalEnclosedExpression.Block arg1
+                lhsStack.Push(reductionResult)
+                let nextState =
+                    match stateStack.Peek() with
+                    | 0 -> 13
+                    | 1 -> 13
+                    | 2 -> 13
+                    | 3 -> 13
+                    | 4 -> 13
+                    | 5 -> 13
+                    | 6 -> 13
+                    | 7 -> 13
+                    | 8 -> 13
+                    | 9 -> 12
+                    | 10 -> 12
+                    | 11 -> 12
+                    | _ -> failwith "Parser is in an invalid state. This is a bug in the parser generator."
+                stateStack.Push(nextState)
             | InputItem.Minus _ ->
                 // reduce
                 stateStack.Pop() |> ignore
@@ -3154,7 +3350,7 @@ let parse (input: #seq<InputItem>) : Result<Program, ParseError> =
                 stateStack.Push(nextState)
             | _ ->
                 // error
-                expected <- [ExpectedItem.EndOfStream; ExpectedItem.Asterisk; ExpectedItem.BlockClose; ExpectedItem.BlockOpen; ExpectedItem.Break; ExpectedItem.DoubleQuotedString; ExpectedItem.Identifier; ExpectedItem.Minus; ExpectedItem.NumberLiteral; ExpectedItem.ParenClose; ExpectedItem.ParenOpen; ExpectedItem.Plus; ExpectedItem.Slash]
+                expected <- [ExpectedItem.EndOfStream; ExpectedItem.Asterisk; ExpectedItem.BlockClose; ExpectedItem.BlockOpen; ExpectedItem.Break; ExpectedItem.DoubleQuotedString; ExpectedItem.Identifier; ExpectedItem.InvalidToken; ExpectedItem.Minus; ExpectedItem.NumberLiteral; ExpectedItem.ParenClose; ExpectedItem.ParenOpen; ExpectedItem.Plus; ExpectedItem.Slash]
                 keepGoing <- false
         | 29 ->
             match lookahead with
@@ -3312,6 +3508,28 @@ let parse (input: #seq<InputItem>) : Result<Program, ParseError> =
                     | 11 -> 12
                     | _ -> failwith "Parser is in an invalid state. This is a bug in the parser generator."
                 stateStack.Push(nextState)
+            | InputItem.InvalidToken _ ->
+                // reduce
+                stateStack.Pop() |> ignore
+                let arg1 = lhsStack.Pop() :?> DoubleQuotedString
+                let reductionResult = TerminalEnclosedExpression.String arg1
+                lhsStack.Push(reductionResult)
+                let nextState =
+                    match stateStack.Peek() with
+                    | 0 -> 13
+                    | 1 -> 13
+                    | 2 -> 13
+                    | 3 -> 13
+                    | 4 -> 13
+                    | 5 -> 13
+                    | 6 -> 13
+                    | 7 -> 13
+                    | 8 -> 13
+                    | 9 -> 12
+                    | 10 -> 12
+                    | 11 -> 12
+                    | _ -> failwith "Parser is in an invalid state. This is a bug in the parser generator."
+                stateStack.Push(nextState)
             | InputItem.Minus _ ->
                 // reduce
                 stateStack.Pop() |> ignore
@@ -3446,7 +3664,7 @@ let parse (input: #seq<InputItem>) : Result<Program, ParseError> =
                 stateStack.Push(nextState)
             | _ ->
                 // error
-                expected <- [ExpectedItem.EndOfStream; ExpectedItem.Asterisk; ExpectedItem.BlockClose; ExpectedItem.BlockOpen; ExpectedItem.Break; ExpectedItem.DoubleQuotedString; ExpectedItem.Identifier; ExpectedItem.Minus; ExpectedItem.NumberLiteral; ExpectedItem.ParenClose; ExpectedItem.ParenOpen; ExpectedItem.Plus; ExpectedItem.Slash]
+                expected <- [ExpectedItem.EndOfStream; ExpectedItem.Asterisk; ExpectedItem.BlockClose; ExpectedItem.BlockOpen; ExpectedItem.Break; ExpectedItem.DoubleQuotedString; ExpectedItem.Identifier; ExpectedItem.InvalidToken; ExpectedItem.Minus; ExpectedItem.NumberLiteral; ExpectedItem.ParenClose; ExpectedItem.ParenOpen; ExpectedItem.Plus; ExpectedItem.Slash]
                 keepGoing <- false
         | 30 ->
             match lookahead with
@@ -3604,6 +3822,28 @@ let parse (input: #seq<InputItem>) : Result<Program, ParseError> =
                     | 11 -> 12
                     | _ -> failwith "Parser is in an invalid state. This is a bug in the parser generator."
                 stateStack.Push(nextState)
+            | InputItem.InvalidToken _ ->
+                // reduce
+                stateStack.Pop() |> ignore
+                let arg1 = lhsStack.Pop() :?> Identifier
+                let reductionResult = TerminalEnclosedExpression.Identifier arg1
+                lhsStack.Push(reductionResult)
+                let nextState =
+                    match stateStack.Peek() with
+                    | 0 -> 13
+                    | 1 -> 13
+                    | 2 -> 13
+                    | 3 -> 13
+                    | 4 -> 13
+                    | 5 -> 13
+                    | 6 -> 13
+                    | 7 -> 13
+                    | 8 -> 13
+                    | 9 -> 12
+                    | 10 -> 12
+                    | 11 -> 12
+                    | _ -> failwith "Parser is in an invalid state. This is a bug in the parser generator."
+                stateStack.Push(nextState)
             | InputItem.Minus _ ->
                 // reduce
                 stateStack.Pop() |> ignore
@@ -3738,9 +3978,323 @@ let parse (input: #seq<InputItem>) : Result<Program, ParseError> =
                 stateStack.Push(nextState)
             | _ ->
                 // error
-                expected <- [ExpectedItem.EndOfStream; ExpectedItem.Asterisk; ExpectedItem.BlockClose; ExpectedItem.BlockOpen; ExpectedItem.Break; ExpectedItem.DoubleQuotedString; ExpectedItem.Identifier; ExpectedItem.Minus; ExpectedItem.NumberLiteral; ExpectedItem.ParenClose; ExpectedItem.ParenOpen; ExpectedItem.Plus; ExpectedItem.Slash]
+                expected <- [ExpectedItem.EndOfStream; ExpectedItem.Asterisk; ExpectedItem.BlockClose; ExpectedItem.BlockOpen; ExpectedItem.Break; ExpectedItem.DoubleQuotedString; ExpectedItem.Identifier; ExpectedItem.InvalidToken; ExpectedItem.Minus; ExpectedItem.NumberLiteral; ExpectedItem.ParenClose; ExpectedItem.ParenOpen; ExpectedItem.Plus; ExpectedItem.Slash]
                 keepGoing <- false
         | 31 ->
+            match lookahead with
+            | _ when lookaheadIsEof ->
+                // reduce
+                stateStack.Pop() |> ignore
+                let arg1 = lhsStack.Pop() :?> InvalidToken
+                let reductionResult = TerminalEnclosedExpression.InvalidToken arg1
+                lhsStack.Push(reductionResult)
+                let nextState =
+                    match stateStack.Peek() with
+                    | 0 -> 13
+                    | 1 -> 13
+                    | 2 -> 13
+                    | 3 -> 13
+                    | 4 -> 13
+                    | 5 -> 13
+                    | 6 -> 13
+                    | 7 -> 13
+                    | 8 -> 13
+                    | 9 -> 12
+                    | 10 -> 12
+                    | 11 -> 12
+                    | _ -> failwith "Parser is in an invalid state. This is a bug in the parser generator."
+                stateStack.Push(nextState)
+            | InputItem.Asterisk _ ->
+                // reduce
+                stateStack.Pop() |> ignore
+                let arg1 = lhsStack.Pop() :?> InvalidToken
+                let reductionResult = TerminalEnclosedExpression.InvalidToken arg1
+                lhsStack.Push(reductionResult)
+                let nextState =
+                    match stateStack.Peek() with
+                    | 0 -> 13
+                    | 1 -> 13
+                    | 2 -> 13
+                    | 3 -> 13
+                    | 4 -> 13
+                    | 5 -> 13
+                    | 6 -> 13
+                    | 7 -> 13
+                    | 8 -> 13
+                    | 9 -> 12
+                    | 10 -> 12
+                    | 11 -> 12
+                    | _ -> failwith "Parser is in an invalid state. This is a bug in the parser generator."
+                stateStack.Push(nextState)
+            | InputItem.BlockClose _ ->
+                // reduce
+                stateStack.Pop() |> ignore
+                let arg1 = lhsStack.Pop() :?> InvalidToken
+                let reductionResult = TerminalEnclosedExpression.InvalidToken arg1
+                lhsStack.Push(reductionResult)
+                let nextState =
+                    match stateStack.Peek() with
+                    | 0 -> 13
+                    | 1 -> 13
+                    | 2 -> 13
+                    | 3 -> 13
+                    | 4 -> 13
+                    | 5 -> 13
+                    | 6 -> 13
+                    | 7 -> 13
+                    | 8 -> 13
+                    | 9 -> 12
+                    | 10 -> 12
+                    | 11 -> 12
+                    | _ -> failwith "Parser is in an invalid state. This is a bug in the parser generator."
+                stateStack.Push(nextState)
+            | InputItem.BlockOpen _ ->
+                // reduce
+                stateStack.Pop() |> ignore
+                let arg1 = lhsStack.Pop() :?> InvalidToken
+                let reductionResult = TerminalEnclosedExpression.InvalidToken arg1
+                lhsStack.Push(reductionResult)
+                let nextState =
+                    match stateStack.Peek() with
+                    | 0 -> 13
+                    | 1 -> 13
+                    | 2 -> 13
+                    | 3 -> 13
+                    | 4 -> 13
+                    | 5 -> 13
+                    | 6 -> 13
+                    | 7 -> 13
+                    | 8 -> 13
+                    | 9 -> 12
+                    | 10 -> 12
+                    | 11 -> 12
+                    | _ -> failwith "Parser is in an invalid state. This is a bug in the parser generator."
+                stateStack.Push(nextState)
+            | InputItem.Break _ ->
+                // reduce
+                stateStack.Pop() |> ignore
+                let arg1 = lhsStack.Pop() :?> InvalidToken
+                let reductionResult = TerminalEnclosedExpression.InvalidToken arg1
+                lhsStack.Push(reductionResult)
+                let nextState =
+                    match stateStack.Peek() with
+                    | 0 -> 13
+                    | 1 -> 13
+                    | 2 -> 13
+                    | 3 -> 13
+                    | 4 -> 13
+                    | 5 -> 13
+                    | 6 -> 13
+                    | 7 -> 13
+                    | 8 -> 13
+                    | 9 -> 12
+                    | 10 -> 12
+                    | 11 -> 12
+                    | _ -> failwith "Parser is in an invalid state. This is a bug in the parser generator."
+                stateStack.Push(nextState)
+            | InputItem.DoubleQuotedString _ ->
+                // reduce
+                stateStack.Pop() |> ignore
+                let arg1 = lhsStack.Pop() :?> InvalidToken
+                let reductionResult = TerminalEnclosedExpression.InvalidToken arg1
+                lhsStack.Push(reductionResult)
+                let nextState =
+                    match stateStack.Peek() with
+                    | 0 -> 13
+                    | 1 -> 13
+                    | 2 -> 13
+                    | 3 -> 13
+                    | 4 -> 13
+                    | 5 -> 13
+                    | 6 -> 13
+                    | 7 -> 13
+                    | 8 -> 13
+                    | 9 -> 12
+                    | 10 -> 12
+                    | 11 -> 12
+                    | _ -> failwith "Parser is in an invalid state. This is a bug in the parser generator."
+                stateStack.Push(nextState)
+            | InputItem.Identifier _ ->
+                // reduce
+                stateStack.Pop() |> ignore
+                let arg1 = lhsStack.Pop() :?> InvalidToken
+                let reductionResult = TerminalEnclosedExpression.InvalidToken arg1
+                lhsStack.Push(reductionResult)
+                let nextState =
+                    match stateStack.Peek() with
+                    | 0 -> 13
+                    | 1 -> 13
+                    | 2 -> 13
+                    | 3 -> 13
+                    | 4 -> 13
+                    | 5 -> 13
+                    | 6 -> 13
+                    | 7 -> 13
+                    | 8 -> 13
+                    | 9 -> 12
+                    | 10 -> 12
+                    | 11 -> 12
+                    | _ -> failwith "Parser is in an invalid state. This is a bug in the parser generator."
+                stateStack.Push(nextState)
+            | InputItem.InvalidToken _ ->
+                // reduce
+                stateStack.Pop() |> ignore
+                let arg1 = lhsStack.Pop() :?> InvalidToken
+                let reductionResult = TerminalEnclosedExpression.InvalidToken arg1
+                lhsStack.Push(reductionResult)
+                let nextState =
+                    match stateStack.Peek() with
+                    | 0 -> 13
+                    | 1 -> 13
+                    | 2 -> 13
+                    | 3 -> 13
+                    | 4 -> 13
+                    | 5 -> 13
+                    | 6 -> 13
+                    | 7 -> 13
+                    | 8 -> 13
+                    | 9 -> 12
+                    | 10 -> 12
+                    | 11 -> 12
+                    | _ -> failwith "Parser is in an invalid state. This is a bug in the parser generator."
+                stateStack.Push(nextState)
+            | InputItem.Minus _ ->
+                // reduce
+                stateStack.Pop() |> ignore
+                let arg1 = lhsStack.Pop() :?> InvalidToken
+                let reductionResult = TerminalEnclosedExpression.InvalidToken arg1
+                lhsStack.Push(reductionResult)
+                let nextState =
+                    match stateStack.Peek() with
+                    | 0 -> 13
+                    | 1 -> 13
+                    | 2 -> 13
+                    | 3 -> 13
+                    | 4 -> 13
+                    | 5 -> 13
+                    | 6 -> 13
+                    | 7 -> 13
+                    | 8 -> 13
+                    | 9 -> 12
+                    | 10 -> 12
+                    | 11 -> 12
+                    | _ -> failwith "Parser is in an invalid state. This is a bug in the parser generator."
+                stateStack.Push(nextState)
+            | InputItem.NumberLiteral _ ->
+                // reduce
+                stateStack.Pop() |> ignore
+                let arg1 = lhsStack.Pop() :?> InvalidToken
+                let reductionResult = TerminalEnclosedExpression.InvalidToken arg1
+                lhsStack.Push(reductionResult)
+                let nextState =
+                    match stateStack.Peek() with
+                    | 0 -> 13
+                    | 1 -> 13
+                    | 2 -> 13
+                    | 3 -> 13
+                    | 4 -> 13
+                    | 5 -> 13
+                    | 6 -> 13
+                    | 7 -> 13
+                    | 8 -> 13
+                    | 9 -> 12
+                    | 10 -> 12
+                    | 11 -> 12
+                    | _ -> failwith "Parser is in an invalid state. This is a bug in the parser generator."
+                stateStack.Push(nextState)
+            | InputItem.ParenClose _ ->
+                // reduce
+                stateStack.Pop() |> ignore
+                let arg1 = lhsStack.Pop() :?> InvalidToken
+                let reductionResult = TerminalEnclosedExpression.InvalidToken arg1
+                lhsStack.Push(reductionResult)
+                let nextState =
+                    match stateStack.Peek() with
+                    | 0 -> 13
+                    | 1 -> 13
+                    | 2 -> 13
+                    | 3 -> 13
+                    | 4 -> 13
+                    | 5 -> 13
+                    | 6 -> 13
+                    | 7 -> 13
+                    | 8 -> 13
+                    | 9 -> 12
+                    | 10 -> 12
+                    | 11 -> 12
+                    | _ -> failwith "Parser is in an invalid state. This is a bug in the parser generator."
+                stateStack.Push(nextState)
+            | InputItem.ParenOpen _ ->
+                // reduce
+                stateStack.Pop() |> ignore
+                let arg1 = lhsStack.Pop() :?> InvalidToken
+                let reductionResult = TerminalEnclosedExpression.InvalidToken arg1
+                lhsStack.Push(reductionResult)
+                let nextState =
+                    match stateStack.Peek() with
+                    | 0 -> 13
+                    | 1 -> 13
+                    | 2 -> 13
+                    | 3 -> 13
+                    | 4 -> 13
+                    | 5 -> 13
+                    | 6 -> 13
+                    | 7 -> 13
+                    | 8 -> 13
+                    | 9 -> 12
+                    | 10 -> 12
+                    | 11 -> 12
+                    | _ -> failwith "Parser is in an invalid state. This is a bug in the parser generator."
+                stateStack.Push(nextState)
+            | InputItem.Plus _ ->
+                // reduce
+                stateStack.Pop() |> ignore
+                let arg1 = lhsStack.Pop() :?> InvalidToken
+                let reductionResult = TerminalEnclosedExpression.InvalidToken arg1
+                lhsStack.Push(reductionResult)
+                let nextState =
+                    match stateStack.Peek() with
+                    | 0 -> 13
+                    | 1 -> 13
+                    | 2 -> 13
+                    | 3 -> 13
+                    | 4 -> 13
+                    | 5 -> 13
+                    | 6 -> 13
+                    | 7 -> 13
+                    | 8 -> 13
+                    | 9 -> 12
+                    | 10 -> 12
+                    | 11 -> 12
+                    | _ -> failwith "Parser is in an invalid state. This is a bug in the parser generator."
+                stateStack.Push(nextState)
+            | InputItem.Slash _ ->
+                // reduce
+                stateStack.Pop() |> ignore
+                let arg1 = lhsStack.Pop() :?> InvalidToken
+                let reductionResult = TerminalEnclosedExpression.InvalidToken arg1
+                lhsStack.Push(reductionResult)
+                let nextState =
+                    match stateStack.Peek() with
+                    | 0 -> 13
+                    | 1 -> 13
+                    | 2 -> 13
+                    | 3 -> 13
+                    | 4 -> 13
+                    | 5 -> 13
+                    | 6 -> 13
+                    | 7 -> 13
+                    | 8 -> 13
+                    | 9 -> 12
+                    | 10 -> 12
+                    | 11 -> 12
+                    | _ -> failwith "Parser is in an invalid state. This is a bug in the parser generator."
+                stateStack.Push(nextState)
+            | _ ->
+                // error
+                expected <- [ExpectedItem.EndOfStream; ExpectedItem.Asterisk; ExpectedItem.BlockClose; ExpectedItem.BlockOpen; ExpectedItem.Break; ExpectedItem.DoubleQuotedString; ExpectedItem.Identifier; ExpectedItem.InvalidToken; ExpectedItem.Minus; ExpectedItem.NumberLiteral; ExpectedItem.ParenClose; ExpectedItem.ParenOpen; ExpectedItem.Plus; ExpectedItem.Slash]
+                keepGoing <- false
+        | 32 ->
             match lookahead with
             | _ when lookaheadIsEof ->
                 // reduce
@@ -3896,6 +4450,28 @@ let parse (input: #seq<InputItem>) : Result<Program, ParseError> =
                     | 11 -> 12
                     | _ -> failwith "Parser is in an invalid state. This is a bug in the parser generator."
                 stateStack.Push(nextState)
+            | InputItem.InvalidToken _ ->
+                // reduce
+                stateStack.Pop() |> ignore
+                let arg1 = lhsStack.Pop() :?> NumberLiteral
+                let reductionResult = TerminalEnclosedExpression.Number arg1
+                lhsStack.Push(reductionResult)
+                let nextState =
+                    match stateStack.Peek() with
+                    | 0 -> 13
+                    | 1 -> 13
+                    | 2 -> 13
+                    | 3 -> 13
+                    | 4 -> 13
+                    | 5 -> 13
+                    | 6 -> 13
+                    | 7 -> 13
+                    | 8 -> 13
+                    | 9 -> 12
+                    | 10 -> 12
+                    | 11 -> 12
+                    | _ -> failwith "Parser is in an invalid state. This is a bug in the parser generator."
+                stateStack.Push(nextState)
             | InputItem.Minus _ ->
                 // reduce
                 stateStack.Pop() |> ignore
@@ -4030,9 +4606,9 @@ let parse (input: #seq<InputItem>) : Result<Program, ParseError> =
                 stateStack.Push(nextState)
             | _ ->
                 // error
-                expected <- [ExpectedItem.EndOfStream; ExpectedItem.Asterisk; ExpectedItem.BlockClose; ExpectedItem.BlockOpen; ExpectedItem.Break; ExpectedItem.DoubleQuotedString; ExpectedItem.Identifier; ExpectedItem.Minus; ExpectedItem.NumberLiteral; ExpectedItem.ParenClose; ExpectedItem.ParenOpen; ExpectedItem.Plus; ExpectedItem.Slash]
+                expected <- [ExpectedItem.EndOfStream; ExpectedItem.Asterisk; ExpectedItem.BlockClose; ExpectedItem.BlockOpen; ExpectedItem.Break; ExpectedItem.DoubleQuotedString; ExpectedItem.Identifier; ExpectedItem.InvalidToken; ExpectedItem.Minus; ExpectedItem.NumberLiteral; ExpectedItem.ParenClose; ExpectedItem.ParenOpen; ExpectedItem.Plus; ExpectedItem.Slash]
                 keepGoing <- false
-        | 32 ->
+        | 33 ->
             match lookahead with
             | InputItem.ParenClose ->
                 // shift
@@ -4040,12 +4616,12 @@ let parse (input: #seq<InputItem>) : Result<Program, ParseError> =
                     lookahead <- inputEnumerator.Current
                 else
                     lookaheadIsEof <- true
-                stateStack.Push(33)
+                stateStack.Push(34)
             | _ ->
                 // error
                 expected <- [ExpectedItem.ParenClose]
                 keepGoing <- false
-        | 33 ->
+        | 34 ->
             match lookahead with
             | _ when lookaheadIsEof ->
                 // reduce
@@ -4215,6 +4791,30 @@ let parse (input: #seq<InputItem>) : Result<Program, ParseError> =
                     | 11 -> 12
                     | _ -> failwith "Parser is in an invalid state. This is a bug in the parser generator."
                 stateStack.Push(nextState)
+            | InputItem.InvalidToken _ ->
+                // reduce
+                stateStack.Pop() |> ignore
+                stateStack.Pop() |> ignore
+                stateStack.Pop() |> ignore
+                let arg1 = lhsStack.Pop() :?> Expression
+                let reductionResult = TerminalEnclosedExpression.Paren arg1
+                lhsStack.Push(reductionResult)
+                let nextState =
+                    match stateStack.Peek() with
+                    | 0 -> 13
+                    | 1 -> 13
+                    | 2 -> 13
+                    | 3 -> 13
+                    | 4 -> 13
+                    | 5 -> 13
+                    | 6 -> 13
+                    | 7 -> 13
+                    | 8 -> 13
+                    | 9 -> 12
+                    | 10 -> 12
+                    | 11 -> 12
+                    | _ -> failwith "Parser is in an invalid state. This is a bug in the parser generator."
+                stateStack.Push(nextState)
             | InputItem.Minus _ ->
                 // reduce
                 stateStack.Pop() |> ignore
@@ -4361,7 +4961,7 @@ let parse (input: #seq<InputItem>) : Result<Program, ParseError> =
                 stateStack.Push(nextState)
             | _ ->
                 // error
-                expected <- [ExpectedItem.EndOfStream; ExpectedItem.Asterisk; ExpectedItem.BlockClose; ExpectedItem.BlockOpen; ExpectedItem.Break; ExpectedItem.DoubleQuotedString; ExpectedItem.Identifier; ExpectedItem.Minus; ExpectedItem.NumberLiteral; ExpectedItem.ParenClose; ExpectedItem.ParenOpen; ExpectedItem.Plus; ExpectedItem.Slash]
+                expected <- [ExpectedItem.EndOfStream; ExpectedItem.Asterisk; ExpectedItem.BlockClose; ExpectedItem.BlockOpen; ExpectedItem.Break; ExpectedItem.DoubleQuotedString; ExpectedItem.Identifier; ExpectedItem.InvalidToken; ExpectedItem.Minus; ExpectedItem.NumberLiteral; ExpectedItem.ParenClose; ExpectedItem.ParenOpen; ExpectedItem.Plus; ExpectedItem.Slash]
                 keepGoing <- false
         | _ -> failwith "Parser is in an invalid state. This is a bug in the parser generator."
 
