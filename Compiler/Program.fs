@@ -3,7 +3,6 @@ open System.Diagnostics
 open System.IO
 open System.Text
 open Compiler
-open Compiler.Diagnostics
 open Compiler.Parser
 open Compiler.Tokenization
 
@@ -42,75 +41,6 @@ let private (|ArgMapWith|_|) requiredParams args =
     else
         None
 
-let private printlnColor (color: ConsoleColor) (text: string) =
-    let originalColor = Console.ForegroundColor
-    Console.ForegroundColor <- color
-    Console.Error.WriteLine(text)
-    Console.ForegroundColor <- originalColor
-
-let private printlnError = printlnColor ConsoleColor.Red
-
-let private printlnWarning = printlnColor ConsoleColor.Yellow
-
-let private printlnSuccess = printlnColor ConsoleColor.Green
-
-let private printDiagnostics (sourceCode: string) (diagnostics: Diagnostics) =
-    let getSourceLine (pos: PositionInSource) =
-        let lineStartIndex, lineNumber =
-            let rec loop i lineStartIndex lineNumber =
-                if i = sourceCode.Length then
-                    lineStartIndex - 1, lineNumber
-                elif i = pos.startIndex then
-                    lineStartIndex, lineNumber
-                elif sourceCode[i] = '\n' then
-                    loop (i + 1) (i + 1) (lineNumber + 1)
-                else
-                    loop (i + 1) lineStartIndex lineNumber
-            loop 0 0 1
-
-        let columnNumber = pos.startIndex - lineStartIndex + 1
-
-        let lineEndIndex =
-            let rec loop i =
-                if i = sourceCode.Length then
-                    i
-                elif sourceCode[i] = '\n' then
-                    if i > 0 && sourceCode[i - 1] = '\r' then
-                        i - 1
-                    else
-                        i
-                else
-                    loop (i + 1)
-            loop lineStartIndex
-
-        let lineLength = lineEndIndex - lineStartIndex
-
-        let lineText = sourceCode.Substring(lineStartIndex, lineLength)
-
-        lineNumber, columnNumber, lineText
-
-    if diagnostics.hasProblems then
-        for problem in diagnostics.problems do
-            let lineNumber, columnNumber, lineText = getSourceLine problem.positionInSource
-
-            let underline =
-                let underline = System.String('^', problem.positionInSource.length)
-                let offset = System.String(' ', columnNumber - 1)
-                offset + underline
-
-            match problem.level with
-            | LevelWarning ->
-                printlnWarning $"({lineNumber}, {columnNumber}): Warning: %s{problem.description}"
-                printlnWarning lineText
-                printlnWarning underline
-            | LevelError ->
-                printlnError $"({lineNumber}, {columnNumber}): Error: %s{problem.description}"
-                printlnError lineText
-                printlnError underline
-            printfn ""
-    else
-        printlnSuccess "Success"
-
 let private generateCsProject (sourceFilePath: string, outputDir: string) =
     let sourceCode, sourceCodeStream =
         use fs = File.OpenRead(sourceFilePath)
@@ -126,14 +56,14 @@ let private generateCsProject (sourceFilePath: string, outputDir: string) =
         match parse tokens with
         | Ok parseTree -> parseTree
         | Error e ->
-            printlnError "Failed to parse"
+            OutputMessaging.printParseError sourceCode e
             fail ()
 
     let ast = AstBuilder.buildFromParseTree parseTree
 
     let astDiagnostics = AstDiagnostics.get ast
 
-    printDiagnostics sourceCode astDiagnostics
+    OutputMessaging.printDiagnostics sourceCode astDiagnostics
 
     if astDiagnostics.hasProblems then
         fail ()
@@ -202,6 +132,6 @@ let main args =
         0
     with
     | :? CompilerException ->
-        printlnError "Failed"
-        1
-    | _ -> reraise ()
+        OutputMessaging.printlnError ""
+        OutputMessaging.printlnError "Failed"
+        -1

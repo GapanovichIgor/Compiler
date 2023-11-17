@@ -383,27 +383,38 @@ GOTO
 
 *)
 
+type Asterisk = PositionInSource
+type BlockClose = PositionInSource
+type BlockOpen = PositionInSource
+type Break = PositionInSource
 type DoubleQuotedString = string * PositionInSource
+type Equals = PositionInSource
 type Identifier = string * PositionInSource
 type InvalidToken = string * PositionInSource
+type Let = PositionInSource
+type Minus = PositionInSource
 type NumberLiteral = int * int option * PositionInSource
+type ParenClose = PositionInSource
+type ParenOpen = PositionInSource
+type Plus = PositionInSource
+type Slash = PositionInSource
 
 type Application =
     | Application of Application * TerminalEnclosedExpression
     | Fallthrough of TerminalEnclosedExpression
 
 type ArithmeticFirstOrderExpression =
-    | Divide of ArithmeticFirstOrderExpression * Application
+    | Divide of ArithmeticFirstOrderExpression * Slash * Application
     | Fallthrough of Application
-    | Multiply of ArithmeticFirstOrderExpression * Application
+    | Multiply of ArithmeticFirstOrderExpression * Asterisk * Application
 
 type ArithmeticSecondOrderExpression =
-    | Add of ArithmeticSecondOrderExpression * ArithmeticFirstOrderExpression
+    | Add of ArithmeticSecondOrderExpression * Plus * ArithmeticFirstOrderExpression
     | Fallthrough of ArithmeticFirstOrderExpression
-    | Subtract of ArithmeticSecondOrderExpression * ArithmeticFirstOrderExpression
+    | Subtract of ArithmeticSecondOrderExpression * Minus * ArithmeticFirstOrderExpression
 
 type BindingExpression =
-    | Binding of Identifier * BindingParameters * ArithmeticSecondOrderExpression
+    | Binding of Let * Identifier * BindingParameters * Equals * ArithmeticSecondOrderExpression
     | Fallthrough of ArithmeticSecondOrderExpression
 
 type BindingParameters =
@@ -414,36 +425,36 @@ type Expression =
     | Expression of ExpressionConcatenation
 
 type ExpressionConcatenation =
-    | Concat of ExpressionConcatenation * BindingExpression
+    | Concat of ExpressionConcatenation * Break * BindingExpression
     | Fallthrough of BindingExpression
 
 type Program =
     | Program of Expression
 
 type TerminalEnclosedExpression =
-    | Block of Expression
+    | Block of BlockOpen * Expression * BlockClose
     | Identifier of Identifier
     | InvalidToken of InvalidToken
     | Number of NumberLiteral
-    | Paren of Expression
+    | Paren of ParenOpen * Expression * ParenClose
     | String of DoubleQuotedString
 
 type InputItem =
-    | Asterisk
-    | BlockClose
-    | BlockOpen
-    | Break
+    | Asterisk of Asterisk
+    | BlockClose of BlockClose
+    | BlockOpen of BlockOpen
+    | Break of Break
     | DoubleQuotedString of DoubleQuotedString
-    | Equals
+    | Equals of Equals
     | Identifier of Identifier
     | InvalidToken of InvalidToken
-    | Let
-    | Minus
+    | Let of Let
+    | Minus of Minus
     | NumberLiteral of NumberLiteral
-    | ParenClose
-    | ParenOpen
-    | Plus
-    | Slash
+    | ParenClose of ParenClose
+    | ParenOpen of ParenOpen
+    | Plus of Plus
+    | Slash of Slash
 
 type Unexpected =
     | EndOfStream
@@ -492,8 +503,13 @@ let parse (input: #seq<InputItem>) : Result<Program, ParseError> =
         match stateStack.Peek() with
         | 0 ->
             match lookahead with
-            | InputItem.BlockOpen ->
+            | _ when lookaheadIsEof ->
+                // error
+                expected <- [ ExpectedItem.BlockOpen; ExpectedItem.DoubleQuotedString; ExpectedItem.Identifier; ExpectedItem.InvalidToken; ExpectedItem.Let; ExpectedItem.NumberLiteral; ExpectedItem.ParenOpen ]
+                keepGoing <- false
+            | InputItem.BlockOpen x ->
                 // shift
+                lhsStack.Push(x)
                 if inputEnumerator.MoveNext() then
                     lookahead <- inputEnumerator.Current
                 else
@@ -523,8 +539,9 @@ let parse (input: #seq<InputItem>) : Result<Program, ParseError> =
                 else
                     lookaheadIsEof <- true
                 stateStack.Push(31)
-            | InputItem.Let ->
+            | InputItem.Let x ->
                 // shift
+                lhsStack.Push(x)
                 if inputEnumerator.MoveNext() then
                     lookahead <- inputEnumerator.Current
                 else
@@ -538,8 +555,9 @@ let parse (input: #seq<InputItem>) : Result<Program, ParseError> =
                 else
                     lookaheadIsEof <- true
                 stateStack.Push(32)
-            | InputItem.ParenOpen ->
+            | InputItem.ParenOpen x ->
                 // shift
+                lhsStack.Push(x)
                 if inputEnumerator.MoveNext() then
                     lookahead <- inputEnumerator.Current
                 else
@@ -547,12 +565,17 @@ let parse (input: #seq<InputItem>) : Result<Program, ParseError> =
                 stateStack.Push(2)
             | _ ->
                 // error
-                expected <- [ExpectedItem.BlockOpen; ExpectedItem.DoubleQuotedString; ExpectedItem.Identifier; ExpectedItem.InvalidToken; ExpectedItem.Let; ExpectedItem.NumberLiteral; ExpectedItem.ParenOpen]
+                expected <- [ ExpectedItem.BlockOpen; ExpectedItem.DoubleQuotedString; ExpectedItem.Identifier; ExpectedItem.InvalidToken; ExpectedItem.Let; ExpectedItem.NumberLiteral; ExpectedItem.ParenOpen ]
                 keepGoing <- false
         | 1 ->
             match lookahead with
-            | InputItem.BlockOpen ->
+            | _ when lookaheadIsEof ->
+                // error
+                expected <- [ ExpectedItem.BlockOpen; ExpectedItem.DoubleQuotedString; ExpectedItem.Identifier; ExpectedItem.InvalidToken; ExpectedItem.Let; ExpectedItem.NumberLiteral; ExpectedItem.ParenOpen ]
+                keepGoing <- false
+            | InputItem.BlockOpen x ->
                 // shift
+                lhsStack.Push(x)
                 if inputEnumerator.MoveNext() then
                     lookahead <- inputEnumerator.Current
                 else
@@ -582,8 +605,9 @@ let parse (input: #seq<InputItem>) : Result<Program, ParseError> =
                 else
                     lookaheadIsEof <- true
                 stateStack.Push(31)
-            | InputItem.Let ->
+            | InputItem.Let x ->
                 // shift
+                lhsStack.Push(x)
                 if inputEnumerator.MoveNext() then
                     lookahead <- inputEnumerator.Current
                 else
@@ -597,8 +621,9 @@ let parse (input: #seq<InputItem>) : Result<Program, ParseError> =
                 else
                     lookaheadIsEof <- true
                 stateStack.Push(32)
-            | InputItem.ParenOpen ->
+            | InputItem.ParenOpen x ->
                 // shift
+                lhsStack.Push(x)
                 if inputEnumerator.MoveNext() then
                     lookahead <- inputEnumerator.Current
                 else
@@ -606,12 +631,17 @@ let parse (input: #seq<InputItem>) : Result<Program, ParseError> =
                 stateStack.Push(2)
             | _ ->
                 // error
-                expected <- [ExpectedItem.BlockOpen; ExpectedItem.DoubleQuotedString; ExpectedItem.Identifier; ExpectedItem.InvalidToken; ExpectedItem.Let; ExpectedItem.NumberLiteral; ExpectedItem.ParenOpen]
+                expected <- [ ExpectedItem.BlockOpen; ExpectedItem.DoubleQuotedString; ExpectedItem.Identifier; ExpectedItem.InvalidToken; ExpectedItem.Let; ExpectedItem.NumberLiteral; ExpectedItem.ParenOpen ]
                 keepGoing <- false
         | 2 ->
             match lookahead with
-            | InputItem.BlockOpen ->
+            | _ when lookaheadIsEof ->
+                // error
+                expected <- [ ExpectedItem.BlockOpen; ExpectedItem.DoubleQuotedString; ExpectedItem.Identifier; ExpectedItem.InvalidToken; ExpectedItem.Let; ExpectedItem.NumberLiteral; ExpectedItem.ParenOpen ]
+                keepGoing <- false
+            | InputItem.BlockOpen x ->
                 // shift
+                lhsStack.Push(x)
                 if inputEnumerator.MoveNext() then
                     lookahead <- inputEnumerator.Current
                 else
@@ -641,8 +671,9 @@ let parse (input: #seq<InputItem>) : Result<Program, ParseError> =
                 else
                     lookaheadIsEof <- true
                 stateStack.Push(31)
-            | InputItem.Let ->
+            | InputItem.Let x ->
                 // shift
+                lhsStack.Push(x)
                 if inputEnumerator.MoveNext() then
                     lookahead <- inputEnumerator.Current
                 else
@@ -656,8 +687,9 @@ let parse (input: #seq<InputItem>) : Result<Program, ParseError> =
                 else
                     lookaheadIsEof <- true
                 stateStack.Push(32)
-            | InputItem.ParenOpen ->
+            | InputItem.ParenOpen x ->
                 // shift
+                lhsStack.Push(x)
                 if inputEnumerator.MoveNext() then
                     lookahead <- inputEnumerator.Current
                 else
@@ -665,12 +697,17 @@ let parse (input: #seq<InputItem>) : Result<Program, ParseError> =
                 stateStack.Push(2)
             | _ ->
                 // error
-                expected <- [ExpectedItem.BlockOpen; ExpectedItem.DoubleQuotedString; ExpectedItem.Identifier; ExpectedItem.InvalidToken; ExpectedItem.Let; ExpectedItem.NumberLiteral; ExpectedItem.ParenOpen]
+                expected <- [ ExpectedItem.BlockOpen; ExpectedItem.DoubleQuotedString; ExpectedItem.Identifier; ExpectedItem.InvalidToken; ExpectedItem.Let; ExpectedItem.NumberLiteral; ExpectedItem.ParenOpen ]
                 keepGoing <- false
         | 3 ->
             match lookahead with
-            | InputItem.BlockOpen ->
+            | _ when lookaheadIsEof ->
+                // error
+                expected <- [ ExpectedItem.BlockOpen; ExpectedItem.DoubleQuotedString; ExpectedItem.Identifier; ExpectedItem.InvalidToken; ExpectedItem.Let; ExpectedItem.NumberLiteral; ExpectedItem.ParenOpen ]
+                keepGoing <- false
+            | InputItem.BlockOpen x ->
                 // shift
+                lhsStack.Push(x)
                 if inputEnumerator.MoveNext() then
                     lookahead <- inputEnumerator.Current
                 else
@@ -700,8 +737,9 @@ let parse (input: #seq<InputItem>) : Result<Program, ParseError> =
                 else
                     lookaheadIsEof <- true
                 stateStack.Push(31)
-            | InputItem.Let ->
+            | InputItem.Let x ->
                 // shift
+                lhsStack.Push(x)
                 if inputEnumerator.MoveNext() then
                     lookahead <- inputEnumerator.Current
                 else
@@ -715,8 +753,9 @@ let parse (input: #seq<InputItem>) : Result<Program, ParseError> =
                 else
                     lookaheadIsEof <- true
                 stateStack.Push(32)
-            | InputItem.ParenOpen ->
+            | InputItem.ParenOpen x ->
                 // shift
+                lhsStack.Push(x)
                 if inputEnumerator.MoveNext() then
                     lookahead <- inputEnumerator.Current
                 else
@@ -724,12 +763,17 @@ let parse (input: #seq<InputItem>) : Result<Program, ParseError> =
                 stateStack.Push(2)
             | _ ->
                 // error
-                expected <- [ExpectedItem.BlockOpen; ExpectedItem.DoubleQuotedString; ExpectedItem.Identifier; ExpectedItem.InvalidToken; ExpectedItem.Let; ExpectedItem.NumberLiteral; ExpectedItem.ParenOpen]
+                expected <- [ ExpectedItem.BlockOpen; ExpectedItem.DoubleQuotedString; ExpectedItem.Identifier; ExpectedItem.InvalidToken; ExpectedItem.Let; ExpectedItem.NumberLiteral; ExpectedItem.ParenOpen ]
                 keepGoing <- false
         | 4 ->
             match lookahead with
-            | InputItem.BlockOpen ->
+            | _ when lookaheadIsEof ->
+                // error
+                expected <- [ ExpectedItem.BlockOpen; ExpectedItem.DoubleQuotedString; ExpectedItem.Identifier; ExpectedItem.InvalidToken; ExpectedItem.NumberLiteral; ExpectedItem.ParenOpen ]
+                keepGoing <- false
+            | InputItem.BlockOpen x ->
                 // shift
+                lhsStack.Push(x)
                 if inputEnumerator.MoveNext() then
                     lookahead <- inputEnumerator.Current
                 else
@@ -767,8 +811,9 @@ let parse (input: #seq<InputItem>) : Result<Program, ParseError> =
                 else
                     lookaheadIsEof <- true
                 stateStack.Push(32)
-            | InputItem.ParenOpen ->
+            | InputItem.ParenOpen x ->
                 // shift
+                lhsStack.Push(x)
                 if inputEnumerator.MoveNext() then
                     lookahead <- inputEnumerator.Current
                 else
@@ -776,12 +821,17 @@ let parse (input: #seq<InputItem>) : Result<Program, ParseError> =
                 stateStack.Push(2)
             | _ ->
                 // error
-                expected <- [ExpectedItem.BlockOpen; ExpectedItem.DoubleQuotedString; ExpectedItem.Identifier; ExpectedItem.InvalidToken; ExpectedItem.NumberLiteral; ExpectedItem.ParenOpen]
+                expected <- [ ExpectedItem.BlockOpen; ExpectedItem.DoubleQuotedString; ExpectedItem.Identifier; ExpectedItem.InvalidToken; ExpectedItem.NumberLiteral; ExpectedItem.ParenOpen ]
                 keepGoing <- false
         | 5 ->
             match lookahead with
-            | InputItem.BlockOpen ->
+            | _ when lookaheadIsEof ->
+                // error
+                expected <- [ ExpectedItem.BlockOpen; ExpectedItem.DoubleQuotedString; ExpectedItem.Identifier; ExpectedItem.InvalidToken; ExpectedItem.NumberLiteral; ExpectedItem.ParenOpen ]
+                keepGoing <- false
+            | InputItem.BlockOpen x ->
                 // shift
+                lhsStack.Push(x)
                 if inputEnumerator.MoveNext() then
                     lookahead <- inputEnumerator.Current
                 else
@@ -819,8 +869,9 @@ let parse (input: #seq<InputItem>) : Result<Program, ParseError> =
                 else
                     lookaheadIsEof <- true
                 stateStack.Push(32)
-            | InputItem.ParenOpen ->
+            | InputItem.ParenOpen x ->
                 // shift
+                lhsStack.Push(x)
                 if inputEnumerator.MoveNext() then
                     lookahead <- inputEnumerator.Current
                 else
@@ -828,12 +879,17 @@ let parse (input: #seq<InputItem>) : Result<Program, ParseError> =
                 stateStack.Push(2)
             | _ ->
                 // error
-                expected <- [ExpectedItem.BlockOpen; ExpectedItem.DoubleQuotedString; ExpectedItem.Identifier; ExpectedItem.InvalidToken; ExpectedItem.NumberLiteral; ExpectedItem.ParenOpen]
+                expected <- [ ExpectedItem.BlockOpen; ExpectedItem.DoubleQuotedString; ExpectedItem.Identifier; ExpectedItem.InvalidToken; ExpectedItem.NumberLiteral; ExpectedItem.ParenOpen ]
                 keepGoing <- false
         | 6 ->
             match lookahead with
-            | InputItem.BlockOpen ->
+            | _ when lookaheadIsEof ->
+                // error
+                expected <- [ ExpectedItem.BlockOpen; ExpectedItem.DoubleQuotedString; ExpectedItem.Identifier; ExpectedItem.InvalidToken; ExpectedItem.NumberLiteral; ExpectedItem.ParenOpen ]
+                keepGoing <- false
+            | InputItem.BlockOpen x ->
                 // shift
+                lhsStack.Push(x)
                 if inputEnumerator.MoveNext() then
                     lookahead <- inputEnumerator.Current
                 else
@@ -871,8 +927,9 @@ let parse (input: #seq<InputItem>) : Result<Program, ParseError> =
                 else
                     lookaheadIsEof <- true
                 stateStack.Push(32)
-            | InputItem.ParenOpen ->
+            | InputItem.ParenOpen x ->
                 // shift
+                lhsStack.Push(x)
                 if inputEnumerator.MoveNext() then
                     lookahead <- inputEnumerator.Current
                 else
@@ -880,12 +937,17 @@ let parse (input: #seq<InputItem>) : Result<Program, ParseError> =
                 stateStack.Push(2)
             | _ ->
                 // error
-                expected <- [ExpectedItem.BlockOpen; ExpectedItem.DoubleQuotedString; ExpectedItem.Identifier; ExpectedItem.InvalidToken; ExpectedItem.NumberLiteral; ExpectedItem.ParenOpen]
+                expected <- [ ExpectedItem.BlockOpen; ExpectedItem.DoubleQuotedString; ExpectedItem.Identifier; ExpectedItem.InvalidToken; ExpectedItem.NumberLiteral; ExpectedItem.ParenOpen ]
                 keepGoing <- false
         | 7 ->
             match lookahead with
-            | InputItem.BlockOpen ->
+            | _ when lookaheadIsEof ->
+                // error
+                expected <- [ ExpectedItem.BlockOpen; ExpectedItem.DoubleQuotedString; ExpectedItem.Identifier; ExpectedItem.InvalidToken; ExpectedItem.NumberLiteral; ExpectedItem.ParenOpen ]
+                keepGoing <- false
+            | InputItem.BlockOpen x ->
                 // shift
+                lhsStack.Push(x)
                 if inputEnumerator.MoveNext() then
                     lookahead <- inputEnumerator.Current
                 else
@@ -923,8 +985,9 @@ let parse (input: #seq<InputItem>) : Result<Program, ParseError> =
                 else
                     lookaheadIsEof <- true
                 stateStack.Push(32)
-            | InputItem.ParenOpen ->
+            | InputItem.ParenOpen x ->
                 // shift
+                lhsStack.Push(x)
                 if inputEnumerator.MoveNext() then
                     lookahead <- inputEnumerator.Current
                 else
@@ -932,12 +995,17 @@ let parse (input: #seq<InputItem>) : Result<Program, ParseError> =
                 stateStack.Push(2)
             | _ ->
                 // error
-                expected <- [ExpectedItem.BlockOpen; ExpectedItem.DoubleQuotedString; ExpectedItem.Identifier; ExpectedItem.InvalidToken; ExpectedItem.NumberLiteral; ExpectedItem.ParenOpen]
+                expected <- [ ExpectedItem.BlockOpen; ExpectedItem.DoubleQuotedString; ExpectedItem.Identifier; ExpectedItem.InvalidToken; ExpectedItem.NumberLiteral; ExpectedItem.ParenOpen ]
                 keepGoing <- false
         | 8 ->
             match lookahead with
-            | InputItem.BlockOpen ->
+            | _ when lookaheadIsEof ->
+                // error
+                expected <- [ ExpectedItem.BlockOpen; ExpectedItem.DoubleQuotedString; ExpectedItem.Identifier; ExpectedItem.InvalidToken; ExpectedItem.NumberLiteral; ExpectedItem.ParenOpen ]
+                keepGoing <- false
+            | InputItem.BlockOpen x ->
                 // shift
+                lhsStack.Push(x)
                 if inputEnumerator.MoveNext() then
                     lookahead <- inputEnumerator.Current
                 else
@@ -975,8 +1043,9 @@ let parse (input: #seq<InputItem>) : Result<Program, ParseError> =
                 else
                     lookaheadIsEof <- true
                 stateStack.Push(32)
-            | InputItem.ParenOpen ->
+            | InputItem.ParenOpen x ->
                 // shift
+                lhsStack.Push(x)
                 if inputEnumerator.MoveNext() then
                     lookahead <- inputEnumerator.Current
                 else
@@ -984,7 +1053,7 @@ let parse (input: #seq<InputItem>) : Result<Program, ParseError> =
                 stateStack.Push(2)
             | _ ->
                 // error
-                expected <- [ExpectedItem.BlockOpen; ExpectedItem.DoubleQuotedString; ExpectedItem.Identifier; ExpectedItem.InvalidToken; ExpectedItem.NumberLiteral; ExpectedItem.ParenOpen]
+                expected <- [ ExpectedItem.BlockOpen; ExpectedItem.DoubleQuotedString; ExpectedItem.Identifier; ExpectedItem.InvalidToken; ExpectedItem.NumberLiteral; ExpectedItem.ParenOpen ]
                 keepGoing <- false
         | 9 ->
             match lookahead with
@@ -1039,8 +1108,9 @@ let parse (input: #seq<InputItem>) : Result<Program, ParseError> =
                     | 6 -> 16
                     | _ -> failwith "Parser is in an invalid state. This is a bug in the parser generator."
                 stateStack.Push(nextState)
-            | InputItem.BlockOpen ->
+            | InputItem.BlockOpen x ->
                 // shift
+                lhsStack.Push(x)
                 if inputEnumerator.MoveNext() then
                     lookahead <- inputEnumerator.Current
                 else
@@ -1129,8 +1199,9 @@ let parse (input: #seq<InputItem>) : Result<Program, ParseError> =
                     | 6 -> 16
                     | _ -> failwith "Parser is in an invalid state. This is a bug in the parser generator."
                 stateStack.Push(nextState)
-            | InputItem.ParenOpen ->
+            | InputItem.ParenOpen x ->
                 // shift
+                lhsStack.Push(x)
                 if inputEnumerator.MoveNext() then
                     lookahead <- inputEnumerator.Current
                 else
@@ -1172,7 +1243,7 @@ let parse (input: #seq<InputItem>) : Result<Program, ParseError> =
                 stateStack.Push(nextState)
             | _ ->
                 // error
-                expected <- [ExpectedItem.EndOfStream; ExpectedItem.Asterisk; ExpectedItem.BlockClose; ExpectedItem.BlockOpen; ExpectedItem.Break; ExpectedItem.DoubleQuotedString; ExpectedItem.Identifier; ExpectedItem.InvalidToken; ExpectedItem.Minus; ExpectedItem.NumberLiteral; ExpectedItem.ParenClose; ExpectedItem.ParenOpen; ExpectedItem.Plus; ExpectedItem.Slash]
+                expected <- [ ExpectedItem.EndOfStream; ExpectedItem.Asterisk; ExpectedItem.BlockClose; ExpectedItem.BlockOpen; ExpectedItem.Break; ExpectedItem.DoubleQuotedString; ExpectedItem.Identifier; ExpectedItem.InvalidToken; ExpectedItem.Minus; ExpectedItem.NumberLiteral; ExpectedItem.ParenClose; ExpectedItem.ParenOpen; ExpectedItem.Plus; ExpectedItem.Slash ]
                 keepGoing <- false
         | 10 ->
             match lookahead with
@@ -1181,9 +1252,10 @@ let parse (input: #seq<InputItem>) : Result<Program, ParseError> =
                 stateStack.Pop() |> ignore
                 stateStack.Pop() |> ignore
                 stateStack.Pop() |> ignore
-                let arg2 = lhsStack.Pop() :?> Application
+                let arg3 = lhsStack.Pop() :?> Application
+                let arg2 = lhsStack.Pop() :?> Asterisk
                 let arg1 = lhsStack.Pop() :?> ArithmeticFirstOrderExpression
-                let reductionResult = ArithmeticFirstOrderExpression.Multiply (arg1, arg2)
+                let reductionResult = ArithmeticFirstOrderExpression.Multiply (arg1, arg2, arg3)
                 lhsStack.Push(reductionResult)
                 let nextState =
                     match stateStack.Peek() with
@@ -1201,9 +1273,10 @@ let parse (input: #seq<InputItem>) : Result<Program, ParseError> =
                 stateStack.Pop() |> ignore
                 stateStack.Pop() |> ignore
                 stateStack.Pop() |> ignore
-                let arg2 = lhsStack.Pop() :?> Application
+                let arg3 = lhsStack.Pop() :?> Application
+                let arg2 = lhsStack.Pop() :?> Asterisk
                 let arg1 = lhsStack.Pop() :?> ArithmeticFirstOrderExpression
-                let reductionResult = ArithmeticFirstOrderExpression.Multiply (arg1, arg2)
+                let reductionResult = ArithmeticFirstOrderExpression.Multiply (arg1, arg2, arg3)
                 lhsStack.Push(reductionResult)
                 let nextState =
                     match stateStack.Peek() with
@@ -1221,9 +1294,10 @@ let parse (input: #seq<InputItem>) : Result<Program, ParseError> =
                 stateStack.Pop() |> ignore
                 stateStack.Pop() |> ignore
                 stateStack.Pop() |> ignore
-                let arg2 = lhsStack.Pop() :?> Application
+                let arg3 = lhsStack.Pop() :?> Application
+                let arg2 = lhsStack.Pop() :?> Asterisk
                 let arg1 = lhsStack.Pop() :?> ArithmeticFirstOrderExpression
-                let reductionResult = ArithmeticFirstOrderExpression.Multiply (arg1, arg2)
+                let reductionResult = ArithmeticFirstOrderExpression.Multiply (arg1, arg2, arg3)
                 lhsStack.Push(reductionResult)
                 let nextState =
                     match stateStack.Peek() with
@@ -1236,8 +1310,9 @@ let parse (input: #seq<InputItem>) : Result<Program, ParseError> =
                     | 6 -> 16
                     | _ -> failwith "Parser is in an invalid state. This is a bug in the parser generator."
                 stateStack.Push(nextState)
-            | InputItem.BlockOpen ->
+            | InputItem.BlockOpen x ->
                 // shift
+                lhsStack.Push(x)
                 if inputEnumerator.MoveNext() then
                     lookahead <- inputEnumerator.Current
                 else
@@ -1248,9 +1323,10 @@ let parse (input: #seq<InputItem>) : Result<Program, ParseError> =
                 stateStack.Pop() |> ignore
                 stateStack.Pop() |> ignore
                 stateStack.Pop() |> ignore
-                let arg2 = lhsStack.Pop() :?> Application
+                let arg3 = lhsStack.Pop() :?> Application
+                let arg2 = lhsStack.Pop() :?> Asterisk
                 let arg1 = lhsStack.Pop() :?> ArithmeticFirstOrderExpression
-                let reductionResult = ArithmeticFirstOrderExpression.Multiply (arg1, arg2)
+                let reductionResult = ArithmeticFirstOrderExpression.Multiply (arg1, arg2, arg3)
                 lhsStack.Push(reductionResult)
                 let nextState =
                     match stateStack.Peek() with
@@ -1292,9 +1368,10 @@ let parse (input: #seq<InputItem>) : Result<Program, ParseError> =
                 stateStack.Pop() |> ignore
                 stateStack.Pop() |> ignore
                 stateStack.Pop() |> ignore
-                let arg2 = lhsStack.Pop() :?> Application
+                let arg3 = lhsStack.Pop() :?> Application
+                let arg2 = lhsStack.Pop() :?> Asterisk
                 let arg1 = lhsStack.Pop() :?> ArithmeticFirstOrderExpression
-                let reductionResult = ArithmeticFirstOrderExpression.Multiply (arg1, arg2)
+                let reductionResult = ArithmeticFirstOrderExpression.Multiply (arg1, arg2, arg3)
                 lhsStack.Push(reductionResult)
                 let nextState =
                     match stateStack.Peek() with
@@ -1320,9 +1397,10 @@ let parse (input: #seq<InputItem>) : Result<Program, ParseError> =
                 stateStack.Pop() |> ignore
                 stateStack.Pop() |> ignore
                 stateStack.Pop() |> ignore
-                let arg2 = lhsStack.Pop() :?> Application
+                let arg3 = lhsStack.Pop() :?> Application
+                let arg2 = lhsStack.Pop() :?> Asterisk
                 let arg1 = lhsStack.Pop() :?> ArithmeticFirstOrderExpression
-                let reductionResult = ArithmeticFirstOrderExpression.Multiply (arg1, arg2)
+                let reductionResult = ArithmeticFirstOrderExpression.Multiply (arg1, arg2, arg3)
                 lhsStack.Push(reductionResult)
                 let nextState =
                     match stateStack.Peek() with
@@ -1335,8 +1413,9 @@ let parse (input: #seq<InputItem>) : Result<Program, ParseError> =
                     | 6 -> 16
                     | _ -> failwith "Parser is in an invalid state. This is a bug in the parser generator."
                 stateStack.Push(nextState)
-            | InputItem.ParenOpen ->
+            | InputItem.ParenOpen x ->
                 // shift
+                lhsStack.Push(x)
                 if inputEnumerator.MoveNext() then
                     lookahead <- inputEnumerator.Current
                 else
@@ -1347,9 +1426,10 @@ let parse (input: #seq<InputItem>) : Result<Program, ParseError> =
                 stateStack.Pop() |> ignore
                 stateStack.Pop() |> ignore
                 stateStack.Pop() |> ignore
-                let arg2 = lhsStack.Pop() :?> Application
+                let arg3 = lhsStack.Pop() :?> Application
+                let arg2 = lhsStack.Pop() :?> Asterisk
                 let arg1 = lhsStack.Pop() :?> ArithmeticFirstOrderExpression
-                let reductionResult = ArithmeticFirstOrderExpression.Multiply (arg1, arg2)
+                let reductionResult = ArithmeticFirstOrderExpression.Multiply (arg1, arg2, arg3)
                 lhsStack.Push(reductionResult)
                 let nextState =
                     match stateStack.Peek() with
@@ -1367,9 +1447,10 @@ let parse (input: #seq<InputItem>) : Result<Program, ParseError> =
                 stateStack.Pop() |> ignore
                 stateStack.Pop() |> ignore
                 stateStack.Pop() |> ignore
-                let arg2 = lhsStack.Pop() :?> Application
+                let arg3 = lhsStack.Pop() :?> Application
+                let arg2 = lhsStack.Pop() :?> Asterisk
                 let arg1 = lhsStack.Pop() :?> ArithmeticFirstOrderExpression
-                let reductionResult = ArithmeticFirstOrderExpression.Multiply (arg1, arg2)
+                let reductionResult = ArithmeticFirstOrderExpression.Multiply (arg1, arg2, arg3)
                 lhsStack.Push(reductionResult)
                 let nextState =
                     match stateStack.Peek() with
@@ -1384,7 +1465,7 @@ let parse (input: #seq<InputItem>) : Result<Program, ParseError> =
                 stateStack.Push(nextState)
             | _ ->
                 // error
-                expected <- [ExpectedItem.EndOfStream; ExpectedItem.Asterisk; ExpectedItem.BlockClose; ExpectedItem.BlockOpen; ExpectedItem.Break; ExpectedItem.DoubleQuotedString; ExpectedItem.Identifier; ExpectedItem.InvalidToken; ExpectedItem.Minus; ExpectedItem.NumberLiteral; ExpectedItem.ParenClose; ExpectedItem.ParenOpen; ExpectedItem.Plus; ExpectedItem.Slash]
+                expected <- [ ExpectedItem.EndOfStream; ExpectedItem.Asterisk; ExpectedItem.BlockClose; ExpectedItem.BlockOpen; ExpectedItem.Break; ExpectedItem.DoubleQuotedString; ExpectedItem.Identifier; ExpectedItem.InvalidToken; ExpectedItem.Minus; ExpectedItem.NumberLiteral; ExpectedItem.ParenClose; ExpectedItem.ParenOpen; ExpectedItem.Plus; ExpectedItem.Slash ]
                 keepGoing <- false
         | 11 ->
             match lookahead with
@@ -1393,9 +1474,10 @@ let parse (input: #seq<InputItem>) : Result<Program, ParseError> =
                 stateStack.Pop() |> ignore
                 stateStack.Pop() |> ignore
                 stateStack.Pop() |> ignore
-                let arg2 = lhsStack.Pop() :?> Application
+                let arg3 = lhsStack.Pop() :?> Application
+                let arg2 = lhsStack.Pop() :?> Slash
                 let arg1 = lhsStack.Pop() :?> ArithmeticFirstOrderExpression
-                let reductionResult = ArithmeticFirstOrderExpression.Divide (arg1, arg2)
+                let reductionResult = ArithmeticFirstOrderExpression.Divide (arg1, arg2, arg3)
                 lhsStack.Push(reductionResult)
                 let nextState =
                     match stateStack.Peek() with
@@ -1413,9 +1495,10 @@ let parse (input: #seq<InputItem>) : Result<Program, ParseError> =
                 stateStack.Pop() |> ignore
                 stateStack.Pop() |> ignore
                 stateStack.Pop() |> ignore
-                let arg2 = lhsStack.Pop() :?> Application
+                let arg3 = lhsStack.Pop() :?> Application
+                let arg2 = lhsStack.Pop() :?> Slash
                 let arg1 = lhsStack.Pop() :?> ArithmeticFirstOrderExpression
-                let reductionResult = ArithmeticFirstOrderExpression.Divide (arg1, arg2)
+                let reductionResult = ArithmeticFirstOrderExpression.Divide (arg1, arg2, arg3)
                 lhsStack.Push(reductionResult)
                 let nextState =
                     match stateStack.Peek() with
@@ -1433,9 +1516,10 @@ let parse (input: #seq<InputItem>) : Result<Program, ParseError> =
                 stateStack.Pop() |> ignore
                 stateStack.Pop() |> ignore
                 stateStack.Pop() |> ignore
-                let arg2 = lhsStack.Pop() :?> Application
+                let arg3 = lhsStack.Pop() :?> Application
+                let arg2 = lhsStack.Pop() :?> Slash
                 let arg1 = lhsStack.Pop() :?> ArithmeticFirstOrderExpression
-                let reductionResult = ArithmeticFirstOrderExpression.Divide (arg1, arg2)
+                let reductionResult = ArithmeticFirstOrderExpression.Divide (arg1, arg2, arg3)
                 lhsStack.Push(reductionResult)
                 let nextState =
                     match stateStack.Peek() with
@@ -1448,8 +1532,9 @@ let parse (input: #seq<InputItem>) : Result<Program, ParseError> =
                     | 6 -> 16
                     | _ -> failwith "Parser is in an invalid state. This is a bug in the parser generator."
                 stateStack.Push(nextState)
-            | InputItem.BlockOpen ->
+            | InputItem.BlockOpen x ->
                 // shift
+                lhsStack.Push(x)
                 if inputEnumerator.MoveNext() then
                     lookahead <- inputEnumerator.Current
                 else
@@ -1460,9 +1545,10 @@ let parse (input: #seq<InputItem>) : Result<Program, ParseError> =
                 stateStack.Pop() |> ignore
                 stateStack.Pop() |> ignore
                 stateStack.Pop() |> ignore
-                let arg2 = lhsStack.Pop() :?> Application
+                let arg3 = lhsStack.Pop() :?> Application
+                let arg2 = lhsStack.Pop() :?> Slash
                 let arg1 = lhsStack.Pop() :?> ArithmeticFirstOrderExpression
-                let reductionResult = ArithmeticFirstOrderExpression.Divide (arg1, arg2)
+                let reductionResult = ArithmeticFirstOrderExpression.Divide (arg1, arg2, arg3)
                 lhsStack.Push(reductionResult)
                 let nextState =
                     match stateStack.Peek() with
@@ -1504,9 +1590,10 @@ let parse (input: #seq<InputItem>) : Result<Program, ParseError> =
                 stateStack.Pop() |> ignore
                 stateStack.Pop() |> ignore
                 stateStack.Pop() |> ignore
-                let arg2 = lhsStack.Pop() :?> Application
+                let arg3 = lhsStack.Pop() :?> Application
+                let arg2 = lhsStack.Pop() :?> Slash
                 let arg1 = lhsStack.Pop() :?> ArithmeticFirstOrderExpression
-                let reductionResult = ArithmeticFirstOrderExpression.Divide (arg1, arg2)
+                let reductionResult = ArithmeticFirstOrderExpression.Divide (arg1, arg2, arg3)
                 lhsStack.Push(reductionResult)
                 let nextState =
                     match stateStack.Peek() with
@@ -1532,9 +1619,10 @@ let parse (input: #seq<InputItem>) : Result<Program, ParseError> =
                 stateStack.Pop() |> ignore
                 stateStack.Pop() |> ignore
                 stateStack.Pop() |> ignore
-                let arg2 = lhsStack.Pop() :?> Application
+                let arg3 = lhsStack.Pop() :?> Application
+                let arg2 = lhsStack.Pop() :?> Slash
                 let arg1 = lhsStack.Pop() :?> ArithmeticFirstOrderExpression
-                let reductionResult = ArithmeticFirstOrderExpression.Divide (arg1, arg2)
+                let reductionResult = ArithmeticFirstOrderExpression.Divide (arg1, arg2, arg3)
                 lhsStack.Push(reductionResult)
                 let nextState =
                     match stateStack.Peek() with
@@ -1547,8 +1635,9 @@ let parse (input: #seq<InputItem>) : Result<Program, ParseError> =
                     | 6 -> 16
                     | _ -> failwith "Parser is in an invalid state. This is a bug in the parser generator."
                 stateStack.Push(nextState)
-            | InputItem.ParenOpen ->
+            | InputItem.ParenOpen x ->
                 // shift
+                lhsStack.Push(x)
                 if inputEnumerator.MoveNext() then
                     lookahead <- inputEnumerator.Current
                 else
@@ -1559,9 +1648,10 @@ let parse (input: #seq<InputItem>) : Result<Program, ParseError> =
                 stateStack.Pop() |> ignore
                 stateStack.Pop() |> ignore
                 stateStack.Pop() |> ignore
-                let arg2 = lhsStack.Pop() :?> Application
+                let arg3 = lhsStack.Pop() :?> Application
+                let arg2 = lhsStack.Pop() :?> Slash
                 let arg1 = lhsStack.Pop() :?> ArithmeticFirstOrderExpression
-                let reductionResult = ArithmeticFirstOrderExpression.Divide (arg1, arg2)
+                let reductionResult = ArithmeticFirstOrderExpression.Divide (arg1, arg2, arg3)
                 lhsStack.Push(reductionResult)
                 let nextState =
                     match stateStack.Peek() with
@@ -1579,9 +1669,10 @@ let parse (input: #seq<InputItem>) : Result<Program, ParseError> =
                 stateStack.Pop() |> ignore
                 stateStack.Pop() |> ignore
                 stateStack.Pop() |> ignore
-                let arg2 = lhsStack.Pop() :?> Application
+                let arg3 = lhsStack.Pop() :?> Application
+                let arg2 = lhsStack.Pop() :?> Slash
                 let arg1 = lhsStack.Pop() :?> ArithmeticFirstOrderExpression
-                let reductionResult = ArithmeticFirstOrderExpression.Divide (arg1, arg2)
+                let reductionResult = ArithmeticFirstOrderExpression.Divide (arg1, arg2, arg3)
                 lhsStack.Push(reductionResult)
                 let nextState =
                     match stateStack.Peek() with
@@ -1596,7 +1687,7 @@ let parse (input: #seq<InputItem>) : Result<Program, ParseError> =
                 stateStack.Push(nextState)
             | _ ->
                 // error
-                expected <- [ExpectedItem.EndOfStream; ExpectedItem.Asterisk; ExpectedItem.BlockClose; ExpectedItem.BlockOpen; ExpectedItem.Break; ExpectedItem.DoubleQuotedString; ExpectedItem.Identifier; ExpectedItem.InvalidToken; ExpectedItem.Minus; ExpectedItem.NumberLiteral; ExpectedItem.ParenClose; ExpectedItem.ParenOpen; ExpectedItem.Plus; ExpectedItem.Slash]
+                expected <- [ ExpectedItem.EndOfStream; ExpectedItem.Asterisk; ExpectedItem.BlockClose; ExpectedItem.BlockOpen; ExpectedItem.Break; ExpectedItem.DoubleQuotedString; ExpectedItem.Identifier; ExpectedItem.InvalidToken; ExpectedItem.Minus; ExpectedItem.NumberLiteral; ExpectedItem.ParenClose; ExpectedItem.ParenOpen; ExpectedItem.Plus; ExpectedItem.Slash ]
                 keepGoing <- false
         | 12 ->
             match lookahead with
@@ -1896,7 +1987,7 @@ let parse (input: #seq<InputItem>) : Result<Program, ParseError> =
                 stateStack.Push(nextState)
             | _ ->
                 // error
-                expected <- [ExpectedItem.EndOfStream; ExpectedItem.Asterisk; ExpectedItem.BlockClose; ExpectedItem.BlockOpen; ExpectedItem.Break; ExpectedItem.DoubleQuotedString; ExpectedItem.Identifier; ExpectedItem.InvalidToken; ExpectedItem.Minus; ExpectedItem.NumberLiteral; ExpectedItem.ParenClose; ExpectedItem.ParenOpen; ExpectedItem.Plus; ExpectedItem.Slash]
+                expected <- [ ExpectedItem.EndOfStream; ExpectedItem.Asterisk; ExpectedItem.BlockClose; ExpectedItem.BlockOpen; ExpectedItem.Break; ExpectedItem.DoubleQuotedString; ExpectedItem.Identifier; ExpectedItem.InvalidToken; ExpectedItem.Minus; ExpectedItem.NumberLiteral; ExpectedItem.ParenClose; ExpectedItem.ParenOpen; ExpectedItem.Plus; ExpectedItem.Slash ]
                 keepGoing <- false
         | 13 ->
             match lookahead with
@@ -2168,7 +2259,7 @@ let parse (input: #seq<InputItem>) : Result<Program, ParseError> =
                 stateStack.Push(nextState)
             | _ ->
                 // error
-                expected <- [ExpectedItem.EndOfStream; ExpectedItem.Asterisk; ExpectedItem.BlockClose; ExpectedItem.BlockOpen; ExpectedItem.Break; ExpectedItem.DoubleQuotedString; ExpectedItem.Identifier; ExpectedItem.InvalidToken; ExpectedItem.Minus; ExpectedItem.NumberLiteral; ExpectedItem.ParenClose; ExpectedItem.ParenOpen; ExpectedItem.Plus; ExpectedItem.Slash]
+                expected <- [ ExpectedItem.EndOfStream; ExpectedItem.Asterisk; ExpectedItem.BlockClose; ExpectedItem.BlockOpen; ExpectedItem.Break; ExpectedItem.DoubleQuotedString; ExpectedItem.Identifier; ExpectedItem.InvalidToken; ExpectedItem.Minus; ExpectedItem.NumberLiteral; ExpectedItem.ParenClose; ExpectedItem.ParenOpen; ExpectedItem.Plus; ExpectedItem.Slash ]
                 keepGoing <- false
         | 14 ->
             match lookahead with
@@ -2187,8 +2278,9 @@ let parse (input: #seq<InputItem>) : Result<Program, ParseError> =
                     | 4 -> 18
                     | _ -> failwith "Parser is in an invalid state. This is a bug in the parser generator."
                 stateStack.Push(nextState)
-            | InputItem.Asterisk ->
+            | InputItem.Asterisk x ->
                 // shift
+                lhsStack.Push(x)
                 if inputEnumerator.MoveNext() then
                     lookahead <- inputEnumerator.Current
                 else
@@ -2269,8 +2361,9 @@ let parse (input: #seq<InputItem>) : Result<Program, ParseError> =
                     | 4 -> 18
                     | _ -> failwith "Parser is in an invalid state. This is a bug in the parser generator."
                 stateStack.Push(nextState)
-            | InputItem.Slash ->
+            | InputItem.Slash x ->
                 // shift
+                lhsStack.Push(x)
                 if inputEnumerator.MoveNext() then
                     lookahead <- inputEnumerator.Current
                 else
@@ -2278,7 +2371,7 @@ let parse (input: #seq<InputItem>) : Result<Program, ParseError> =
                 stateStack.Push(8)
             | _ ->
                 // error
-                expected <- [ExpectedItem.EndOfStream; ExpectedItem.Asterisk; ExpectedItem.BlockClose; ExpectedItem.Break; ExpectedItem.Minus; ExpectedItem.ParenClose; ExpectedItem.Plus; ExpectedItem.Slash]
+                expected <- [ ExpectedItem.EndOfStream; ExpectedItem.Asterisk; ExpectedItem.BlockClose; ExpectedItem.Break; ExpectedItem.Minus; ExpectedItem.ParenClose; ExpectedItem.Plus; ExpectedItem.Slash ]
                 keepGoing <- false
         | 15 ->
             match lookahead with
@@ -2287,9 +2380,10 @@ let parse (input: #seq<InputItem>) : Result<Program, ParseError> =
                 stateStack.Pop() |> ignore
                 stateStack.Pop() |> ignore
                 stateStack.Pop() |> ignore
-                let arg2 = lhsStack.Pop() :?> ArithmeticFirstOrderExpression
+                let arg3 = lhsStack.Pop() :?> ArithmeticFirstOrderExpression
+                let arg2 = lhsStack.Pop() :?> Minus
                 let arg1 = lhsStack.Pop() :?> ArithmeticSecondOrderExpression
-                let reductionResult = ArithmeticSecondOrderExpression.Subtract (arg1, arg2)
+                let reductionResult = ArithmeticSecondOrderExpression.Subtract (arg1, arg2, arg3)
                 lhsStack.Push(reductionResult)
                 let nextState =
                     match stateStack.Peek() with
@@ -2300,8 +2394,9 @@ let parse (input: #seq<InputItem>) : Result<Program, ParseError> =
                     | 4 -> 18
                     | _ -> failwith "Parser is in an invalid state. This is a bug in the parser generator."
                 stateStack.Push(nextState)
-            | InputItem.Asterisk ->
+            | InputItem.Asterisk x ->
                 // shift
+                lhsStack.Push(x)
                 if inputEnumerator.MoveNext() then
                     lookahead <- inputEnumerator.Current
                 else
@@ -2312,9 +2407,10 @@ let parse (input: #seq<InputItem>) : Result<Program, ParseError> =
                 stateStack.Pop() |> ignore
                 stateStack.Pop() |> ignore
                 stateStack.Pop() |> ignore
-                let arg2 = lhsStack.Pop() :?> ArithmeticFirstOrderExpression
+                let arg3 = lhsStack.Pop() :?> ArithmeticFirstOrderExpression
+                let arg2 = lhsStack.Pop() :?> Minus
                 let arg1 = lhsStack.Pop() :?> ArithmeticSecondOrderExpression
-                let reductionResult = ArithmeticSecondOrderExpression.Subtract (arg1, arg2)
+                let reductionResult = ArithmeticSecondOrderExpression.Subtract (arg1, arg2, arg3)
                 lhsStack.Push(reductionResult)
                 let nextState =
                     match stateStack.Peek() with
@@ -2330,9 +2426,10 @@ let parse (input: #seq<InputItem>) : Result<Program, ParseError> =
                 stateStack.Pop() |> ignore
                 stateStack.Pop() |> ignore
                 stateStack.Pop() |> ignore
-                let arg2 = lhsStack.Pop() :?> ArithmeticFirstOrderExpression
+                let arg3 = lhsStack.Pop() :?> ArithmeticFirstOrderExpression
+                let arg2 = lhsStack.Pop() :?> Minus
                 let arg1 = lhsStack.Pop() :?> ArithmeticSecondOrderExpression
-                let reductionResult = ArithmeticSecondOrderExpression.Subtract (arg1, arg2)
+                let reductionResult = ArithmeticSecondOrderExpression.Subtract (arg1, arg2, arg3)
                 lhsStack.Push(reductionResult)
                 let nextState =
                     match stateStack.Peek() with
@@ -2348,9 +2445,10 @@ let parse (input: #seq<InputItem>) : Result<Program, ParseError> =
                 stateStack.Pop() |> ignore
                 stateStack.Pop() |> ignore
                 stateStack.Pop() |> ignore
-                let arg2 = lhsStack.Pop() :?> ArithmeticFirstOrderExpression
+                let arg3 = lhsStack.Pop() :?> ArithmeticFirstOrderExpression
+                let arg2 = lhsStack.Pop() :?> Minus
                 let arg1 = lhsStack.Pop() :?> ArithmeticSecondOrderExpression
-                let reductionResult = ArithmeticSecondOrderExpression.Subtract (arg1, arg2)
+                let reductionResult = ArithmeticSecondOrderExpression.Subtract (arg1, arg2, arg3)
                 lhsStack.Push(reductionResult)
                 let nextState =
                     match stateStack.Peek() with
@@ -2366,9 +2464,10 @@ let parse (input: #seq<InputItem>) : Result<Program, ParseError> =
                 stateStack.Pop() |> ignore
                 stateStack.Pop() |> ignore
                 stateStack.Pop() |> ignore
-                let arg2 = lhsStack.Pop() :?> ArithmeticFirstOrderExpression
+                let arg3 = lhsStack.Pop() :?> ArithmeticFirstOrderExpression
+                let arg2 = lhsStack.Pop() :?> Minus
                 let arg1 = lhsStack.Pop() :?> ArithmeticSecondOrderExpression
-                let reductionResult = ArithmeticSecondOrderExpression.Subtract (arg1, arg2)
+                let reductionResult = ArithmeticSecondOrderExpression.Subtract (arg1, arg2, arg3)
                 lhsStack.Push(reductionResult)
                 let nextState =
                     match stateStack.Peek() with
@@ -2384,9 +2483,10 @@ let parse (input: #seq<InputItem>) : Result<Program, ParseError> =
                 stateStack.Pop() |> ignore
                 stateStack.Pop() |> ignore
                 stateStack.Pop() |> ignore
-                let arg2 = lhsStack.Pop() :?> ArithmeticFirstOrderExpression
+                let arg3 = lhsStack.Pop() :?> ArithmeticFirstOrderExpression
+                let arg2 = lhsStack.Pop() :?> Minus
                 let arg1 = lhsStack.Pop() :?> ArithmeticSecondOrderExpression
-                let reductionResult = ArithmeticSecondOrderExpression.Subtract (arg1, arg2)
+                let reductionResult = ArithmeticSecondOrderExpression.Subtract (arg1, arg2, arg3)
                 lhsStack.Push(reductionResult)
                 let nextState =
                     match stateStack.Peek() with
@@ -2397,8 +2497,9 @@ let parse (input: #seq<InputItem>) : Result<Program, ParseError> =
                     | 4 -> 18
                     | _ -> failwith "Parser is in an invalid state. This is a bug in the parser generator."
                 stateStack.Push(nextState)
-            | InputItem.Slash ->
+            | InputItem.Slash x ->
                 // shift
+                lhsStack.Push(x)
                 if inputEnumerator.MoveNext() then
                     lookahead <- inputEnumerator.Current
                 else
@@ -2406,7 +2507,7 @@ let parse (input: #seq<InputItem>) : Result<Program, ParseError> =
                 stateStack.Push(8)
             | _ ->
                 // error
-                expected <- [ExpectedItem.EndOfStream; ExpectedItem.Asterisk; ExpectedItem.BlockClose; ExpectedItem.Break; ExpectedItem.Minus; ExpectedItem.ParenClose; ExpectedItem.Plus; ExpectedItem.Slash]
+                expected <- [ ExpectedItem.EndOfStream; ExpectedItem.Asterisk; ExpectedItem.BlockClose; ExpectedItem.Break; ExpectedItem.Minus; ExpectedItem.ParenClose; ExpectedItem.Plus; ExpectedItem.Slash ]
                 keepGoing <- false
         | 16 ->
             match lookahead with
@@ -2415,9 +2516,10 @@ let parse (input: #seq<InputItem>) : Result<Program, ParseError> =
                 stateStack.Pop() |> ignore
                 stateStack.Pop() |> ignore
                 stateStack.Pop() |> ignore
-                let arg2 = lhsStack.Pop() :?> ArithmeticFirstOrderExpression
+                let arg3 = lhsStack.Pop() :?> ArithmeticFirstOrderExpression
+                let arg2 = lhsStack.Pop() :?> Plus
                 let arg1 = lhsStack.Pop() :?> ArithmeticSecondOrderExpression
-                let reductionResult = ArithmeticSecondOrderExpression.Add (arg1, arg2)
+                let reductionResult = ArithmeticSecondOrderExpression.Add (arg1, arg2, arg3)
                 lhsStack.Push(reductionResult)
                 let nextState =
                     match stateStack.Peek() with
@@ -2428,8 +2530,9 @@ let parse (input: #seq<InputItem>) : Result<Program, ParseError> =
                     | 4 -> 18
                     | _ -> failwith "Parser is in an invalid state. This is a bug in the parser generator."
                 stateStack.Push(nextState)
-            | InputItem.Asterisk ->
+            | InputItem.Asterisk x ->
                 // shift
+                lhsStack.Push(x)
                 if inputEnumerator.MoveNext() then
                     lookahead <- inputEnumerator.Current
                 else
@@ -2440,9 +2543,10 @@ let parse (input: #seq<InputItem>) : Result<Program, ParseError> =
                 stateStack.Pop() |> ignore
                 stateStack.Pop() |> ignore
                 stateStack.Pop() |> ignore
-                let arg2 = lhsStack.Pop() :?> ArithmeticFirstOrderExpression
+                let arg3 = lhsStack.Pop() :?> ArithmeticFirstOrderExpression
+                let arg2 = lhsStack.Pop() :?> Plus
                 let arg1 = lhsStack.Pop() :?> ArithmeticSecondOrderExpression
-                let reductionResult = ArithmeticSecondOrderExpression.Add (arg1, arg2)
+                let reductionResult = ArithmeticSecondOrderExpression.Add (arg1, arg2, arg3)
                 lhsStack.Push(reductionResult)
                 let nextState =
                     match stateStack.Peek() with
@@ -2458,9 +2562,10 @@ let parse (input: #seq<InputItem>) : Result<Program, ParseError> =
                 stateStack.Pop() |> ignore
                 stateStack.Pop() |> ignore
                 stateStack.Pop() |> ignore
-                let arg2 = lhsStack.Pop() :?> ArithmeticFirstOrderExpression
+                let arg3 = lhsStack.Pop() :?> ArithmeticFirstOrderExpression
+                let arg2 = lhsStack.Pop() :?> Plus
                 let arg1 = lhsStack.Pop() :?> ArithmeticSecondOrderExpression
-                let reductionResult = ArithmeticSecondOrderExpression.Add (arg1, arg2)
+                let reductionResult = ArithmeticSecondOrderExpression.Add (arg1, arg2, arg3)
                 lhsStack.Push(reductionResult)
                 let nextState =
                     match stateStack.Peek() with
@@ -2476,9 +2581,10 @@ let parse (input: #seq<InputItem>) : Result<Program, ParseError> =
                 stateStack.Pop() |> ignore
                 stateStack.Pop() |> ignore
                 stateStack.Pop() |> ignore
-                let arg2 = lhsStack.Pop() :?> ArithmeticFirstOrderExpression
+                let arg3 = lhsStack.Pop() :?> ArithmeticFirstOrderExpression
+                let arg2 = lhsStack.Pop() :?> Plus
                 let arg1 = lhsStack.Pop() :?> ArithmeticSecondOrderExpression
-                let reductionResult = ArithmeticSecondOrderExpression.Add (arg1, arg2)
+                let reductionResult = ArithmeticSecondOrderExpression.Add (arg1, arg2, arg3)
                 lhsStack.Push(reductionResult)
                 let nextState =
                     match stateStack.Peek() with
@@ -2494,9 +2600,10 @@ let parse (input: #seq<InputItem>) : Result<Program, ParseError> =
                 stateStack.Pop() |> ignore
                 stateStack.Pop() |> ignore
                 stateStack.Pop() |> ignore
-                let arg2 = lhsStack.Pop() :?> ArithmeticFirstOrderExpression
+                let arg3 = lhsStack.Pop() :?> ArithmeticFirstOrderExpression
+                let arg2 = lhsStack.Pop() :?> Plus
                 let arg1 = lhsStack.Pop() :?> ArithmeticSecondOrderExpression
-                let reductionResult = ArithmeticSecondOrderExpression.Add (arg1, arg2)
+                let reductionResult = ArithmeticSecondOrderExpression.Add (arg1, arg2, arg3)
                 lhsStack.Push(reductionResult)
                 let nextState =
                     match stateStack.Peek() with
@@ -2512,9 +2619,10 @@ let parse (input: #seq<InputItem>) : Result<Program, ParseError> =
                 stateStack.Pop() |> ignore
                 stateStack.Pop() |> ignore
                 stateStack.Pop() |> ignore
-                let arg2 = lhsStack.Pop() :?> ArithmeticFirstOrderExpression
+                let arg3 = lhsStack.Pop() :?> ArithmeticFirstOrderExpression
+                let arg2 = lhsStack.Pop() :?> Plus
                 let arg1 = lhsStack.Pop() :?> ArithmeticSecondOrderExpression
-                let reductionResult = ArithmeticSecondOrderExpression.Add (arg1, arg2)
+                let reductionResult = ArithmeticSecondOrderExpression.Add (arg1, arg2, arg3)
                 lhsStack.Push(reductionResult)
                 let nextState =
                     match stateStack.Peek() with
@@ -2525,8 +2633,9 @@ let parse (input: #seq<InputItem>) : Result<Program, ParseError> =
                     | 4 -> 18
                     | _ -> failwith "Parser is in an invalid state. This is a bug in the parser generator."
                 stateStack.Push(nextState)
-            | InputItem.Slash ->
+            | InputItem.Slash x ->
                 // shift
+                lhsStack.Push(x)
                 if inputEnumerator.MoveNext() then
                     lookahead <- inputEnumerator.Current
                 else
@@ -2534,7 +2643,7 @@ let parse (input: #seq<InputItem>) : Result<Program, ParseError> =
                 stateStack.Push(8)
             | _ ->
                 // error
-                expected <- [ExpectedItem.EndOfStream; ExpectedItem.Asterisk; ExpectedItem.BlockClose; ExpectedItem.Break; ExpectedItem.Minus; ExpectedItem.ParenClose; ExpectedItem.Plus; ExpectedItem.Slash]
+                expected <- [ ExpectedItem.EndOfStream; ExpectedItem.Asterisk; ExpectedItem.BlockClose; ExpectedItem.Break; ExpectedItem.Minus; ExpectedItem.ParenClose; ExpectedItem.Plus; ExpectedItem.Slash ]
                 keepGoing <- false
         | 17 ->
             match lookahead with
@@ -2580,8 +2689,9 @@ let parse (input: #seq<InputItem>) : Result<Program, ParseError> =
                     | 3 -> 25
                     | _ -> failwith "Parser is in an invalid state. This is a bug in the parser generator."
                 stateStack.Push(nextState)
-            | InputItem.Minus ->
+            | InputItem.Minus x ->
                 // shift
+                lhsStack.Push(x)
                 if inputEnumerator.MoveNext() then
                     lookahead <- inputEnumerator.Current
                 else
@@ -2601,8 +2711,9 @@ let parse (input: #seq<InputItem>) : Result<Program, ParseError> =
                     | 3 -> 25
                     | _ -> failwith "Parser is in an invalid state. This is a bug in the parser generator."
                 stateStack.Push(nextState)
-            | InputItem.Plus ->
+            | InputItem.Plus x ->
                 // shift
+                lhsStack.Push(x)
                 if inputEnumerator.MoveNext() then
                     lookahead <- inputEnumerator.Current
                 else
@@ -2610,7 +2721,7 @@ let parse (input: #seq<InputItem>) : Result<Program, ParseError> =
                 stateStack.Push(6)
             | _ ->
                 // error
-                expected <- [ExpectedItem.EndOfStream; ExpectedItem.BlockClose; ExpectedItem.Break; ExpectedItem.Minus; ExpectedItem.ParenClose; ExpectedItem.Plus]
+                expected <- [ ExpectedItem.EndOfStream; ExpectedItem.BlockClose; ExpectedItem.Break; ExpectedItem.Minus; ExpectedItem.ParenClose; ExpectedItem.Plus ]
                 keepGoing <- false
         | 18 ->
             match lookahead with
@@ -2621,10 +2732,12 @@ let parse (input: #seq<InputItem>) : Result<Program, ParseError> =
                 stateStack.Pop() |> ignore
                 stateStack.Pop() |> ignore
                 stateStack.Pop() |> ignore
-                let arg3 = lhsStack.Pop() :?> ArithmeticSecondOrderExpression
-                let arg2 = lhsStack.Pop() :?> BindingParameters
-                let arg1 = lhsStack.Pop() :?> Identifier
-                let reductionResult = BindingExpression.Binding (arg1, arg2, arg3)
+                let arg5 = lhsStack.Pop() :?> ArithmeticSecondOrderExpression
+                let arg4 = lhsStack.Pop() :?> Equals
+                let arg3 = lhsStack.Pop() :?> BindingParameters
+                let arg2 = lhsStack.Pop() :?> Identifier
+                let arg1 = lhsStack.Pop() :?> Let
+                let reductionResult = BindingExpression.Binding (arg1, arg2, arg3, arg4, arg5)
                 lhsStack.Push(reductionResult)
                 let nextState =
                     match stateStack.Peek() with
@@ -2641,10 +2754,12 @@ let parse (input: #seq<InputItem>) : Result<Program, ParseError> =
                 stateStack.Pop() |> ignore
                 stateStack.Pop() |> ignore
                 stateStack.Pop() |> ignore
-                let arg3 = lhsStack.Pop() :?> ArithmeticSecondOrderExpression
-                let arg2 = lhsStack.Pop() :?> BindingParameters
-                let arg1 = lhsStack.Pop() :?> Identifier
-                let reductionResult = BindingExpression.Binding (arg1, arg2, arg3)
+                let arg5 = lhsStack.Pop() :?> ArithmeticSecondOrderExpression
+                let arg4 = lhsStack.Pop() :?> Equals
+                let arg3 = lhsStack.Pop() :?> BindingParameters
+                let arg2 = lhsStack.Pop() :?> Identifier
+                let arg1 = lhsStack.Pop() :?> Let
+                let reductionResult = BindingExpression.Binding (arg1, arg2, arg3, arg4, arg5)
                 lhsStack.Push(reductionResult)
                 let nextState =
                     match stateStack.Peek() with
@@ -2661,10 +2776,12 @@ let parse (input: #seq<InputItem>) : Result<Program, ParseError> =
                 stateStack.Pop() |> ignore
                 stateStack.Pop() |> ignore
                 stateStack.Pop() |> ignore
-                let arg3 = lhsStack.Pop() :?> ArithmeticSecondOrderExpression
-                let arg2 = lhsStack.Pop() :?> BindingParameters
-                let arg1 = lhsStack.Pop() :?> Identifier
-                let reductionResult = BindingExpression.Binding (arg1, arg2, arg3)
+                let arg5 = lhsStack.Pop() :?> ArithmeticSecondOrderExpression
+                let arg4 = lhsStack.Pop() :?> Equals
+                let arg3 = lhsStack.Pop() :?> BindingParameters
+                let arg2 = lhsStack.Pop() :?> Identifier
+                let arg1 = lhsStack.Pop() :?> Let
+                let reductionResult = BindingExpression.Binding (arg1, arg2, arg3, arg4, arg5)
                 lhsStack.Push(reductionResult)
                 let nextState =
                     match stateStack.Peek() with
@@ -2674,8 +2791,9 @@ let parse (input: #seq<InputItem>) : Result<Program, ParseError> =
                     | 3 -> 25
                     | _ -> failwith "Parser is in an invalid state. This is a bug in the parser generator."
                 stateStack.Push(nextState)
-            | InputItem.Minus ->
+            | InputItem.Minus x ->
                 // shift
+                lhsStack.Push(x)
                 if inputEnumerator.MoveNext() then
                     lookahead <- inputEnumerator.Current
                 else
@@ -2688,10 +2806,12 @@ let parse (input: #seq<InputItem>) : Result<Program, ParseError> =
                 stateStack.Pop() |> ignore
                 stateStack.Pop() |> ignore
                 stateStack.Pop() |> ignore
-                let arg3 = lhsStack.Pop() :?> ArithmeticSecondOrderExpression
-                let arg2 = lhsStack.Pop() :?> BindingParameters
-                let arg1 = lhsStack.Pop() :?> Identifier
-                let reductionResult = BindingExpression.Binding (arg1, arg2, arg3)
+                let arg5 = lhsStack.Pop() :?> ArithmeticSecondOrderExpression
+                let arg4 = lhsStack.Pop() :?> Equals
+                let arg3 = lhsStack.Pop() :?> BindingParameters
+                let arg2 = lhsStack.Pop() :?> Identifier
+                let arg1 = lhsStack.Pop() :?> Let
+                let reductionResult = BindingExpression.Binding (arg1, arg2, arg3, arg4, arg5)
                 lhsStack.Push(reductionResult)
                 let nextState =
                     match stateStack.Peek() with
@@ -2701,8 +2821,9 @@ let parse (input: #seq<InputItem>) : Result<Program, ParseError> =
                     | 3 -> 25
                     | _ -> failwith "Parser is in an invalid state. This is a bug in the parser generator."
                 stateStack.Push(nextState)
-            | InputItem.Plus ->
+            | InputItem.Plus x ->
                 // shift
+                lhsStack.Push(x)
                 if inputEnumerator.MoveNext() then
                     lookahead <- inputEnumerator.Current
                 else
@@ -2710,10 +2831,14 @@ let parse (input: #seq<InputItem>) : Result<Program, ParseError> =
                 stateStack.Push(6)
             | _ ->
                 // error
-                expected <- [ExpectedItem.EndOfStream; ExpectedItem.BlockClose; ExpectedItem.Break; ExpectedItem.Minus; ExpectedItem.ParenClose; ExpectedItem.Plus]
+                expected <- [ ExpectedItem.EndOfStream; ExpectedItem.BlockClose; ExpectedItem.Break; ExpectedItem.Minus; ExpectedItem.ParenClose; ExpectedItem.Plus ]
                 keepGoing <- false
         | 19 ->
             match lookahead with
+            | _ when lookaheadIsEof ->
+                // error
+                expected <- [ ExpectedItem.Identifier ]
+                keepGoing <- false
             | InputItem.Identifier x ->
                 // shift
                 lhsStack.Push(x)
@@ -2724,10 +2849,14 @@ let parse (input: #seq<InputItem>) : Result<Program, ParseError> =
                 stateStack.Push(20)
             | _ ->
                 // error
-                expected <- [ExpectedItem.Identifier]
+                expected <- [ ExpectedItem.Identifier ]
                 keepGoing <- false
         | 20 ->
             match lookahead with
+            | _ when lookaheadIsEof ->
+                // error
+                expected <- [ ExpectedItem.Equals; ExpectedItem.Identifier ]
+                keepGoing <- false
             | InputItem.Equals _ ->
                 // reduce
                 let reductionResult = BindingParameters.Empty
@@ -2748,12 +2877,17 @@ let parse (input: #seq<InputItem>) : Result<Program, ParseError> =
                 stateStack.Push(nextState)
             | _ ->
                 // error
-                expected <- [ExpectedItem.Equals; ExpectedItem.Identifier]
+                expected <- [ ExpectedItem.Equals; ExpectedItem.Identifier ]
                 keepGoing <- false
         | 21 ->
             match lookahead with
-            | InputItem.Equals ->
+            | _ when lookaheadIsEof ->
+                // error
+                expected <- [ ExpectedItem.Equals; ExpectedItem.Identifier ]
+                keepGoing <- false
+            | InputItem.Equals x ->
                 // shift
+                lhsStack.Push(x)
                 if inputEnumerator.MoveNext() then
                     lookahead <- inputEnumerator.Current
                 else
@@ -2769,10 +2903,14 @@ let parse (input: #seq<InputItem>) : Result<Program, ParseError> =
                 stateStack.Push(22)
             | _ ->
                 // error
-                expected <- [ExpectedItem.Equals; ExpectedItem.Identifier]
+                expected <- [ ExpectedItem.Equals; ExpectedItem.Identifier ]
                 keepGoing <- false
         | 22 ->
             match lookahead with
+            | _ when lookaheadIsEof ->
+                // error
+                expected <- [ ExpectedItem.Equals; ExpectedItem.Identifier ]
+                keepGoing <- false
             | InputItem.Equals _ ->
                 // reduce
                 stateStack.Pop() |> ignore
@@ -2801,7 +2939,7 @@ let parse (input: #seq<InputItem>) : Result<Program, ParseError> =
                 stateStack.Push(nextState)
             | _ ->
                 // error
-                expected <- [ExpectedItem.Equals; ExpectedItem.Identifier]
+                expected <- [ ExpectedItem.Equals; ExpectedItem.Identifier ]
                 keepGoing <- false
         | 23 ->
             match lookahead with
@@ -2831,8 +2969,9 @@ let parse (input: #seq<InputItem>) : Result<Program, ParseError> =
                     | 2 -> 33
                     | _ -> failwith "Parser is in an invalid state. This is a bug in the parser generator."
                 stateStack.Push(nextState)
-            | InputItem.Break ->
+            | InputItem.Break x ->
                 // shift
+                lhsStack.Push(x)
                 if inputEnumerator.MoveNext() then
                     lookahead <- inputEnumerator.Current
                 else
@@ -2853,7 +2992,7 @@ let parse (input: #seq<InputItem>) : Result<Program, ParseError> =
                 stateStack.Push(nextState)
             | _ ->
                 // error
-                expected <- [ExpectedItem.EndOfStream; ExpectedItem.BlockClose; ExpectedItem.Break; ExpectedItem.ParenClose]
+                expected <- [ ExpectedItem.EndOfStream; ExpectedItem.BlockClose; ExpectedItem.Break; ExpectedItem.ParenClose ]
                 keepGoing <- false
         | 24 ->
             match lookahead with
@@ -2911,7 +3050,7 @@ let parse (input: #seq<InputItem>) : Result<Program, ParseError> =
                 stateStack.Push(nextState)
             | _ ->
                 // error
-                expected <- [ExpectedItem.EndOfStream; ExpectedItem.BlockClose; ExpectedItem.Break; ExpectedItem.ParenClose]
+                expected <- [ ExpectedItem.EndOfStream; ExpectedItem.BlockClose; ExpectedItem.Break; ExpectedItem.ParenClose ]
                 keepGoing <- false
         | 25 ->
             match lookahead with
@@ -2920,9 +3059,10 @@ let parse (input: #seq<InputItem>) : Result<Program, ParseError> =
                 stateStack.Pop() |> ignore
                 stateStack.Pop() |> ignore
                 stateStack.Pop() |> ignore
-                let arg2 = lhsStack.Pop() :?> BindingExpression
+                let arg3 = lhsStack.Pop() :?> BindingExpression
+                let arg2 = lhsStack.Pop() :?> Break
                 let arg1 = lhsStack.Pop() :?> ExpressionConcatenation
-                let reductionResult = ExpressionConcatenation.Concat (arg1, arg2)
+                let reductionResult = ExpressionConcatenation.Concat (arg1, arg2, arg3)
                 lhsStack.Push(reductionResult)
                 let nextState =
                     match stateStack.Peek() with
@@ -2936,9 +3076,10 @@ let parse (input: #seq<InputItem>) : Result<Program, ParseError> =
                 stateStack.Pop() |> ignore
                 stateStack.Pop() |> ignore
                 stateStack.Pop() |> ignore
-                let arg2 = lhsStack.Pop() :?> BindingExpression
+                let arg3 = lhsStack.Pop() :?> BindingExpression
+                let arg2 = lhsStack.Pop() :?> Break
                 let arg1 = lhsStack.Pop() :?> ExpressionConcatenation
-                let reductionResult = ExpressionConcatenation.Concat (arg1, arg2)
+                let reductionResult = ExpressionConcatenation.Concat (arg1, arg2, arg3)
                 lhsStack.Push(reductionResult)
                 let nextState =
                     match stateStack.Peek() with
@@ -2952,9 +3093,10 @@ let parse (input: #seq<InputItem>) : Result<Program, ParseError> =
                 stateStack.Pop() |> ignore
                 stateStack.Pop() |> ignore
                 stateStack.Pop() |> ignore
-                let arg2 = lhsStack.Pop() :?> BindingExpression
+                let arg3 = lhsStack.Pop() :?> BindingExpression
+                let arg2 = lhsStack.Pop() :?> Break
                 let arg1 = lhsStack.Pop() :?> ExpressionConcatenation
-                let reductionResult = ExpressionConcatenation.Concat (arg1, arg2)
+                let reductionResult = ExpressionConcatenation.Concat (arg1, arg2, arg3)
                 lhsStack.Push(reductionResult)
                 let nextState =
                     match stateStack.Peek() with
@@ -2968,9 +3110,10 @@ let parse (input: #seq<InputItem>) : Result<Program, ParseError> =
                 stateStack.Pop() |> ignore
                 stateStack.Pop() |> ignore
                 stateStack.Pop() |> ignore
-                let arg2 = lhsStack.Pop() :?> BindingExpression
+                let arg3 = lhsStack.Pop() :?> BindingExpression
+                let arg2 = lhsStack.Pop() :?> Break
                 let arg1 = lhsStack.Pop() :?> ExpressionConcatenation
-                let reductionResult = ExpressionConcatenation.Concat (arg1, arg2)
+                let reductionResult = ExpressionConcatenation.Concat (arg1, arg2, arg3)
                 lhsStack.Push(reductionResult)
                 let nextState =
                     match stateStack.Peek() with
@@ -2981,7 +3124,7 @@ let parse (input: #seq<InputItem>) : Result<Program, ParseError> =
                 stateStack.Push(nextState)
             | _ ->
                 // error
-                expected <- [ExpectedItem.EndOfStream; ExpectedItem.BlockClose; ExpectedItem.Break; ExpectedItem.ParenClose]
+                expected <- [ ExpectedItem.EndOfStream; ExpectedItem.BlockClose; ExpectedItem.Break; ExpectedItem.ParenClose ]
                 keepGoing <- false
         | 26 ->
             match lookahead with
@@ -2995,12 +3138,17 @@ let parse (input: #seq<InputItem>) : Result<Program, ParseError> =
                 keepGoing <- false
             | _ ->
                 // error
-                expected <- [ExpectedItem.EndOfStream]
+                expected <- [ ExpectedItem.EndOfStream ]
                 keepGoing <- false
         | 27 ->
             match lookahead with
-            | InputItem.BlockClose ->
+            | _ when lookaheadIsEof ->
+                // error
+                expected <- [ ExpectedItem.BlockClose ]
+                keepGoing <- false
+            | InputItem.BlockClose x ->
                 // shift
+                lhsStack.Push(x)
                 if inputEnumerator.MoveNext() then
                     lookahead <- inputEnumerator.Current
                 else
@@ -3008,7 +3156,7 @@ let parse (input: #seq<InputItem>) : Result<Program, ParseError> =
                 stateStack.Push(28)
             | _ ->
                 // error
-                expected <- [ExpectedItem.BlockClose]
+                expected <- [ ExpectedItem.BlockClose ]
                 keepGoing <- false
         | 28 ->
             match lookahead with
@@ -3017,8 +3165,10 @@ let parse (input: #seq<InputItem>) : Result<Program, ParseError> =
                 stateStack.Pop() |> ignore
                 stateStack.Pop() |> ignore
                 stateStack.Pop() |> ignore
-                let arg1 = lhsStack.Pop() :?> Expression
-                let reductionResult = TerminalEnclosedExpression.Block arg1
+                let arg3 = lhsStack.Pop() :?> BlockClose
+                let arg2 = lhsStack.Pop() :?> Expression
+                let arg1 = lhsStack.Pop() :?> BlockOpen
+                let reductionResult = TerminalEnclosedExpression.Block (arg1, arg2, arg3)
                 lhsStack.Push(reductionResult)
                 let nextState =
                     match stateStack.Peek() with
@@ -3041,8 +3191,10 @@ let parse (input: #seq<InputItem>) : Result<Program, ParseError> =
                 stateStack.Pop() |> ignore
                 stateStack.Pop() |> ignore
                 stateStack.Pop() |> ignore
-                let arg1 = lhsStack.Pop() :?> Expression
-                let reductionResult = TerminalEnclosedExpression.Block arg1
+                let arg3 = lhsStack.Pop() :?> BlockClose
+                let arg2 = lhsStack.Pop() :?> Expression
+                let arg1 = lhsStack.Pop() :?> BlockOpen
+                let reductionResult = TerminalEnclosedExpression.Block (arg1, arg2, arg3)
                 lhsStack.Push(reductionResult)
                 let nextState =
                     match stateStack.Peek() with
@@ -3065,8 +3217,10 @@ let parse (input: #seq<InputItem>) : Result<Program, ParseError> =
                 stateStack.Pop() |> ignore
                 stateStack.Pop() |> ignore
                 stateStack.Pop() |> ignore
-                let arg1 = lhsStack.Pop() :?> Expression
-                let reductionResult = TerminalEnclosedExpression.Block arg1
+                let arg3 = lhsStack.Pop() :?> BlockClose
+                let arg2 = lhsStack.Pop() :?> Expression
+                let arg1 = lhsStack.Pop() :?> BlockOpen
+                let reductionResult = TerminalEnclosedExpression.Block (arg1, arg2, arg3)
                 lhsStack.Push(reductionResult)
                 let nextState =
                     match stateStack.Peek() with
@@ -3089,8 +3243,10 @@ let parse (input: #seq<InputItem>) : Result<Program, ParseError> =
                 stateStack.Pop() |> ignore
                 stateStack.Pop() |> ignore
                 stateStack.Pop() |> ignore
-                let arg1 = lhsStack.Pop() :?> Expression
-                let reductionResult = TerminalEnclosedExpression.Block arg1
+                let arg3 = lhsStack.Pop() :?> BlockClose
+                let arg2 = lhsStack.Pop() :?> Expression
+                let arg1 = lhsStack.Pop() :?> BlockOpen
+                let reductionResult = TerminalEnclosedExpression.Block (arg1, arg2, arg3)
                 lhsStack.Push(reductionResult)
                 let nextState =
                     match stateStack.Peek() with
@@ -3113,8 +3269,10 @@ let parse (input: #seq<InputItem>) : Result<Program, ParseError> =
                 stateStack.Pop() |> ignore
                 stateStack.Pop() |> ignore
                 stateStack.Pop() |> ignore
-                let arg1 = lhsStack.Pop() :?> Expression
-                let reductionResult = TerminalEnclosedExpression.Block arg1
+                let arg3 = lhsStack.Pop() :?> BlockClose
+                let arg2 = lhsStack.Pop() :?> Expression
+                let arg1 = lhsStack.Pop() :?> BlockOpen
+                let reductionResult = TerminalEnclosedExpression.Block (arg1, arg2, arg3)
                 lhsStack.Push(reductionResult)
                 let nextState =
                     match stateStack.Peek() with
@@ -3137,8 +3295,10 @@ let parse (input: #seq<InputItem>) : Result<Program, ParseError> =
                 stateStack.Pop() |> ignore
                 stateStack.Pop() |> ignore
                 stateStack.Pop() |> ignore
-                let arg1 = lhsStack.Pop() :?> Expression
-                let reductionResult = TerminalEnclosedExpression.Block arg1
+                let arg3 = lhsStack.Pop() :?> BlockClose
+                let arg2 = lhsStack.Pop() :?> Expression
+                let arg1 = lhsStack.Pop() :?> BlockOpen
+                let reductionResult = TerminalEnclosedExpression.Block (arg1, arg2, arg3)
                 lhsStack.Push(reductionResult)
                 let nextState =
                     match stateStack.Peek() with
@@ -3161,8 +3321,10 @@ let parse (input: #seq<InputItem>) : Result<Program, ParseError> =
                 stateStack.Pop() |> ignore
                 stateStack.Pop() |> ignore
                 stateStack.Pop() |> ignore
-                let arg1 = lhsStack.Pop() :?> Expression
-                let reductionResult = TerminalEnclosedExpression.Block arg1
+                let arg3 = lhsStack.Pop() :?> BlockClose
+                let arg2 = lhsStack.Pop() :?> Expression
+                let arg1 = lhsStack.Pop() :?> BlockOpen
+                let reductionResult = TerminalEnclosedExpression.Block (arg1, arg2, arg3)
                 lhsStack.Push(reductionResult)
                 let nextState =
                     match stateStack.Peek() with
@@ -3185,8 +3347,10 @@ let parse (input: #seq<InputItem>) : Result<Program, ParseError> =
                 stateStack.Pop() |> ignore
                 stateStack.Pop() |> ignore
                 stateStack.Pop() |> ignore
-                let arg1 = lhsStack.Pop() :?> Expression
-                let reductionResult = TerminalEnclosedExpression.Block arg1
+                let arg3 = lhsStack.Pop() :?> BlockClose
+                let arg2 = lhsStack.Pop() :?> Expression
+                let arg1 = lhsStack.Pop() :?> BlockOpen
+                let reductionResult = TerminalEnclosedExpression.Block (arg1, arg2, arg3)
                 lhsStack.Push(reductionResult)
                 let nextState =
                     match stateStack.Peek() with
@@ -3209,8 +3373,10 @@ let parse (input: #seq<InputItem>) : Result<Program, ParseError> =
                 stateStack.Pop() |> ignore
                 stateStack.Pop() |> ignore
                 stateStack.Pop() |> ignore
-                let arg1 = lhsStack.Pop() :?> Expression
-                let reductionResult = TerminalEnclosedExpression.Block arg1
+                let arg3 = lhsStack.Pop() :?> BlockClose
+                let arg2 = lhsStack.Pop() :?> Expression
+                let arg1 = lhsStack.Pop() :?> BlockOpen
+                let reductionResult = TerminalEnclosedExpression.Block (arg1, arg2, arg3)
                 lhsStack.Push(reductionResult)
                 let nextState =
                     match stateStack.Peek() with
@@ -3233,8 +3399,10 @@ let parse (input: #seq<InputItem>) : Result<Program, ParseError> =
                 stateStack.Pop() |> ignore
                 stateStack.Pop() |> ignore
                 stateStack.Pop() |> ignore
-                let arg1 = lhsStack.Pop() :?> Expression
-                let reductionResult = TerminalEnclosedExpression.Block arg1
+                let arg3 = lhsStack.Pop() :?> BlockClose
+                let arg2 = lhsStack.Pop() :?> Expression
+                let arg1 = lhsStack.Pop() :?> BlockOpen
+                let reductionResult = TerminalEnclosedExpression.Block (arg1, arg2, arg3)
                 lhsStack.Push(reductionResult)
                 let nextState =
                     match stateStack.Peek() with
@@ -3257,8 +3425,10 @@ let parse (input: #seq<InputItem>) : Result<Program, ParseError> =
                 stateStack.Pop() |> ignore
                 stateStack.Pop() |> ignore
                 stateStack.Pop() |> ignore
-                let arg1 = lhsStack.Pop() :?> Expression
-                let reductionResult = TerminalEnclosedExpression.Block arg1
+                let arg3 = lhsStack.Pop() :?> BlockClose
+                let arg2 = lhsStack.Pop() :?> Expression
+                let arg1 = lhsStack.Pop() :?> BlockOpen
+                let reductionResult = TerminalEnclosedExpression.Block (arg1, arg2, arg3)
                 lhsStack.Push(reductionResult)
                 let nextState =
                     match stateStack.Peek() with
@@ -3281,8 +3451,10 @@ let parse (input: #seq<InputItem>) : Result<Program, ParseError> =
                 stateStack.Pop() |> ignore
                 stateStack.Pop() |> ignore
                 stateStack.Pop() |> ignore
-                let arg1 = lhsStack.Pop() :?> Expression
-                let reductionResult = TerminalEnclosedExpression.Block arg1
+                let arg3 = lhsStack.Pop() :?> BlockClose
+                let arg2 = lhsStack.Pop() :?> Expression
+                let arg1 = lhsStack.Pop() :?> BlockOpen
+                let reductionResult = TerminalEnclosedExpression.Block (arg1, arg2, arg3)
                 lhsStack.Push(reductionResult)
                 let nextState =
                     match stateStack.Peek() with
@@ -3305,8 +3477,10 @@ let parse (input: #seq<InputItem>) : Result<Program, ParseError> =
                 stateStack.Pop() |> ignore
                 stateStack.Pop() |> ignore
                 stateStack.Pop() |> ignore
-                let arg1 = lhsStack.Pop() :?> Expression
-                let reductionResult = TerminalEnclosedExpression.Block arg1
+                let arg3 = lhsStack.Pop() :?> BlockClose
+                let arg2 = lhsStack.Pop() :?> Expression
+                let arg1 = lhsStack.Pop() :?> BlockOpen
+                let reductionResult = TerminalEnclosedExpression.Block (arg1, arg2, arg3)
                 lhsStack.Push(reductionResult)
                 let nextState =
                     match stateStack.Peek() with
@@ -3329,8 +3503,10 @@ let parse (input: #seq<InputItem>) : Result<Program, ParseError> =
                 stateStack.Pop() |> ignore
                 stateStack.Pop() |> ignore
                 stateStack.Pop() |> ignore
-                let arg1 = lhsStack.Pop() :?> Expression
-                let reductionResult = TerminalEnclosedExpression.Block arg1
+                let arg3 = lhsStack.Pop() :?> BlockClose
+                let arg2 = lhsStack.Pop() :?> Expression
+                let arg1 = lhsStack.Pop() :?> BlockOpen
+                let reductionResult = TerminalEnclosedExpression.Block (arg1, arg2, arg3)
                 lhsStack.Push(reductionResult)
                 let nextState =
                     match stateStack.Peek() with
@@ -3350,7 +3526,7 @@ let parse (input: #seq<InputItem>) : Result<Program, ParseError> =
                 stateStack.Push(nextState)
             | _ ->
                 // error
-                expected <- [ExpectedItem.EndOfStream; ExpectedItem.Asterisk; ExpectedItem.BlockClose; ExpectedItem.BlockOpen; ExpectedItem.Break; ExpectedItem.DoubleQuotedString; ExpectedItem.Identifier; ExpectedItem.InvalidToken; ExpectedItem.Minus; ExpectedItem.NumberLiteral; ExpectedItem.ParenClose; ExpectedItem.ParenOpen; ExpectedItem.Plus; ExpectedItem.Slash]
+                expected <- [ ExpectedItem.EndOfStream; ExpectedItem.Asterisk; ExpectedItem.BlockClose; ExpectedItem.BlockOpen; ExpectedItem.Break; ExpectedItem.DoubleQuotedString; ExpectedItem.Identifier; ExpectedItem.InvalidToken; ExpectedItem.Minus; ExpectedItem.NumberLiteral; ExpectedItem.ParenClose; ExpectedItem.ParenOpen; ExpectedItem.Plus; ExpectedItem.Slash ]
                 keepGoing <- false
         | 29 ->
             match lookahead with
@@ -3664,7 +3840,7 @@ let parse (input: #seq<InputItem>) : Result<Program, ParseError> =
                 stateStack.Push(nextState)
             | _ ->
                 // error
-                expected <- [ExpectedItem.EndOfStream; ExpectedItem.Asterisk; ExpectedItem.BlockClose; ExpectedItem.BlockOpen; ExpectedItem.Break; ExpectedItem.DoubleQuotedString; ExpectedItem.Identifier; ExpectedItem.InvalidToken; ExpectedItem.Minus; ExpectedItem.NumberLiteral; ExpectedItem.ParenClose; ExpectedItem.ParenOpen; ExpectedItem.Plus; ExpectedItem.Slash]
+                expected <- [ ExpectedItem.EndOfStream; ExpectedItem.Asterisk; ExpectedItem.BlockClose; ExpectedItem.BlockOpen; ExpectedItem.Break; ExpectedItem.DoubleQuotedString; ExpectedItem.Identifier; ExpectedItem.InvalidToken; ExpectedItem.Minus; ExpectedItem.NumberLiteral; ExpectedItem.ParenClose; ExpectedItem.ParenOpen; ExpectedItem.Plus; ExpectedItem.Slash ]
                 keepGoing <- false
         | 30 ->
             match lookahead with
@@ -3978,7 +4154,7 @@ let parse (input: #seq<InputItem>) : Result<Program, ParseError> =
                 stateStack.Push(nextState)
             | _ ->
                 // error
-                expected <- [ExpectedItem.EndOfStream; ExpectedItem.Asterisk; ExpectedItem.BlockClose; ExpectedItem.BlockOpen; ExpectedItem.Break; ExpectedItem.DoubleQuotedString; ExpectedItem.Identifier; ExpectedItem.InvalidToken; ExpectedItem.Minus; ExpectedItem.NumberLiteral; ExpectedItem.ParenClose; ExpectedItem.ParenOpen; ExpectedItem.Plus; ExpectedItem.Slash]
+                expected <- [ ExpectedItem.EndOfStream; ExpectedItem.Asterisk; ExpectedItem.BlockClose; ExpectedItem.BlockOpen; ExpectedItem.Break; ExpectedItem.DoubleQuotedString; ExpectedItem.Identifier; ExpectedItem.InvalidToken; ExpectedItem.Minus; ExpectedItem.NumberLiteral; ExpectedItem.ParenClose; ExpectedItem.ParenOpen; ExpectedItem.Plus; ExpectedItem.Slash ]
                 keepGoing <- false
         | 31 ->
             match lookahead with
@@ -4292,7 +4468,7 @@ let parse (input: #seq<InputItem>) : Result<Program, ParseError> =
                 stateStack.Push(nextState)
             | _ ->
                 // error
-                expected <- [ExpectedItem.EndOfStream; ExpectedItem.Asterisk; ExpectedItem.BlockClose; ExpectedItem.BlockOpen; ExpectedItem.Break; ExpectedItem.DoubleQuotedString; ExpectedItem.Identifier; ExpectedItem.InvalidToken; ExpectedItem.Minus; ExpectedItem.NumberLiteral; ExpectedItem.ParenClose; ExpectedItem.ParenOpen; ExpectedItem.Plus; ExpectedItem.Slash]
+                expected <- [ ExpectedItem.EndOfStream; ExpectedItem.Asterisk; ExpectedItem.BlockClose; ExpectedItem.BlockOpen; ExpectedItem.Break; ExpectedItem.DoubleQuotedString; ExpectedItem.Identifier; ExpectedItem.InvalidToken; ExpectedItem.Minus; ExpectedItem.NumberLiteral; ExpectedItem.ParenClose; ExpectedItem.ParenOpen; ExpectedItem.Plus; ExpectedItem.Slash ]
                 keepGoing <- false
         | 32 ->
             match lookahead with
@@ -4606,12 +4782,17 @@ let parse (input: #seq<InputItem>) : Result<Program, ParseError> =
                 stateStack.Push(nextState)
             | _ ->
                 // error
-                expected <- [ExpectedItem.EndOfStream; ExpectedItem.Asterisk; ExpectedItem.BlockClose; ExpectedItem.BlockOpen; ExpectedItem.Break; ExpectedItem.DoubleQuotedString; ExpectedItem.Identifier; ExpectedItem.InvalidToken; ExpectedItem.Minus; ExpectedItem.NumberLiteral; ExpectedItem.ParenClose; ExpectedItem.ParenOpen; ExpectedItem.Plus; ExpectedItem.Slash]
+                expected <- [ ExpectedItem.EndOfStream; ExpectedItem.Asterisk; ExpectedItem.BlockClose; ExpectedItem.BlockOpen; ExpectedItem.Break; ExpectedItem.DoubleQuotedString; ExpectedItem.Identifier; ExpectedItem.InvalidToken; ExpectedItem.Minus; ExpectedItem.NumberLiteral; ExpectedItem.ParenClose; ExpectedItem.ParenOpen; ExpectedItem.Plus; ExpectedItem.Slash ]
                 keepGoing <- false
         | 33 ->
             match lookahead with
-            | InputItem.ParenClose ->
+            | _ when lookaheadIsEof ->
+                // error
+                expected <- [ ExpectedItem.ParenClose ]
+                keepGoing <- false
+            | InputItem.ParenClose x ->
                 // shift
+                lhsStack.Push(x)
                 if inputEnumerator.MoveNext() then
                     lookahead <- inputEnumerator.Current
                 else
@@ -4619,7 +4800,7 @@ let parse (input: #seq<InputItem>) : Result<Program, ParseError> =
                 stateStack.Push(34)
             | _ ->
                 // error
-                expected <- [ExpectedItem.ParenClose]
+                expected <- [ ExpectedItem.ParenClose ]
                 keepGoing <- false
         | 34 ->
             match lookahead with
@@ -4628,8 +4809,10 @@ let parse (input: #seq<InputItem>) : Result<Program, ParseError> =
                 stateStack.Pop() |> ignore
                 stateStack.Pop() |> ignore
                 stateStack.Pop() |> ignore
-                let arg1 = lhsStack.Pop() :?> Expression
-                let reductionResult = TerminalEnclosedExpression.Paren arg1
+                let arg3 = lhsStack.Pop() :?> ParenClose
+                let arg2 = lhsStack.Pop() :?> Expression
+                let arg1 = lhsStack.Pop() :?> ParenOpen
+                let reductionResult = TerminalEnclosedExpression.Paren (arg1, arg2, arg3)
                 lhsStack.Push(reductionResult)
                 let nextState =
                     match stateStack.Peek() with
@@ -4652,8 +4835,10 @@ let parse (input: #seq<InputItem>) : Result<Program, ParseError> =
                 stateStack.Pop() |> ignore
                 stateStack.Pop() |> ignore
                 stateStack.Pop() |> ignore
-                let arg1 = lhsStack.Pop() :?> Expression
-                let reductionResult = TerminalEnclosedExpression.Paren arg1
+                let arg3 = lhsStack.Pop() :?> ParenClose
+                let arg2 = lhsStack.Pop() :?> Expression
+                let arg1 = lhsStack.Pop() :?> ParenOpen
+                let reductionResult = TerminalEnclosedExpression.Paren (arg1, arg2, arg3)
                 lhsStack.Push(reductionResult)
                 let nextState =
                     match stateStack.Peek() with
@@ -4676,8 +4861,10 @@ let parse (input: #seq<InputItem>) : Result<Program, ParseError> =
                 stateStack.Pop() |> ignore
                 stateStack.Pop() |> ignore
                 stateStack.Pop() |> ignore
-                let arg1 = lhsStack.Pop() :?> Expression
-                let reductionResult = TerminalEnclosedExpression.Paren arg1
+                let arg3 = lhsStack.Pop() :?> ParenClose
+                let arg2 = lhsStack.Pop() :?> Expression
+                let arg1 = lhsStack.Pop() :?> ParenOpen
+                let reductionResult = TerminalEnclosedExpression.Paren (arg1, arg2, arg3)
                 lhsStack.Push(reductionResult)
                 let nextState =
                     match stateStack.Peek() with
@@ -4700,8 +4887,10 @@ let parse (input: #seq<InputItem>) : Result<Program, ParseError> =
                 stateStack.Pop() |> ignore
                 stateStack.Pop() |> ignore
                 stateStack.Pop() |> ignore
-                let arg1 = lhsStack.Pop() :?> Expression
-                let reductionResult = TerminalEnclosedExpression.Paren arg1
+                let arg3 = lhsStack.Pop() :?> ParenClose
+                let arg2 = lhsStack.Pop() :?> Expression
+                let arg1 = lhsStack.Pop() :?> ParenOpen
+                let reductionResult = TerminalEnclosedExpression.Paren (arg1, arg2, arg3)
                 lhsStack.Push(reductionResult)
                 let nextState =
                     match stateStack.Peek() with
@@ -4724,8 +4913,10 @@ let parse (input: #seq<InputItem>) : Result<Program, ParseError> =
                 stateStack.Pop() |> ignore
                 stateStack.Pop() |> ignore
                 stateStack.Pop() |> ignore
-                let arg1 = lhsStack.Pop() :?> Expression
-                let reductionResult = TerminalEnclosedExpression.Paren arg1
+                let arg3 = lhsStack.Pop() :?> ParenClose
+                let arg2 = lhsStack.Pop() :?> Expression
+                let arg1 = lhsStack.Pop() :?> ParenOpen
+                let reductionResult = TerminalEnclosedExpression.Paren (arg1, arg2, arg3)
                 lhsStack.Push(reductionResult)
                 let nextState =
                     match stateStack.Peek() with
@@ -4748,8 +4939,10 @@ let parse (input: #seq<InputItem>) : Result<Program, ParseError> =
                 stateStack.Pop() |> ignore
                 stateStack.Pop() |> ignore
                 stateStack.Pop() |> ignore
-                let arg1 = lhsStack.Pop() :?> Expression
-                let reductionResult = TerminalEnclosedExpression.Paren arg1
+                let arg3 = lhsStack.Pop() :?> ParenClose
+                let arg2 = lhsStack.Pop() :?> Expression
+                let arg1 = lhsStack.Pop() :?> ParenOpen
+                let reductionResult = TerminalEnclosedExpression.Paren (arg1, arg2, arg3)
                 lhsStack.Push(reductionResult)
                 let nextState =
                     match stateStack.Peek() with
@@ -4772,8 +4965,10 @@ let parse (input: #seq<InputItem>) : Result<Program, ParseError> =
                 stateStack.Pop() |> ignore
                 stateStack.Pop() |> ignore
                 stateStack.Pop() |> ignore
-                let arg1 = lhsStack.Pop() :?> Expression
-                let reductionResult = TerminalEnclosedExpression.Paren arg1
+                let arg3 = lhsStack.Pop() :?> ParenClose
+                let arg2 = lhsStack.Pop() :?> Expression
+                let arg1 = lhsStack.Pop() :?> ParenOpen
+                let reductionResult = TerminalEnclosedExpression.Paren (arg1, arg2, arg3)
                 lhsStack.Push(reductionResult)
                 let nextState =
                     match stateStack.Peek() with
@@ -4796,8 +4991,10 @@ let parse (input: #seq<InputItem>) : Result<Program, ParseError> =
                 stateStack.Pop() |> ignore
                 stateStack.Pop() |> ignore
                 stateStack.Pop() |> ignore
-                let arg1 = lhsStack.Pop() :?> Expression
-                let reductionResult = TerminalEnclosedExpression.Paren arg1
+                let arg3 = lhsStack.Pop() :?> ParenClose
+                let arg2 = lhsStack.Pop() :?> Expression
+                let arg1 = lhsStack.Pop() :?> ParenOpen
+                let reductionResult = TerminalEnclosedExpression.Paren (arg1, arg2, arg3)
                 lhsStack.Push(reductionResult)
                 let nextState =
                     match stateStack.Peek() with
@@ -4820,8 +5017,10 @@ let parse (input: #seq<InputItem>) : Result<Program, ParseError> =
                 stateStack.Pop() |> ignore
                 stateStack.Pop() |> ignore
                 stateStack.Pop() |> ignore
-                let arg1 = lhsStack.Pop() :?> Expression
-                let reductionResult = TerminalEnclosedExpression.Paren arg1
+                let arg3 = lhsStack.Pop() :?> ParenClose
+                let arg2 = lhsStack.Pop() :?> Expression
+                let arg1 = lhsStack.Pop() :?> ParenOpen
+                let reductionResult = TerminalEnclosedExpression.Paren (arg1, arg2, arg3)
                 lhsStack.Push(reductionResult)
                 let nextState =
                     match stateStack.Peek() with
@@ -4844,8 +5043,10 @@ let parse (input: #seq<InputItem>) : Result<Program, ParseError> =
                 stateStack.Pop() |> ignore
                 stateStack.Pop() |> ignore
                 stateStack.Pop() |> ignore
-                let arg1 = lhsStack.Pop() :?> Expression
-                let reductionResult = TerminalEnclosedExpression.Paren arg1
+                let arg3 = lhsStack.Pop() :?> ParenClose
+                let arg2 = lhsStack.Pop() :?> Expression
+                let arg1 = lhsStack.Pop() :?> ParenOpen
+                let reductionResult = TerminalEnclosedExpression.Paren (arg1, arg2, arg3)
                 lhsStack.Push(reductionResult)
                 let nextState =
                     match stateStack.Peek() with
@@ -4868,8 +5069,10 @@ let parse (input: #seq<InputItem>) : Result<Program, ParseError> =
                 stateStack.Pop() |> ignore
                 stateStack.Pop() |> ignore
                 stateStack.Pop() |> ignore
-                let arg1 = lhsStack.Pop() :?> Expression
-                let reductionResult = TerminalEnclosedExpression.Paren arg1
+                let arg3 = lhsStack.Pop() :?> ParenClose
+                let arg2 = lhsStack.Pop() :?> Expression
+                let arg1 = lhsStack.Pop() :?> ParenOpen
+                let reductionResult = TerminalEnclosedExpression.Paren (arg1, arg2, arg3)
                 lhsStack.Push(reductionResult)
                 let nextState =
                     match stateStack.Peek() with
@@ -4892,8 +5095,10 @@ let parse (input: #seq<InputItem>) : Result<Program, ParseError> =
                 stateStack.Pop() |> ignore
                 stateStack.Pop() |> ignore
                 stateStack.Pop() |> ignore
-                let arg1 = lhsStack.Pop() :?> Expression
-                let reductionResult = TerminalEnclosedExpression.Paren arg1
+                let arg3 = lhsStack.Pop() :?> ParenClose
+                let arg2 = lhsStack.Pop() :?> Expression
+                let arg1 = lhsStack.Pop() :?> ParenOpen
+                let reductionResult = TerminalEnclosedExpression.Paren (arg1, arg2, arg3)
                 lhsStack.Push(reductionResult)
                 let nextState =
                     match stateStack.Peek() with
@@ -4916,8 +5121,10 @@ let parse (input: #seq<InputItem>) : Result<Program, ParseError> =
                 stateStack.Pop() |> ignore
                 stateStack.Pop() |> ignore
                 stateStack.Pop() |> ignore
-                let arg1 = lhsStack.Pop() :?> Expression
-                let reductionResult = TerminalEnclosedExpression.Paren arg1
+                let arg3 = lhsStack.Pop() :?> ParenClose
+                let arg2 = lhsStack.Pop() :?> Expression
+                let arg1 = lhsStack.Pop() :?> ParenOpen
+                let reductionResult = TerminalEnclosedExpression.Paren (arg1, arg2, arg3)
                 lhsStack.Push(reductionResult)
                 let nextState =
                     match stateStack.Peek() with
@@ -4940,8 +5147,10 @@ let parse (input: #seq<InputItem>) : Result<Program, ParseError> =
                 stateStack.Pop() |> ignore
                 stateStack.Pop() |> ignore
                 stateStack.Pop() |> ignore
-                let arg1 = lhsStack.Pop() :?> Expression
-                let reductionResult = TerminalEnclosedExpression.Paren arg1
+                let arg3 = lhsStack.Pop() :?> ParenClose
+                let arg2 = lhsStack.Pop() :?> Expression
+                let arg1 = lhsStack.Pop() :?> ParenOpen
+                let reductionResult = TerminalEnclosedExpression.Paren (arg1, arg2, arg3)
                 lhsStack.Push(reductionResult)
                 let nextState =
                     match stateStack.Peek() with
@@ -4961,7 +5170,7 @@ let parse (input: #seq<InputItem>) : Result<Program, ParseError> =
                 stateStack.Push(nextState)
             | _ ->
                 // error
-                expected <- [ExpectedItem.EndOfStream; ExpectedItem.Asterisk; ExpectedItem.BlockClose; ExpectedItem.BlockOpen; ExpectedItem.Break; ExpectedItem.DoubleQuotedString; ExpectedItem.Identifier; ExpectedItem.InvalidToken; ExpectedItem.Minus; ExpectedItem.NumberLiteral; ExpectedItem.ParenClose; ExpectedItem.ParenOpen; ExpectedItem.Plus; ExpectedItem.Slash]
+                expected <- [ ExpectedItem.EndOfStream; ExpectedItem.Asterisk; ExpectedItem.BlockClose; ExpectedItem.BlockOpen; ExpectedItem.Break; ExpectedItem.DoubleQuotedString; ExpectedItem.Identifier; ExpectedItem.InvalidToken; ExpectedItem.Minus; ExpectedItem.NumberLiteral; ExpectedItem.ParenClose; ExpectedItem.ParenOpen; ExpectedItem.Plus; ExpectedItem.Slash ]
                 keepGoing <- false
         | _ -> failwith "Parser is in an invalid state. This is a bug in the parser generator."
 

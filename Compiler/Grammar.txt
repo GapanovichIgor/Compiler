@@ -1,3 +1,14 @@
+Asterisk : PositionInSource
+BlockOpen : PositionInSource
+BlockClose : PositionInSource
+Break : PositionInSource
+Equals : PositionInSource
+Let : PositionInSource
+Minus : PositionInSource
+ParenOpen : PositionInSource
+ParenClose : PositionInSource
+Plus : PositionInSource
+Slash : PositionInSource
 NumberLiteral : int * int option * PositionInSource
 DoubleQuotedString : string * PositionInSource
 Identifier : string * PositionInSource

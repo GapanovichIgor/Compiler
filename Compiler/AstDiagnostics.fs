@@ -11,9 +11,9 @@ let rec private traverseExpression (e: Expression) : Problem list =
     | Application(fn, argument) -> traverseExpression fn @ traverseExpression argument
     | Binding(_, _, body) -> traverseExpression body
     | Sequence expressions -> expressions |> List.map traverseExpression |> List.concat
-    | InvalidToken (text, position) ->
+    | InvalidToken text ->
         [ { level = LevelError
-            positionInSource = position
+            positionInSource = e.positionInSource
             description = $"Invalid token '%s{text}'" } ]
 
 let get (ast: Program) : Diagnostics =

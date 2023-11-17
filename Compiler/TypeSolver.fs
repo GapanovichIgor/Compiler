@@ -232,6 +232,8 @@ type private TypeContext() =
 
 let private traverseExpression (ctx: TypeContext) (e: Expression) =
     match e.expressionShape with
+    | InvalidToken _ ->
+        () // TODO should have unconstrained type
     | IdentifierReference identifier ->
         let identifierType = ctx.GetIdentifierTypeReference(identifier)
         ctx.ConstrainSame(e.expressionType, identifierType)
@@ -286,8 +288,6 @@ type TypeInformation =
       identifierTypes: Map<Identifier, Type> }
 
 let getTypeInformation (ast: Program) : TypeInformation =
-    failwith "TODO"
-
     let context = TypeContext()
 
     let addBuiltIn (identifier: Identifier) (t: Type) =

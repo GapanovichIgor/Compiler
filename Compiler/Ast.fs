@@ -43,10 +43,11 @@ type ExpressionShape =
     | Application of fn: Expression * argument: Expression
     | Binding of identifier: Identifier * parameters: Identifier list * body: Expression
     | Sequence of expressions: Expression list
-    | InvalidToken of text: string * positionInSource: PositionInSource
+    | InvalidToken of text: string
 
 type Expression =
     { expressionShape: ExpressionShape
-      expressionType: TypeReference }
+      expressionType: TypeReference
+      positionInSource: PositionInSource }
 
 type Program = Program of Expression
