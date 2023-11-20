@@ -13,3 +13,5 @@ type Diagnostics =
     { problems: Problem list }
 
     member this.hasProblems = this.problems |> List.isEmpty |> not
+
+    member this.hasErrors = this.problems |> List.exists (fun p -> p.level = LevelError)

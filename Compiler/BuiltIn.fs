@@ -1,26 +1,28 @@
 ﻿module internal Compiler.BuiltIn
 
-open Compiler.Type
+module AtomTypeIds =
+    let unit = AtomTypeId("Unit")
+    let int = AtomTypeId("Int")
+    let float = AtomTypeId("Float")
+    let string = AtomTypeId("String")
 
 module Types =
-    let private create name = FixedType (TypeIdentifier.Create(name))
+    open AtomTypeIds
 
-    let unit = create "Unit"
-    let int = create "Int"
-    let float = create "Float"
-    let string = create "String"
+    let unit = AtomType unit
+    let int = AtomType int
+    let float = AtomType float
+    let string = AtomType string
 
 module Identifiers =
-    open type Ast.Identifier
-
-    let opAdd = Create "opAdd"
-    let opSubtract = Create "opSubtract"
-    let opMultiply = Create "opMultiply"
-    let opDivide = Create "opDivide"
-    let println = Create "println"
-    let intToStr = Create "intToStr"
-    let intToStrFmt = Create "intToStrFmt"
-    let floatToStr = Create "floatToStr"
+    let opAdd = Identifier.Create "opAdd"
+    let opSubtract = Identifier.Create "opSubtract"
+    let opMultiply = Identifier.Create "opMultiply"
+    let opDivide = Identifier.Create "opDivide"
+    let println = Identifier.Create "println"
+    let intToStr = Identifier.Create "intToStr"
+    let intToStrFmt = Identifier.Create "intToStrFmt"
+    let floatToStr = Identifier.Create "floatToStr"
 
 module IdentifierTypes =
     open Types

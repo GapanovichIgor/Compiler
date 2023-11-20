@@ -1,2 +1,2 @@
 let id x = x
-println (intToStr (id 1))
+println (id "a")

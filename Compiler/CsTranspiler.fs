@@ -1,23 +1,22 @@
 ﻿module internal rec Compiler.CsTranspiler
 
 open System.Collections.Generic
-open Compiler.Type
 
 type private TypeInformation =
     { getExpressionType: Ast.Expression -> CsAst.Type option
-      getIdentifierType: Ast.Identifier -> CsAst.Type }
+      getIdentifierType: Identifier -> CsAst.Type }
 
 type private EnclosingFunctionBodyContext =
     { addStatement: CsAst.Statement -> unit
       createIdentifier: unit -> CsAst.Identifier
-      mapIdentifier: Ast.Identifier -> CsAst.Identifier
+      mapIdentifier: Identifier -> CsAst.Identifier
       typeInformation: TypeInformation
       getStatements: unit -> CsAst.Statement list }
 
 let private createEnclosingFunctionBodyContext (typeInformation: TypeInformation) =
     let statements = List()
     let identifierNameSet = HashSet<string>()
-    let identifierMap = Dictionary<Ast.Identifier, CsAst.Identifier>()
+    let identifierMap = Dictionary<Identifier, CsAst.Identifier>()
 
     let mutable identifierNameCounter = 0
 
@@ -25,7 +24,7 @@ let private createEnclosingFunctionBodyContext (typeInformation: TypeInformation
         let createId () =
             identifierNameCounter <- identifierNameCounter + 1
             baseName + string identifierNameCounter
-            |> Ast.Identifier.Create
+            |> Identifier.Create
 
         let mutable identifier = createId ()
 
@@ -39,7 +38,7 @@ let private createEnclosingFunctionBodyContext (typeInformation: TypeInformation
         identifierMap[i] <- i.Name
         i.Name
 
-    let mapIdentifier (identifier: Ast.Identifier) =
+    let mapIdentifier (identifier: Identifier) =
         match identifierMap.TryGetValue(identifier) with
         | true, identifierName -> identifierName
         | false, _ ->
@@ -68,7 +67,7 @@ let private createEnclosingFunctionBodyContext (typeInformation: TypeInformation
 
 let private (|Is|_|) v1 v2 = if v1 = v2 then Some() else None
 
-let private mapBinaryOperator (operator: Ast.Identifier) =
+let private mapBinaryOperator (operator: Identifier) =
     match operator with
     | Is BuiltIn.Identifiers.opAdd -> Some CsAst.BinaryOperator.Add
     | Is BuiltIn.Identifiers.opSubtract -> Some CsAst.BinaryOperator.Subtract
@@ -78,15 +77,15 @@ let private mapBinaryOperator (operator: Ast.Identifier) =
 
 let private (|BinaryOp|_|) identifier = mapBinaryOperator identifier
 
-let private mapToCsType (t: Type) : CsAst.Type option =
+let private mapTypeToCsType (t: Type) : CsAst.Type option =
     match t with
     | Is BuiltIn.Types.int -> CsAst.Type.ValueType "System.Int32" |> Some
     | Is BuiltIn.Types.float -> CsAst.Type.ValueType "System.Single" |> Some
     | Is BuiltIn.Types.string -> CsAst.Type.ValueType "System.String" |> Some
     | Is BuiltIn.Types.unit -> None
     | FunctionType(parameterType, resultType) ->
-        let parameterType = mapToCsType parameterType
-        let resultType = mapToCsType resultType
+        let parameterType = mapTypeToCsType parameterType
+        let resultType = mapTypeToCsType resultType
 
         let parameterTypes =
             match parameterType with
@@ -95,6 +94,11 @@ let private mapToCsType (t: Type) : CsAst.Type option =
 
         CsAst.Type.FunctionType(parameterTypes, resultType) |> Some
     | _ -> None
+
+let private mapTypeConstructorToCsType (typeCtor: TypeConstructor) : CsAst.Type option =
+    match typeCtor with
+    | NullaryTypeConstructor t -> mapTypeToCsType t
+    | TypeConstructor _ -> None
 
 let private mapExpression (ctx: EnclosingFunctionBodyContext) (e: Ast.Expression) : CsAst.Expression option =
     match e.expressionShape with
@@ -239,12 +243,12 @@ let private mapFunctionBody (typeInfo: TypeInformation) (e: Ast.Expression) : Cs
 
     ctx.getStatements ()
 
-let transpile (ast: Ast.Program, typeInformation: TypeSolver.TypeInformation) : CsAst.Program =
+let transpile (ast: Ast.Program, typeInformation: TypeSolver.TypeMap) : CsAst.Program =
     let (Ast.Program e) = ast
 
     let typeInformation =
-        { getExpressionType = fun e -> typeInformation.typeReferenceTypes[e.expressionType] |> mapToCsType
-          getIdentifierType = fun i -> typeInformation.identifierTypes[i] |> mapToCsType |> Option.get }
+        { getExpressionType = fun e -> typeInformation.typeReferenceTypes[e.expressionType] |> mapTypeConstructorToCsType
+          getIdentifierType = fun i -> typeInformation.identifierTypes[i] |> mapTypeConstructorToCsType |> Option.get }
 
     let statements = mapFunctionBody typeInformation e
 

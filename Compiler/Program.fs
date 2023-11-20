@@ -63,12 +63,11 @@ let private generateCsProject (sourceFilePath: string, outputDir: string) =
 
     let astDiagnostics = AstDiagnostics.get ast
 
-    OutputMessaging.printDiagnostics sourceCode astDiagnostics
-
-    if astDiagnostics.hasProblems then
+    if astDiagnostics.hasErrors then
+        OutputMessaging.printDiagnostics sourceCode astDiagnostics
         fail ()
 
-    let typeMap = TypeSolver.getTypeInformation ast
+    let typeMap = TypeSolver.getTypeMap ast
 
     let csAst = CsTranspiler.transpile (ast, typeMap)
 

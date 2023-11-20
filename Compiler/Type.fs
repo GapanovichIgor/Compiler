@@ -1,35 +1,40 @@
-﻿module internal Compiler.Type
+﻿namespace Compiler
 
 open System
 open System.Diagnostics
 
 [<DebuggerDisplay("{ToString()}")>]
-type TypeIdentifier =
-    private
-    | TypeIdentifier of string
+type internal AtomTypeId(hint: string) =
+    new() = AtomTypeId("AtomTypeId(" + Guid.NewGuid().ToString() + ")")
 
-    static member Create(identifier: string) =
-        if identifier.Length = 0 then
-            failwith "Type identifier can not be empty"
-        elif not (Char.IsLetter identifier[0]) then
-            failwith "Type identifier must start with a letter"
-        elif identifier |> Seq.exists (Char.IsLetterOrDigit >> not) then
-            failwith "Type identifier must only contain letters and digits"
-
-        TypeIdentifier identifier
-
-    override this.ToString() =
-        let (TypeIdentifier identifierString) = this
-        identifierString
+    override this.ToString() = hint
 
 [<DebuggerDisplay("{ToString()}")>]
-type Type =
-    | FixedType of TypeIdentifier
+type internal VariableTypeId(hint: string) =
+    new() = VariableTypeId("VariableTypeId(" + Guid.NewGuid().ToString() + ")")
+
+    override this.ToString() = hint
+
+[<DebuggerDisplay("{ToString()}")>]
+type internal TypeReference private (hint: string, hasHint: bool) =
+    member val private test = Guid.NewGuid()
+
+    new() = TypeReference("TypeReference(" + Guid.NewGuid().ToString() + ")", false)
+    new(hint: string) = TypeReference(hint, true)
+
+    member _.HasHint = hasHint
+
+    override this.ToString() = hint
+
+[<DebuggerDisplay("{ToString()}")>]
+type internal Type =
+    | AtomType of AtomTypeId
     | FunctionType of parameter: Type * result: Type
+    | VariableType of VariableTypeId
 
     override this.ToString() =
         match this with
-        | FixedType typeIdentifier -> typeIdentifier.ToString()
+        | AtomType atomTypeId -> atomTypeId.ToString()
         | FunctionType(parameter, result) ->
             let parameter =
                 match parameter with
@@ -37,3 +42,21 @@ type Type =
                 | _ -> parameter.ToString()
 
             $"{parameter} -> {result}"
+        | VariableType varTypeId -> varTypeId.ToString()
+
+[<DebuggerDisplay("{ToString()}")>]
+type internal TypeConstructor =
+    | NullaryTypeConstructor of Type
+    | TypeConstructor of parameter: VariableTypeId * result: TypeConstructor
+
+    override this.ToString() =
+        let rec loop typeCtor arity =
+            match typeCtor with
+            | NullaryTypeConstructor t -> (t, arity)
+            | TypeConstructor(_, subCtor) -> loop subCtor (arity + 1)
+
+        let resultType, arity = loop this 0
+
+        let shapeText = Seq.replicate (arity + 1) "*" |> String.concat " -> "
+
+        $"{shapeText} ({resultType})"

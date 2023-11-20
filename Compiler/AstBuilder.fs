@@ -1,16 +1,16 @@
 ﻿module internal rec Compiler.AstBuilder
 
 type private LexicalContext =
-    { identifiers: Map<string, Ast.Identifier> }
+    { identifiers: Map<string, Identifier> }
 
     static member Empty = { identifiers = Map.empty }
 
-    member this.AttachIdentifier(identifier: Ast.Identifier) =
+    member this.AttachIdentifier(identifier: Identifier) =
         { this with
             identifiers = this.identifiers |> Map.add identifier.Name identifier }
 
     member this.CreateIdentifier(identifierName: string) =
-        let identifier = Ast.Identifier.Create(identifierName)
+        let identifier = Identifier.Create(identifierName)
 
         let newContext =
             { this with
@@ -22,8 +22,18 @@ type private LexicalContext =
         this.identifiers |> Map.find identifierName
 
 let private expression (shape, position) : Ast.Expression =
+    let typeRefHint =
+        match shape with
+        | Ast.IdentifierReference identifier -> $"identifier ref {identifier.Name}"
+        | Ast.NumberLiteral _ -> "number literal"
+        | Ast.StringLiteral _ -> "string literal"
+        | Ast.Application _ -> "application"
+        | Ast.Binding _ -> "binding"
+        | Ast.Sequence _ -> "sequence"
+        | Ast.InvalidToken _ -> "invalid token"
+
     { expressionShape = shape
-      expressionType = Ast.TypeReference.Create()
+      expressionType = TypeReference(typeRefHint)
       positionInSource = position }
 
 let private mapTerminalEnclosedExpression (ctx: LexicalContext) (e: Parser.TerminalEnclosedExpression) : Ast.Expression * LexicalContext =
