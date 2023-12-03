@@ -9,6 +9,7 @@
     </PropertyGroup>
 
     <ItemGroup>
+        <Compile Include="TestFramework.fs" />
         <Compile Include="TypeGraphTests.fs" />
         <Compile Include="NodeTests.fs" />
         <Compile Include="Program.fs"/>
