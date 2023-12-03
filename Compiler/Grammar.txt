@@ -1,18 +1,18 @@
-Asterisk : PositionInSource
-BlockOpen : PositionInSource
-BlockClose : PositionInSource
-Break : PositionInSource
-Equals : PositionInSource
-Let : PositionInSource
-Minus : PositionInSource
-ParenOpen : PositionInSource
-ParenClose : PositionInSource
-Plus : PositionInSource
-Slash : PositionInSource
-NumberLiteral : int * int option * PositionInSource
-DoubleQuotedString : string * PositionInSource
-Identifier : string * PositionInSource
-InvalidToken : string * PositionInSource
+Asterisk : Common.PositionInSource
+BlockOpen : Common.PositionInSource
+BlockClose : Common.PositionInSource
+Break : Common.PositionInSource
+Equals : Common.PositionInSource
+Let : Common.PositionInSource
+Minus : Common.PositionInSource
+ParenOpen : Common.PositionInSource
+ParenClose : Common.PositionInSource
+Plus : Common.PositionInSource
+Slash : Common.PositionInSource
+NumberLiteral : int * int option * Common.PositionInSource
+DoubleQuotedString : string * Common.PositionInSource
+Identifier : string * Common.PositionInSource
+InvalidToken : string * Common.PositionInSource
 
 Program -> Expression
 

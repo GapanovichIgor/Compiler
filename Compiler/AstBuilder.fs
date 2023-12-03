@@ -1,5 +1,7 @@
 ﻿module internal rec Compiler.AstBuilder
 
+open Common
+
 type private LexicalContext =
     { identifiers: Map<string, Identifier> }
 
@@ -99,7 +101,7 @@ let private mapBindingParameters (ctx: LexicalContext) (e: Parser.BindingParamet
     | Parser.BindingParameters.Cons(head, (parameterName, _)) ->
         let parameter, ctx = ctx.CreateIdentifier(parameterName)
         let headParameters, ctx = mapBindingParameters ctx head
-        let parameters = parameter :: headParameters
+        let parameters = headParameters @ [ parameter ]
         parameters, ctx
 
 let private mapBindingExpression (ctx: LexicalContext) (e: Parser.BindingExpression) =
@@ -108,7 +110,8 @@ let private mapBindingExpression (ctx: LexicalContext) (e: Parser.BindingExpress
         let parameters, subCtx = mapBindingParameters ctx parameters
         let value, _ = mapArithmeticSecondOrderExpr subCtx value
         let identifier, ctx = ctx.CreateIdentifier(identifierName)
-        let binding = Ast.Binding(identifier, parameters, value)
+        let typeScopeRef = TypeScopeReference($"generic scope of binding {identifier}")
+        let binding = Ast.Binding(identifier, typeScopeRef, parameters, value)
         let pos = PositionInSource.fromTo let_ value.positionInSource
         expression (binding, pos), ctx
     | Parser.BindingExpression.Fallthrough e -> mapArithmeticSecondOrderExpr ctx e

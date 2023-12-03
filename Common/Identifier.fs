@@ -1,10 +1,10 @@
-﻿namespace Compiler
+﻿namespace Common
 
 open System
 open System.Diagnostics
 
 [<DebuggerDisplay("{ToString()}")>]
-type internal Identifier =
+type Identifier =
     private
         { name: string
           identity: Guid }

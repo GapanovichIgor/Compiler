@@ -1,6 +1,6 @@
 ﻿module internal Compiler.AstDiagnostics
 
-open Compiler.Ast
+open Ast
 open Compiler.Diagnostics
 
 let rec private traverseExpression (e: Expression) : Problem list =
@@ -9,7 +9,7 @@ let rec private traverseExpression (e: Expression) : Problem list =
     | NumberLiteral _
     | StringLiteral _ -> []
     | Application(fn, argument) -> traverseExpression fn @ traverseExpression argument
-    | Binding(_, _, body) -> traverseExpression body
+    | Binding(_, _, _, body) -> traverseExpression body
     | Sequence expressions -> expressions |> List.map traverseExpression |> List.concat
     | InvalidToken text ->
         [ { level = LevelError

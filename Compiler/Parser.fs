@@ -383,21 +383,21 @@ GOTO
 
 *)
 
-type Asterisk = PositionInSource
-type BlockClose = PositionInSource
-type BlockOpen = PositionInSource
-type Break = PositionInSource
-type DoubleQuotedString = string * PositionInSource
-type Equals = PositionInSource
-type Identifier = string * PositionInSource
-type InvalidToken = string * PositionInSource
-type Let = PositionInSource
-type Minus = PositionInSource
-type NumberLiteral = int * int option * PositionInSource
-type ParenClose = PositionInSource
-type ParenOpen = PositionInSource
-type Plus = PositionInSource
-type Slash = PositionInSource
+type Asterisk = Common.PositionInSource
+type BlockClose = Common.PositionInSource
+type BlockOpen = Common.PositionInSource
+type Break = Common.PositionInSource
+type DoubleQuotedString = string * Common.PositionInSource
+type Equals = Common.PositionInSource
+type Identifier = string * Common.PositionInSource
+type InvalidToken = string * Common.PositionInSource
+type Let = Common.PositionInSource
+type Minus = Common.PositionInSource
+type NumberLiteral = int * int option * Common.PositionInSource
+type ParenClose = Common.PositionInSource
+type ParenOpen = Common.PositionInSource
+type Plus = Common.PositionInSource
+type Slash = Common.PositionInSource
 
 type Application =
     | Application of Application * TerminalEnclosedExpression

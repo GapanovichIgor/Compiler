@@ -10,17 +10,11 @@
         <Content Include="Grammar.txt" />
         <Content Include="RegenerateParser.cmd" />
         <Compile Include="Utils.fs" />
-        <Compile Include="PositionInSource.fs" />
         <Compile Include="Diagnostics.fs" />
         <Compile Include="Parser.fs" />
         <Compile Include="Tokenization.fs" />
-        <Compile Include="Type.fs" />
-        <Compile Include="Identifier.fs" />
-        <Compile Include="Ast.fs" />
-        <Compile Include="BuiltIn.fs" />
         <Compile Include="AstBuilder.fs" />
         <Compile Include="AstDiagnostics.fs" />
-        <Compile Include="TypeSolver.fs" />
         <Compile Include="CsAst.fs" />
         <Compile Include="CsTranspiler.fs" />
         <Compile Include="CsCodeGenerator.fs" />
@@ -30,7 +24,10 @@
     </ItemGroup>
 
     <ItemGroup>
+      <ProjectReference Include="..\Ast\Ast.fsproj" />
+      <ProjectReference Include="..\Common\Common.fsproj" />
       <ProjectReference Include="..\Libs\ParserCombinator\ParserCombinator\ParserCombinator.fsproj" />
+      <ProjectReference Include="..\TypeSolver\TypeSolver.fsproj" />
     </ItemGroup>
 
 </Project>

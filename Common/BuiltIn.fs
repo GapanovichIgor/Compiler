@@ -1,4 +1,4 @@
-﻿module internal Compiler.BuiltIn
+﻿module Common.BuiltIn
 
 module AtomTypeIds =
     let unit = AtomTypeId("Unit")

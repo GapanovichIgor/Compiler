@@ -1,5 +1,7 @@
 ﻿module Compiler.Diagnostics
 
+open Common
+
 type ProblemLevel =
     | LevelWarning
     | LevelError

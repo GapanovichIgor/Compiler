@@ -1,4 +1,4 @@
-﻿namespace Compiler
+﻿namespace Common
 
 type PositionInSource = { startIndex: int; length: int }
 

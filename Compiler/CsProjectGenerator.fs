@@ -10,6 +10,7 @@ let generate (ast: Program, outputDirectory: string) =
     let csprojFile = File.CreateText(Path.Combine(outputDirectory, "Program.csproj"))
     csprojFile.Write("""<Project Sdk="Microsoft.NET.Sdk">""")
     csprojFile.Write("""<PropertyGroup>""")
+    csprojFile.Write("""<LangVersion>11</LangVersion>""")
     csprojFile.Write("""<OutputType>Exe</OutputType>""")
     csprojFile.Write("""<TargetFramework>net7.0</TargetFramework>""")
     csprojFile.Write("""<RuntimeIdentifier>win-x64</RuntimeIdentifier>""")

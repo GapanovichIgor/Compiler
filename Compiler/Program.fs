@@ -67,7 +67,7 @@ let private generateCsProject (sourceFilePath: string, outputDir: string) =
         OutputMessaging.printDiagnostics sourceCode astDiagnostics
         fail ()
 
-    let typeMap = TypeSolver.getTypeMap ast
+    let typeMap = TypeSolver.Solver.getTypeInformation ast
 
     let csAst = CsTranspiler.transpile (ast, typeMap)
 

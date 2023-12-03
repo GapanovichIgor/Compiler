@@ -17,7 +17,7 @@ type private Output(streamWriter: StreamWriter) =
 
 let private getTypeSignature (t: Type) =
     match t with
-    | ValueType t -> t
+    | AtomType t -> t
     | FunctionType (parameters, result) ->
         match result with
         | Some result ->
@@ -77,9 +77,9 @@ let rec private generateExpression (expression: Expression) (output: Output) =
         output.Write(i)
     | Expression.NumberLiteral (i, f, t) ->
         match t with
-        | ValueType "System.Int32" ->
+        | AtomType "System.Int32" ->
             output.Write(string i)
-        | ValueType "System.Single" ->
+        | AtomType "System.Single" ->
             output.Write(string i)
             output.Write(".")
             match f with
@@ -110,10 +110,20 @@ let private generateFunctionCallStatement (functionName: Identifier, args: Expre
     generateFunctionCallExpression (functionName, args) output
     output.WriteLine(";")
 
-let private generateLocalFunction (resultType: Type option, functionName: Identifier, parameters: (Type * Identifier) list, statements: StatementSequence) (output: Output) =
+let private generateLocalFunction (resultType: Type option, functionName: Identifier, typeParameters: TypeIdentifier list, parameters: (Type * Identifier) list, statements: StatementSequence) (output: Output) =
     output.Write(getTypeOrVoidSignature resultType)
     output.Write(" ")
     output.Write(functionName)
+    if typeParameters.Length > 0 then
+        output.Write("<")
+        let mutable firstTypeParameter = true
+        for typeParameter in typeParameters do
+            if firstTypeParameter then
+                firstTypeParameter <- false
+            else
+                output.Write(", ")
+            output.Write(typeParameter)
+        output.Write(">")
     output.Write("(")
     let mutable firstParameter = true
     for paramType, paramName in parameters do
@@ -144,7 +154,7 @@ let private generateReturn (e: Expression) (output: Output) =
 let private generateStatement (statement: Statement) (output: Output) =
     match statement with
     | Statement.FunctionCall (functionName, args) -> generateFunctionCallStatement (functionName, args) output
-    | Statement.LocalFunction (resultType, functionName, parameters, statements) -> generateLocalFunction (resultType, functionName, parameters, statements) output
+    | Statement.LocalFunction (resultType, functionName, typeParameters, parameters, statements) -> generateLocalFunction (resultType, functionName, typeParameters, parameters, statements) output
     | Statement.Var (t, i, v) -> generateVar (t, i, v) output
     | Statement.Return e -> generateReturn e output
 

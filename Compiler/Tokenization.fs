@@ -8,6 +8,8 @@ open ParserCombinator.Composition
 open ParserCombinator.Primitives
 open ParserCombinator.CharPrimitives
 
+open Common
+
 type Token = Parser.InputItem
 
 type Parser.InputItem with

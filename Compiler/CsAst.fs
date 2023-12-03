@@ -2,8 +2,10 @@
 
 type Identifier = string
 
+type TypeIdentifier = string
+
 type Type =
-    | ValueType of string
+    | AtomType of TypeIdentifier
     | FunctionType of parameters: Type list * result: Type option
 
 type BinaryOperator =
@@ -22,7 +24,12 @@ type Expression =
 
 type Statement =
     | Var of variableType: Type * variableName: Identifier * assignedExpression: Expression
-    | LocalFunction of resultType: Type option * functionName: Identifier * parameters: (Type * Identifier) list * body: StatementSequence
+    | LocalFunction of
+        resultType: Type option *
+        functionName: Identifier *
+        typeParameters: TypeIdentifier list *
+        parameters: (Type * Identifier) list *
+        body: StatementSequence
     | FunctionCall of functionName: Identifier * arguments: Expression list
     | Return of Expression
 
