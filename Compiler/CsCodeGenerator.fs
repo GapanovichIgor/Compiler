@@ -50,8 +50,19 @@ let private generateBinaryOperator (operator: BinaryOperator) (output: Output) =
     | Multiply -> output.Write("*")
     | Divide -> output.Write("/")
 
-let private generateFunctionCallExpression (functionName: Identifier, args: Expression list) (output: Output) =
+let private generateFunctionCallExpression (functionName: Identifier, tArgs: Type list, args: Expression list) (output: Output) =
     output.Write(functionName)
+    if tArgs.Length > 0 then
+        output.Write("<")
+        let mutable firstArgument = true
+        for tArg in tArgs do
+            if firstArgument then
+                firstArgument <- false
+            else
+                output.Write(", ")
+
+            output.Write(getTypeSignature tArg)
+        output.Write(">")
     output.Write("(")
     let mutable firstArgument = true
     for arg in args do
@@ -101,13 +112,13 @@ let rec private generateExpression (expression: Expression) (output: Output) =
         output.Write(" ")
         generateExpression e2 output
         output.Write(")")
-    | Expression.FunctionCall (functionName, args) ->
-        generateFunctionCallExpression (functionName, args) output
+    | Expression.FunctionCall (functionName, tArgs, args) ->
+        generateFunctionCallExpression (functionName, tArgs, args) output
     | Expression.Cast (e, t) ->
         generateCast (e, t) output
 
-let private generateFunctionCallStatement (functionName: Identifier, args: Expression list) (output: Output) =
-    generateFunctionCallExpression (functionName, args) output
+let private generateFunctionCallStatement (functionName: Identifier, tArgs: Type list, args: Expression list) (output: Output) =
+    generateFunctionCallExpression (functionName, tArgs, args) output
     output.WriteLine(";")
 
 let private generateLocalFunction (resultType: Type option, functionName: Identifier, typeParameters: TypeIdentifier list, parameters: (Type * Identifier) list, statements: StatementSequence) (output: Output) =
@@ -153,7 +164,7 @@ let private generateReturn (e: Expression) (output: Output) =
 
 let private generateStatement (statement: Statement) (output: Output) =
     match statement with
-    | Statement.FunctionCall (functionName, args) -> generateFunctionCallStatement (functionName, args) output
+    | Statement.FunctionCall (functionName, tArgs, args) -> generateFunctionCallStatement (functionName, tArgs, args) output
     | Statement.LocalFunction (resultType, functionName, typeParameters, parameters, statements) -> generateLocalFunction (resultType, functionName, typeParameters, parameters, statements) output
     | Statement.Var (t, i, v) -> generateVar (t, i, v) output
     | Statement.Return e -> generateReturn e output

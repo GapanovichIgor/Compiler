@@ -190,14 +190,15 @@ let private mapExpression (ctx: EnclosingFunctionBodyContext) (e: Ast.Expression
             | Some e1, Some e2 -> CsAst.Expression.BinaryOperation(e1, op, e2) |> Some
             | _ -> failwith "Operands of a binary operation should not be statements"
         | Ast.IdentifierReference i ->
-            let arg = mapExpression ctx arg
+            let identifier = ctx.IdentifierScope.MapIdentifier i
 
+            let arg = mapExpression ctx arg
             let args =
                 match arg with
                 | Some arg -> [ arg ]
                 | None -> []
 
-            CsAst.FunctionCall(ctx.IdentifierScope.MapIdentifier i, args) |> Some
+            CsAst.FunctionCall(identifier, [], args) |> Some
         | _ ->
             let varT =
                 ctx.TypeScope.GetExpressionType(f)
@@ -209,14 +210,14 @@ let private mapExpression (ctx: EnclosingFunctionBodyContext) (e: Ast.Expression
                 mapExpression ctx f |> Option.require "Function expression must have a value"
 
             ctx.AddStatement(CsAst.Statement.Var(varT, varId, varBody))
-            let arg = mapExpression ctx arg
 
+            let arg = mapExpression ctx arg
             let args =
                 match arg with
                 | Some arg -> [ arg ]
                 | None -> []
 
-            CsAst.FunctionCall(varId, args) |> Some
+            CsAst.FunctionCall(varId, [], args) |> Some
     | Ast.Binding(identifier, _, [], body) ->
         let bodyType =
             ctx.TypeScope.GetExpressionType(body)
@@ -320,7 +321,7 @@ let rec private mapStatements (ctx: EnclosingFunctionBodyContext) (e: Ast.Expres
         match e with
         | Some e ->
             match e with
-            | CsAst.Expression.FunctionCall(i, args) -> CsAst.Statement.FunctionCall(i, args) |> ctx.AddStatement
+            | CsAst.Expression.FunctionCall(i, tArgs, args) -> CsAst.Statement.FunctionCall(i, tArgs, args) |> ctx.AddStatement
             | _ -> failwith "Expected a FunctionCall expression"
         | None -> ()
     | _ -> failwith "Can not create a statement out of this expression"

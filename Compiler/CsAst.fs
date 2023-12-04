@@ -19,7 +19,7 @@ type Expression =
     | NumberLiteral of int * int option * Type
     | StringLiteral of string
     | BinaryOperation of Expression * BinaryOperator * Expression
-    | FunctionCall of Identifier * Expression list
+    | FunctionCall of functionName: Identifier * typeArguments: Type list * arguments: Expression list
     | Cast of Expression * Type
 
 type Statement =
@@ -30,7 +30,7 @@ type Statement =
         typeParameters: TypeIdentifier list *
         parameters: (Type * Identifier) list *
         body: StatementSequence
-    | FunctionCall of functionName: Identifier * arguments: Expression list
+    | FunctionCall of functionName: Identifier * typeArguments: Type list * arguments: Expression list
     | Return of Expression
 
 type StatementSequence = Statement list
