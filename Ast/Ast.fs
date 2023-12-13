@@ -6,8 +6,8 @@ type ExpressionShape =
     | IdentifierReference of identifier: Identifier
     | NumberLiteral of integerPart: int * fractionalPart: int option
     | StringLiteral of text: string
-    | Application of fn: Expression * argument: Expression
-    | Binding of identifier: Identifier * typeScopeReference: TypeScopeReference * parameters: Identifier list * body: Expression
+    | Application of applicationReference: ApplicationReference * fn: Expression * argument: Expression
+    | Binding of identifier: Identifier * parameters: Identifier list * body: Expression
     | Sequence of expressions: Expression list
     | InvalidToken of text: string
 

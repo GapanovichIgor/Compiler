@@ -355,3 +355,10 @@ let test4 () =
     let typeMap = graph.GetResult() // TODO a function typed parameter of a function should not create prototype-instance relationship
 
     ()
+
+let test () =
+    let f (i: int) x = x
+    let ff = f 1
+    ff 1 |> ignore
+    ff "a" |> ignore
+    f

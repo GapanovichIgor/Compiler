@@ -9,9 +9,8 @@
         <Compile Include="PositionInSource.fs" />
         <Compile Include="Identifier.fs" />
         <Compile Include="TypeReference.fs" />
-        <Compile Include="TypeScopeReference.fs" />
+        <Compile Include="ApplicationReference.fs" />
         <Compile Include="AtomTypeId.fs" />
-        <Compile Include="VariableTypeId.fs" />
         <Compile Include="Type.fs" />
         <Compile Include="BuiltIn.fs" />
     </ItemGroup>

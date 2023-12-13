@@ -7,7 +7,7 @@ open Ast
 type Context =
     { identifierTypes: Dictionary<Identifier, TypeReference>
       constraints: TypeGraph
-      typeScopes: Dictionary<TypeScopeReference, List<TypeReference>> }
+      typeScopes: Dictionary<BindingReference, List<TypeReference>> }
 
     member this.GetIdentifierType(i: Identifier) =
         match this.identifierTypes.TryGetValue(i) with
@@ -17,7 +17,7 @@ type Context =
             this.identifierTypes.Add(i, tr)
             tr
 
-    member this.AddToScope(tr: TypeReference, scopeRef: TypeScopeReference) =
+    member this.AddToScope(tr: TypeReference, scopeRef: BindingReference) =
         match this.typeScopes.TryGetValue(scopeRef) with
         | true, scope -> scope.Add(tr)
         | false, _ ->
@@ -85,7 +85,7 @@ let private traverseProgram (ctx: Context) (program: Program) =
     match program with
     | Program expression -> traverseExpression ctx expression
 
-let collectInfoFromAst (identifierTypes: Dictionary<Identifier, TypeReference>, graph: TypeGraph) (ast: Program): Map<TypeScopeReference, TypeReference list> =
+let collectInfoFromAst (identifierTypes: Dictionary<Identifier, TypeReference>, graph: TypeGraph) (ast: Program): Map<BindingReference, TypeReference list> =
     let ctx =
         { identifierTypes = identifierTypes
           constraints = graph

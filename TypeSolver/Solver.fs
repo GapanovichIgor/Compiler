@@ -78,4 +78,5 @@ let getTypeInformation (ast: Program) : TypeInformation =
 
     { identifierTypes = identifierTypes
       typeReferenceTypes = typeReferenceTypes
-      typeScopes = typeScopes }
+      typeScopes = typeScopes
+      applicationTypeArguments = [] }

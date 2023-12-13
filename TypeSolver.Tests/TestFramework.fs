@@ -26,8 +26,8 @@ let combineAllPermutations<'a> (elements: ('a -> 'a) list) : ('a -> 'a) list =
         |> Seq.map (fun i -> elements[i])
         |> Seq.reduce (>>))
 
-let multiply (maps: ('b -> 'c) list) (starts: ('a -> 'b) list) : ('a -> 'c) list =
-    List.allPairs starts maps
+let multiply (secondParts: ('b -> 'c) list) (firstParts: ('a -> 'b) list) : ('a -> 'c) list =
+    List.allPairs firstParts secondParts
     |> List.map (fun (start, map) -> start >> map)
 
 let run (functions: (unit -> unit) list) =

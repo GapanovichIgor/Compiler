@@ -65,7 +65,7 @@ type private TypeScope
     private
     (
         typeInformation: TypeSolver.TypeInformation,
-        typeScopeReference: TypeScopeReference option,
+        typeScopeReference: BindingReference option,
         parentVariableTypeNameMap,
         parentUniqueVariableTypeNameCounter
     ) =
@@ -150,7 +150,7 @@ type private TypeScope
 type private EnclosingFunctionBodyContext(identifierScope: IdentifierScope, typeScope: TypeScope) =
     let statements = List()
 
-    static member CreateFromParent(identifierScope: IdentifierScope, typeScope: TypeScope, typeScopeReference: TypeScopeReference) =
+    static member CreateFromParent(identifierScope: IdentifierScope, typeScope: TypeScope, typeScopeReference: BindingReference) =
         EnclosingFunctionBodyContext(identifierScope.CreateSubScope(), typeScope.CreateSubScope(typeScopeReference))
 
     member val IdentifierScope: IdentifierScope = identifierScope

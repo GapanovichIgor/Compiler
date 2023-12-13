@@ -6,7 +6,7 @@ open System.Diagnostics
 type Type =
     | AtomType of AtomTypeId
     | FunctionType of parameter: Type * result: Type
-    | VariableType of VariableTypeId
+    | QualifiedType of typeParameters: AtomTypeId list * body: Type
 
     override this.ToString() =
         match this with
@@ -18,4 +18,9 @@ type Type =
                 | _ -> parameter.ToString()
 
             $"{parameter} -> {result}"
-        | VariableType varTypeId -> varTypeId.ToString()
+        | QualifiedType(typeParameters, body) ->
+            let typeParameters =
+                typeParameters
+                |> Seq.map string
+                |> String.concat ", "
+            $"forall {typeParameters}. {body}"

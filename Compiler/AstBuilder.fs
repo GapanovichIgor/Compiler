@@ -61,7 +61,8 @@ let private mapApplication (ctx: LexicalContext) (e: Parser.Application) =
     | Parser.Application(fn, arg) ->
         let fn, _ = mapApplication ctx fn
         let arg, _ = mapTerminalEnclosedExpression ctx arg
-        let application = Ast.Application(fn, arg)
+        let applicationReference = ApplicationReference()
+        let application = Ast.Application(applicationReference, fn, arg)
         let pos = PositionInSource.fromTo fn.positionInSource arg.positionInSource
         expression (application, pos), ctx
 
@@ -110,8 +111,8 @@ let private mapBindingExpression (ctx: LexicalContext) (e: Parser.BindingExpress
         let parameters, subCtx = mapBindingParameters ctx parameters
         let value, _ = mapArithmeticSecondOrderExpr subCtx value
         let identifier, ctx = ctx.CreateIdentifier(identifierName)
-        let typeScopeRef = TypeScopeReference($"generic scope of binding {identifier}")
-        let binding = Ast.Binding(identifier, typeScopeRef, parameters, value)
+        let bindingReference = BindingReference($"binding reference of {identifier}")
+        let binding = Ast.Binding(bindingReference, identifier, parameters, value)
         let pos = PositionInSource.fromTo let_ value.positionInSource
         expression (binding, pos), ctx
     | Parser.BindingExpression.Fallthrough e -> mapArithmeticSecondOrderExpr ctx e
