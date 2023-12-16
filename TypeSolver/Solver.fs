@@ -105,7 +105,7 @@ let private createQualifiedTypes
             | Owner ownerTr when scope.atomTypes.Count > 0 ->
                 let typeParameters = scope.atomTypes |> List.ofSeq
                 let typeResult = typeReferenceTypes |> Map.find ownerTr
-                let qualifiedType = QualifiedType (typeParameters, typeResult)
+                let qualifiedType = QualifiedType(typeParameters, typeResult)
                 typeReferenceTypes |> Map.add ownerTr qualifiedType
             | _ -> typeReferenceTypes
 
@@ -114,25 +114,56 @@ let private createQualifiedTypes
 
     replaceTypes rootScope typeReferenceTypes
 
+let private getImplicitTypeArguments
+    (
+        typeReferenceTypes: Map<TypeReference, Type>,
+        functionApplications: AstTraverser.FunctionApplication list
+    ) : Map<ApplicationReference, Type list> =
+
+    let mutable map = Map.empty
+
+    for app in functionApplications do
+        let definedType = typeReferenceTypes[app.definedFunctionType]
+        match definedType with
+        | QualifiedType (_, definedTypeBody) ->
+            let resultType = typeReferenceTypes[app.resultFunctionType]
+
+            let rec getArguments definedType resultType =
+                match definedType, resultType with
+                | AtomType _, r -> [ r ]
+                | FunctionType (dp, dr), FunctionType (rp, rr) ->
+                    getArguments dp rp @ getArguments dr rr
+                | _ -> failwith "Invalid types"
+
+            let arguments = getArguments definedTypeBody resultType
+
+            map <- map |> Map.add app.applicationReference arguments
+
+        | _ -> ()
+
+    map
+
 let getTypeInformation (ast: Program) : TypeInformation =
     let identifierTypes = Dictionary()
     let graph = TypeGraph()
 
     addBuiltInIdentifiers identifierTypes graph
 
-    let rootTypeReferenceScope =
-        AstTraverser.collectInfoFromAst (identifierTypes, graph) ast
+    let astTypeInfo = AstTraverser.collectInfoFromAst (identifierTypes, graph) ast
 
     let typeReferenceTypes = graph.GetResult()
 
     let typeReferenceTypes =
-        typeReferenceTypes |> createQualifiedTypes rootTypeReferenceScope
+        typeReferenceTypes |> createQualifiedTypes astTypeInfo.rootScope
 
     let identifierTypes =
         identifierTypes
         |> Seq.map (fun kv -> kv.Key, typeReferenceTypes[kv.Value])
         |> Map.ofSeq
 
+    let implicitTypeArguments =
+        getImplicitTypeArguments (typeReferenceTypes, astTypeInfo.functionApplications)
+
     { identifierTypes = identifierTypes
       typeReferenceTypes = typeReferenceTypes
-      implicitTypeArguments = failwith "TODO" }
+      implicitTypeArguments = implicitTypeArguments }

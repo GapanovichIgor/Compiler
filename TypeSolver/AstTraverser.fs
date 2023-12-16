@@ -11,7 +11,8 @@ type private TypeScopeMut =
 type private Context =
     { identifierTypes: Dictionary<Identifier, TypeReference>
       graph: TypeGraph
-      scopeStack: Stack<TypeScopeMut> }
+      scopeStack: Stack<TypeScopeMut>
+      functionApplications: List<FunctionApplication> }
 
     member this.GetIdentifierType(i: Identifier) =
         match this.identifierTypes.TryGetValue(i) with
@@ -47,10 +48,16 @@ let private traverseExpression (ctx: Context) (expression: Expression) =
 
         ctx.graph.Atom(expression.expressionType, numberType)
     | StringLiteral _ -> ctx.graph.Atom(expression.expressionType, BuiltIn.AtomTypeIds.string)
-    | Application(_, fn, argument) ->
-        let fnInstance = TypeReference($"instance of {fn.expressionType}")
-        ctx.graph.Instance(fn.expressionType, fnInstance)
-        ctx.graph.Function(fnInstance, argument.expressionType, expression.expressionType)
+    | Application(applicationReference, fn, argument) ->
+        let fnInstanceType = TypeReference($"instance of {fn.expressionType}")
+        ctx.graph.Instance(fn.expressionType, fnInstanceType)
+
+        ctx.functionApplications.Add
+            { applicationReference = applicationReference
+              definedFunctionType = fn.expressionType
+              resultFunctionType = fnInstanceType }
+
+        ctx.graph.Function(fnInstanceType, argument.expressionType, expression.expressionType)
 
         traverseExpression ctx fn
         traverseExpression ctx argument
@@ -107,7 +114,16 @@ type TypeReferenceScope =
     { containedTypeReferences: TypeReference list
       childScopes: Map<TypeReference, TypeReferenceScope> }
 
-let collectInfoFromAst (identifierTypes: Dictionary<Identifier, TypeReference>, graph: TypeGraph) (ast: Program) : TypeReferenceScope =
+type FunctionApplication =
+    { applicationReference: ApplicationReference
+      definedFunctionType: TypeReference
+      resultFunctionType: TypeReference }
+
+type AstTypeInfo =
+    { rootScope: TypeReferenceScope
+      functionApplications: FunctionApplication list }
+
+let collectInfoFromAst (identifierTypes: Dictionary<Identifier, TypeReference>, graph: TypeGraph) (ast: Program) : AstTypeInfo =
     let globalScope: TypeScopeMut =
         { containedTypeReferences = List()
           childScopes = Dictionary() }
@@ -115,7 +131,8 @@ let collectInfoFromAst (identifierTypes: Dictionary<Identifier, TypeReference>, 
     let ctx =
         { identifierTypes = identifierTypes
           graph = graph
-          scopeStack = Stack [ globalScope ] }
+          scopeStack = Stack [ globalScope ]
+          functionApplications = List() }
 
     traverseProgram ctx ast
 
@@ -130,4 +147,5 @@ let collectInfoFromAst (identifierTypes: Dictionary<Identifier, TypeReference>, 
 
     let rootScope = convertScope rootScope
 
-    rootScope
+    { rootScope = rootScope
+      functionApplications = ctx.functionApplications |> List.ofSeq }
