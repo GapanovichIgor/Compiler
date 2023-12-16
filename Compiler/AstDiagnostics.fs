@@ -8,8 +8,8 @@ let rec private traverseExpression (e: Expression) : Problem list =
     | IdentifierReference _
     | NumberLiteral _
     | StringLiteral _ -> []
-    | Application(fn, argument) -> traverseExpression fn @ traverseExpression argument
-    | Binding(_, _, _, body) -> traverseExpression body
+    | Application(_, fn, argument) -> traverseExpression fn @ traverseExpression argument
+    | Binding(_, _, body) -> traverseExpression body
     | Sequence expressions -> expressions |> List.map traverseExpression |> List.concat
     | InvalidToken text ->
         [ { level = LevelError

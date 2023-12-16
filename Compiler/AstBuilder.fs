@@ -72,10 +72,10 @@ let private mapBinaryOperator leftOp mapLeft operatorIdentifier operator rightOp
     let rightOp, _ = mapRight ctx rightOp
 
     let applyLeft =
-        expression (Ast.Application(operator, leftOp), PositionInSource.fromTo leftOp.positionInSource operator.positionInSource)
+        expression (Ast.Application(ApplicationReference(), operator, leftOp), PositionInSource.fromTo leftOp.positionInSource operator.positionInSource)
 
     let applyRight =
-        expression (Ast.Application(applyLeft, rightOp), PositionInSource.fromTo operator.positionInSource rightOp.positionInSource)
+        expression (Ast.Application(ApplicationReference(), applyLeft, rightOp), PositionInSource.fromTo operator.positionInSource rightOp.positionInSource)
 
     let pos = PositionInSource.fromTo leftOp.positionInSource rightOp.positionInSource
     expression (applyRight.expressionShape, pos), ctx
@@ -111,8 +111,7 @@ let private mapBindingExpression (ctx: LexicalContext) (e: Parser.BindingExpress
         let parameters, subCtx = mapBindingParameters ctx parameters
         let value, _ = mapArithmeticSecondOrderExpr subCtx value
         let identifier, ctx = ctx.CreateIdentifier(identifierName)
-        let bindingReference = BindingReference($"binding reference of {identifier}")
-        let binding = Ast.Binding(bindingReference, identifier, parameters, value)
+        let binding = Ast.Binding(identifier, parameters, value)
         let pos = PositionInSource.fromTo let_ value.positionInSource
         expression (binding, pos), ctx
     | Parser.BindingExpression.Fallthrough e -> mapArithmeticSecondOrderExpr ctx e

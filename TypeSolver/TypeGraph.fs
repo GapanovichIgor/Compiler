@@ -415,7 +415,7 @@ type TypeGraph() =
                                 getType result
                                 |> Option.map(fun r ->
                                     FunctionType (p, r)))
-                        | None -> VariableType (VariableTypeId()) |> Some
+                        | None -> AtomType (AtomTypeId()) |> Some
 
                 nodeTypeMap.Add(node, t)
                 t
