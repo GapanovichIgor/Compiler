@@ -22,19 +22,11 @@ type private Context =
             this.identifierTypes.Add(i, tr)
             tr
 
-    member this.PushScope(owner: TypeReference) =
-        // let newScope: TypeScopeMut =
-        //     { containedTypeReferences = List()
-        //       childScopes = Dictionary() }
-        //
-        // this.scopeOwnerStack.Peek().childScopes.Add(owner, newScope)
-        // this.scopeOwnerStack.Push(newScope)
-        this.scopeOwnerStack.Push(owner)
+    member this.PushScope(owner: TypeReference) = this.scopeOwnerStack.Push(owner)
 
     member this.PopScope() = this.scopeOwnerStack.Pop() |> ignore
 
     member this.AddToScope(typeReference: TypeReference) =
-        // this.scopeOwnerStack.Peek().containedTypeReferences.Add(typeReference)
         if this.scopeOwnerStack.Count > 0 then
             this.graph.Scoped(this.scopeOwnerStack.Peek(), typeReference)
 
@@ -123,18 +115,13 @@ type FunctionApplication =
       resultFunctionType: TypeReference }
 
 type AstTypeInfo =
-    { (*rootScope: TypeReferenceScope*)
-      functionApplications: FunctionApplication list }
+    { functionApplications: FunctionApplication list }
 
 let collectInfoFromAst (identifierTypes: Dictionary<Identifier, TypeReference>, graph: TypeGraph) (ast: Program) : AstTypeInfo =
-    // let globalScope: TypeScopeMut =
-    //     { containedTypeReferences = List()
-    //       childScopes = Dictionary() }
-
     let ctx =
         { identifierTypes = identifierTypes
           graph = graph
-          scopeOwnerStack = Stack [ ]
+          scopeOwnerStack = Stack []
           functionApplications = List() }
 
     traverseProgram ctx ast
@@ -142,13 +129,4 @@ let collectInfoFromAst (identifierTypes: Dictionary<Identifier, TypeReference>, 
     if ctx.scopeOwnerStack.Count <> 0 then
         failwith "Scope stack imbalance"
 
-    // let rootScope = ctx.scopeOwnerStack.Pop()
-    //
-    // let rec convertScope (s: TypeScopeMut) =
-    //     { containedTypeReferences = s.containedTypeReferences |> List.ofSeq
-    //       childScopes = s.childScopes |> Seq.map (fun kv -> kv.Key, convertScope kv.Value) |> Map.ofSeq }
-
-    // let rootScope = convertScope rootScope
-
-    { (*rootScope = rootScope*)
-      functionApplications = ctx.functionApplications |> List.ofSeq }
+    { functionApplications = ctx.functionApplications |> List.ofSeq }

@@ -59,61 +59,6 @@ let private getBuiltInAtomTypeIds () =
       BuiltIn.AtomTypeIds.float
       BuiltIn.AtomTypeIds.string ]
 
-// let private createQualifiedTypes
-//     (rootTypeReferenceScope: AstTraverser.TypeReferenceScope)
-//     (typeReferenceTypes: Map<TypeReference, Type>)
-//     : Map<TypeReference, Type> =
-//
-//     let rootScope =
-//         { owner = Global
-//           parentScope = None
-//           childScopes = List()
-//           atomTypes = List(getBuiltInAtomTypeIds ()) }
-//
-//     let addAtomTypeIdToScope (atomTypeId: AtomTypeId) (scope: AtomTypeScope) =
-//         let rec containedInTree atomTypeId scope =
-//             scope.atomTypes.Contains(atomTypeId)
-//             || scope.parentScope
-//                |> Option.map (containedInTree atomTypeId)
-//                |> Option.defaultValue false
-//
-//         if not (containedInTree atomTypeId scope) then
-//             scope.atomTypes.Add(atomTypeId)
-//
-//     let rec populateScope (atomTypeScope: AtomTypeScope) (typeReferenceScope: AstTraverser.TypeReferenceScope) =
-//         for tr in typeReferenceScope.containedTypeReferences do
-//             match typeReferenceTypes[tr] with
-//             | AtomType atomTypeId -> atomTypeScope |> addAtomTypeIdToScope atomTypeId
-//             | _ -> ()
-//
-//         for owner, typeReferenceChildScope in typeReferenceScope.childScopes |> Map.toSeq do
-//             let childAtomTypeScope =
-//                 { owner = Owner owner
-//                   parentScope = Some atomTypeScope
-//                   childScopes = List()
-//                   atomTypes = List() }
-//
-//             atomTypeScope.childScopes.Add(childAtomTypeScope)
-//
-//             populateScope childAtomTypeScope typeReferenceChildScope
-//
-//     populateScope rootScope rootTypeReferenceScope
-//
-//     let rec replaceTypes (scope: AtomTypeScope) (typeReferenceTypes: Map<TypeReference, Type>) =
-//         let typeReferenceTypes =
-//             match scope.owner with
-//             | Owner ownerTr when scope.atomTypes.Count > 0 ->
-//                 let typeParameters = scope.atomTypes |> List.ofSeq
-//                 let typeResult = typeReferenceTypes |> Map.find ownerTr
-//                 let qualifiedType = QualifiedType(typeParameters, typeResult)
-//                 typeReferenceTypes |> Map.add ownerTr qualifiedType
-//             | _ -> typeReferenceTypes
-//
-//         scope.childScopes
-//         |> Seq.fold (fun trTypes childScope -> replaceTypes childScope trTypes) typeReferenceTypes
-//
-//     replaceTypes rootScope typeReferenceTypes
-
 let private getImplicitTypeArguments
     (
         typeReferenceTypes: Map<TypeReference, Type>,
@@ -161,9 +106,6 @@ let getTypeInformation (ast: Program) : TypeInformation =
     let astTypeInfo = AstTraverser.collectInfoFromAst (identifierTypes, graph) ast
 
     let typeReferenceTypes = graph.GetResult()
-
-    // let typeReferenceTypes =
-    //     typeReferenceTypes |> createQualifiedTypes astTypeInfo.rootScope
 
     let identifierTypes =
         identifierTypes
