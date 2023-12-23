@@ -61,105 +61,109 @@ type private IdentifierScope private (parentMap, parentCounter) =
     member this.AttachIdentifier(identifier: Identifier) =
         this.MapIdentifier(identifier) |> ignore
 
-// type private TypeScope
-//     private
-//     (
-//         typeInformation: TypeSolver.TypeInformation,
-//         typeScopeReference: BindingReference option,
-//         parentVariableTypeNameMap,
-//         parentUniqueVariableTypeNameCounter
-//     ) =
-//
-//     let variableTypeIds =
-//         match typeScopeReference with
-//         | Some typeScopeReference -> typeInformation.typeScopes[typeScopeReference] |> List.ofSeq
-//         | None -> []
-//
-//     let variableTypeNameSet = HashSet<CsAst.TypeIdentifier>()
-//     let variableTypeNameMap = Dictionary<VariableTypeId, CsAst.TypeIdentifier>()
-//
-//     let mutable uniqueVariableTypeNameCounter = parentUniqueVariableTypeNameCounter
-//
-//     do
-//         for k, v in parentVariableTypeNameMap do
-//             variableTypeNameSet.Add(v) |> ignore
-//             variableTypeNameMap.Add(k, v)
-//
-//     let createUniqueVariableTypeName () =
-//         let createName () =
-//             uniqueVariableTypeNameCounter <- uniqueVariableTypeNameCounter + 1
-//             "T" + string uniqueVariableTypeNameCounter
-//
-//         let mutable name = createName ()
-//
-//         while not (variableTypeNameSet.Add(name)) do
-//             name <- createName ()
-//
-//         name
-//
-//     member this.MapTypeToCsType(t: Type) : CsAst.Type option =
-//         match t with
-//         | Is BuiltIn.Types.int -> CsAst.Type.AtomType "System.Int32" |> Some
-//         | Is BuiltIn.Types.float -> CsAst.Type.AtomType "System.Single" |> Some
-//         | Is BuiltIn.Types.string -> CsAst.Type.AtomType "System.String" |> Some
-//         | Is BuiltIn.Types.unit -> None
-//         | FunctionType(parameterType, resultType) ->
-//             let parameterType = this.MapTypeToCsType(parameterType)
-//             let resultType = this.MapTypeToCsType(resultType)
-//
-//             let parameterTypes =
-//                 match parameterType with
-//                 | Some p -> [ p ]
-//                 | None -> []
-//
-//             CsAst.Type.FunctionType(parameterTypes, resultType) |> Some
-//         | VariableType variableTypeId -> CsAst.Type.AtomType(this.MapVariableType(variableTypeId)) |> Some
-//
-//         | _ -> failwith "TODO"
-//
-//     static member CreateGlobalScope(typeInformation) =
-//         TypeScope(typeInformation, None, Seq.empty, 0)
-//
-//     member _.CreateSubScope(variableTypeScopeReference) =
-//         let variableTypeNameMap =
-//             variableTypeNameMap :> seq<KeyValuePair<_, _>>
-//             |> Seq.map (fun kv -> (kv.Key, kv.Value))
-//
-//         TypeScope(typeInformation, Some variableTypeScopeReference, variableTypeNameMap, uniqueVariableTypeNameCounter)
-//
-//     member this.GetExpressionType(expression: Ast.Expression) : CsAst.Type option =
-//         typeInformation.typeReferenceTypes[expression.expressionType]
-//         |> this.MapTypeToCsType
-//
-//     member this.GetIdentifierType(identifier: Identifier) : CsAst.Type =
-//         typeInformation.identifierTypes[identifier]
-//         |> this.MapTypeToCsType
-//         |> Option.get
-//
-//     member _.MapVariableType(identifier: VariableTypeId) : CsAst.TypeIdentifier =
-//         match variableTypeNameMap.TryGetValue(identifier) with
-//         | true, name -> name
-//         | false, _ ->
-//             let name = createUniqueVariableTypeName ()
-//             variableTypeNameMap[identifier] <- name
-//             name
-//
-//     member this.GetTypeParameterNames() : CsAst.TypeIdentifier list =
-//         variableTypeIds |> Seq.map this.MapVariableType |> List.ofSeq
-//
-// type private EnclosingFunctionBodyContext(identifierScope: IdentifierScope, typeScope: TypeScope) =
-//     let statements = List()
-//
-//     static member CreateFromParent(identifierScope: IdentifierScope, typeScope: TypeScope, typeScopeReference: BindingReference) =
-//         EnclosingFunctionBodyContext(identifierScope.CreateSubScope(), typeScope.CreateSubScope(typeScopeReference))
-//
-//     member val IdentifierScope: IdentifierScope = identifierScope
-//
-//     member val TypeScope: TypeScope = typeScope
-//
-//     member _.AddStatement(statement: CsAst.Statement) : unit = statements.Add(statement)
-//
-//     member _.GetStatements() : CsAst.Statement list = statements |> List.ofSeq
+type private TypeScope
+    private
+    (
+        typeInformation: TypeSolver.TypeInformation,
+        parentAtomTypeNameMap: (AtomTypeId * CsAst.TypeIdentifier) seq,
+        parentUniqueTypeParameterNameCounter: int
+    ) =
+
+    // let variableTypeIds =
+    //     match typeScopeReference with
+    //     | Some typeScopeReference -> typeInformation.typeScopes[typeScopeReference] |> List.ofSeq
+    //     | None -> []
+
+    let atomTypeNameSet = HashSet<CsAst.TypeIdentifier>()
+    let atomTypeNameMap = Dictionary<AtomTypeId, CsAst.TypeIdentifier>()
+
+    let mutable uniqueTypeParameterNameCounter = parentUniqueTypeParameterNameCounter
+
+    do
+        for k, v in parentAtomTypeNameMap do
+            atomTypeNameSet.Add(v) |> ignore
+            atomTypeNameMap.Add(k, v)
+
+        [
+            BuiltIn.AtomTypeIds.int, "System.Int32"
+            BuiltIn.AtomTypeIds.float, "System.Single"
+            BuiltIn.AtomTypeIds.string, "System.String"
+        ]
+        |> List.iter (fun (atomTypeId, csTypeName) ->
+            atomTypeNameSet.Add(csTypeName) |> ignore
+            atomTypeNameMap.Add(atomTypeId, csTypeName))
+
+    let createUniqueTypeParameterIdentifier (): CsAst.TypeIdentifier =
+        let createName () =
+            uniqueTypeParameterNameCounter <- uniqueTypeParameterNameCounter + 1
+            "T" + string uniqueTypeParameterNameCounter
+
+        let mutable name = createName ()
+
+        while not (atomTypeNameSet.Add(name)) do
+            name <- createName ()
+
+        name
+
+    member this.MapTypeToCsType(t: Type) : CsAst.Type option =
+        match t with
+        | Is BuiltIn.Types.unit -> None
+        | AtomType atomTypeId ->
+            let typeIdentifier =
+                match atomTypeNameMap.TryGetValue(atomTypeId) with
+                | true, typeIdentifier -> typeIdentifier
+                | false, _ ->
+                    let typeIdentifier = createUniqueTypeParameterIdentifier ()
+                    atomTypeNameMap[atomTypeId] <- typeIdentifier
+                    typeIdentifier
+            CsAst.Type.AtomType typeIdentifier |> Some
+        | FunctionType(parameterType, resultType) ->
+            let parameterType = this.MapTypeToCsType(parameterType)
+            let resultType = this.MapTypeToCsType(resultType)
+
+            let parameterTypes =
+                match parameterType with
+                | Some p -> [ p ]
+                | None -> []
+
+            CsAst.Type.FunctionType(parameterTypes, resultType) |> Some
+        | QualifiedType _ -> failwith "TODO"
+
+    static member CreateGlobalScope(typeInformation) =
+        TypeScope(typeInformation, Seq.empty, 0)
+
+    member _.CreateSubScope() =
+        let atomTypeNameMap =
+            atomTypeNameMap
+            |> Seq.map (fun kv -> (kv.Key, kv.Value))
+
+        TypeScope(typeInformation, atomTypeNameMap, uniqueTypeParameterNameCounter)
+
+    member this.GetExpressionType(expression: Ast.Expression) : CsAst.Type option =
+        typeInformation.typeReferenceTypes[expression.expressionType]
+        |> this.MapTypeToCsType
+
+    member this.GetIdentifierType(identifier: Identifier) : CsAst.Type =
+        typeInformation.identifierTypes[identifier]
+        |> this.MapTypeToCsType
+        |> Option.get
+
+    // member this.GetTypeParameterNames() : CsAst.TypeIdentifier list =
+    //     variableTypeIds |> Seq.map this.MapVariableType |> List.ofSeq
+
+type private EnclosingFunctionBodyContext(identifierScope: IdentifierScope, typeScope: TypeScope) =
+    let statements = List()
+
+    static member CreateFromParent(identifierScope: IdentifierScope, typeScope: TypeScope) =
+        EnclosingFunctionBodyContext(identifierScope.CreateSubScope(), typeScope.CreateSubScope())
+
+    member val IdentifierScope: IdentifierScope = identifierScope
+
+    member val TypeScope: TypeScope = typeScope
+
+    member _.AddStatement(statement: CsAst.Statement) : unit = statements.Add(statement)
+
+    member _.GetStatements() : CsAst.Statement list = statements |> List.ofSeq
 
 let private mapBinaryOperator (operator: Identifier) =
     match operator with
