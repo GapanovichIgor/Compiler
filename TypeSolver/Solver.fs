@@ -118,24 +118,33 @@ let private getImplicitTypeArguments
     (
         typeReferenceTypes: Map<TypeReference, Type>,
         functionApplications: AstTraverser.FunctionApplication list
-    ) : Map<ApplicationReference, Type list> =
+    ) : Map<ApplicationReference, Map<AtomTypeId, Type>> =
 
     let mutable map = Map.empty
 
     for app in functionApplications do
         let definedType = typeReferenceTypes[app.definedFunctionType]
         match definedType with
-        | QualifiedType (_, definedTypeBody) ->
+        | QualifiedType (typeParameters, definedTypeBody) ->
             let resultType = typeReferenceTypes[app.resultFunctionType]
 
-            let rec getArguments definedType resultType =
+            let rec getArguments definedType resultType argumentMap =
                 match definedType, resultType with
-                | AtomType _, r -> [ r ]
+                | AtomType atomTypeId, argument ->
+                    if typeParameters |> List.contains atomTypeId then
+                        match argumentMap |> Map.tryFind atomTypeId with
+                        | Some existingArgument when existingArgument <> argument -> failwith "Type argument conflict"
+                        | Some _ -> argumentMap
+                        | None -> argumentMap |> Map.add atomTypeId argument
+                    else
+                        argumentMap
                 | FunctionType (dp, dr), FunctionType (rp, rr) ->
-                    getArguments dp rp @ getArguments dr rr
+                    let argumentMap = getArguments dp rp argumentMap
+                    let argumentMap = getArguments dr rr argumentMap
+                    argumentMap
                 | _ -> failwith "Invalid types"
 
-            let arguments = getArguments definedTypeBody resultType
+            let arguments = getArguments definedTypeBody resultType Map.empty
 
             map <- map |> Map.add app.applicationReference arguments
 
