@@ -84,14 +84,6 @@ type private TypeScope
             atomTypeNameSet.Add(v) |> ignore
             atomTypeNameMap.Add(k, v)
 
-        [
-            BuiltIn.AtomTypeIds.int, "System.Int32"
-            BuiltIn.AtomTypeIds.float, "System.Single"
-            BuiltIn.AtomTypeIds.string, "System.String"
-        ]
-        |> List.iter (fun (atomTypeId, csTypeName) ->
-            atomTypeNameSet.Add(csTypeName) |> ignore
-            atomTypeNameMap.Add(atomTypeId, csTypeName))
 
     let createUniqueTypeParameterIdentifier (): CsAst.TypeIdentifier =
         let createName () =
@@ -105,32 +97,56 @@ type private TypeScope
 
         name
 
-    member this.MapTypeToCsType(t: Type) : CsAst.Type option =
+    member this.MapTypeToCsType(t: Type) : CsAst.TypeIdentifier list * CsAst.Type option =
         match t with
-        | Is BuiltIn.Types.unit -> None
+        | Is BuiltIn.Types.unit -> [], None
         | AtomType atomTypeId ->
-            let typeIdentifier =
-                match atomTypeNameMap.TryGetValue(atomTypeId) with
-                | true, typeIdentifier -> typeIdentifier
-                | false, _ ->
-                    let typeIdentifier = createUniqueTypeParameterIdentifier ()
-                    atomTypeNameMap[atomTypeId] <- typeIdentifier
-                    typeIdentifier
-            CsAst.Type.AtomType typeIdentifier |> Some
+            let typeIdentifier = this.MapAtomTypeIdToCsTypeIdentifier(atomTypeId)
+            [], CsAst.Type.AtomType typeIdentifier |> Some
         | FunctionType(parameterType, resultType) ->
-            let parameterType = this.MapTypeToCsType(parameterType)
-            let resultType = this.MapTypeToCsType(resultType)
+            let parameterTypeParameters, parameterType = this.MapTypeToCsType(parameterType)
+            if parameterTypeParameters.Length <> 0 then
+                failwith "Function parameter cannot be a qualified type"
+
+            let resultTypeParameters, resultType = this.MapTypeToCsType(resultType)
+            if resultTypeParameters.Length <> 0 then
+                failwith "Function result cannot be a qualified type"
 
             let parameterTypes =
                 match parameterType with
                 | Some p -> [ p ]
                 | None -> []
 
-            CsAst.Type.FunctionType(parameterTypes, resultType) |> Some
-        | QualifiedType _ -> failwith "TODO"
+            [], CsAst.Type.FunctionDelegate(parameterTypes, resultType) |> Some
+        | QualifiedType (typeParameters, typeBody) ->
+            let bodyTypeParameters, typeBody = this.MapTypeToCsType(typeBody)
+            if bodyTypeParameters.Length <> 0 then
+                failwith "Qualified type cannot appear inside another qualified type"
+
+            match typeBody with
+            | None
+            | Some (CsAst.Type.AtomType _) -> failwith "The type cannot have type parameters"
+            | Some (CsAst.Type.FunctionDelegate (parameters, result)) ->
+                let typeParameters = typeParameters |> List.map this.MapAtomTypeIdToCsTypeIdentifier
+                typeParameters, Some (CsAst.Type.FunctionDelegate (parameters, result))
+
+    member this.MapAtomTypeIdToCsTypeIdentifier(atomTypeId: AtomTypeId): CsAst.TypeIdentifier =
+        match atomTypeNameMap.TryGetValue(atomTypeId) with
+        | true, typeIdentifier -> typeIdentifier
+        | false, _ ->
+            let typeIdentifier = createUniqueTypeParameterIdentifier ()
+            atomTypeNameMap[atomTypeId] <- typeIdentifier
+            typeIdentifier
 
     static member CreateGlobalScope(typeInformation) =
-        TypeScope(typeInformation, Seq.empty, 0)
+        let atomTypeNameMap =
+            [
+                BuiltIn.AtomTypeIds.int, "global::System.Int32"
+                BuiltIn.AtomTypeIds.float, "global::System.Single"
+                BuiltIn.AtomTypeIds.string, "global::System.String"
+            ]
+
+        TypeScope(typeInformation, atomTypeNameMap, 0)
 
     member _.CreateSubScope() =
         let atomTypeNameMap =
@@ -139,14 +155,15 @@ type private TypeScope
 
         TypeScope(typeInformation, atomTypeNameMap, uniqueTypeParameterNameCounter)
 
-    member this.GetExpressionType(expression: Ast.Expression) : CsAst.Type option =
+    member this.GetExpressionType(expression: Ast.Expression) : CsAst.TypeIdentifier list * CsAst.Type option =
         typeInformation.typeReferenceTypes[expression.expressionType]
         |> this.MapTypeToCsType
 
-    member this.GetIdentifierType(identifier: Identifier) : CsAst.Type =
-        typeInformation.identifierTypes[identifier]
-        |> this.MapTypeToCsType
-        |> Option.get
+    member this.GetIdentifierType(identifier: Identifier) : CsAst.TypeIdentifier list * CsAst.Type =
+        let typeParameters, typeBody =
+            typeInformation.identifierTypes[identifier]
+            |> this.MapTypeToCsType
+        typeParameters, typeBody |> Option.get
 
     // member this.GetTypeParameterNames() : CsAst.TypeIdentifier list =
     //     variableTypeIds |> Seq.map this.MapVariableType |> List.ofSeq
@@ -181,8 +198,8 @@ let private mapExpression (ctx: EnclosingFunctionBodyContext) (e: Ast.Expression
         CsAst.Expression.IdentifierReference(ctx.IdentifierScope.MapIdentifier i)
         |> Some
     | Ast.NumberLiteral(i, f) ->
-        ctx.TypeScope.GetExpressionType(e)
-        |> Option.map (fun t -> CsAst.NumberLiteral(i, f, t))
+        let _, type_ = ctx.TypeScope.GetExpressionType(e)
+        type_ |> Option.map (fun t -> CsAst.NumberLiteral(i, f, t))
     | Ast.StringLiteral s -> CsAst.Expression.StringLiteral s |> Some
     | Ast.Application(_, f, arg) ->
         match f.expressionShape with
@@ -204,14 +221,16 @@ let private mapExpression (ctx: EnclosingFunctionBodyContext) (e: Ast.Expression
 
             CsAst.FunctionCall(identifier, [], args) |> Some
         | _ ->
-            let varT =
-                ctx.TypeScope.GetExpressionType(f)
-                |> Option.require "Function expression must have a type"
+            let typeParameters, type_ = ctx.TypeScope.GetExpressionType(f)
+
+            if typeParameters.Length <> 0 then
+                failwith "TODO"
+
+            let varT = type_ |> Option.require "Function expression must have a type"
 
             let varId = ctx.IdentifierScope.CreateIdentifier()
 
-            let varBody =
-                mapExpression ctx f |> Option.require "Function expression must have a value"
+            let varBody = mapExpression ctx f |> Option.require "Function expression must have a value"
 
             ctx.AddStatement(CsAst.Statement.Var(varT, varId, varBody))
 
@@ -223,9 +242,12 @@ let private mapExpression (ctx: EnclosingFunctionBodyContext) (e: Ast.Expression
 
             CsAst.FunctionCall(varId, [], args) |> Some
     | Ast.Binding(identifier, [], body) ->
-        let bodyType =
-            ctx.TypeScope.GetExpressionType(body)
-            |> Option.defaultWith (fun () -> failwith "")
+        let typeParameters, bodyType = ctx.TypeScope.GetExpressionType(body)
+
+        if typeParameters.Length <> 0 then
+            failwith "Parameterless binding cannot have type parameters"
+
+        let bodyType = bodyType |> Option.require "Parameterless binding must have a body type"
 
         let body = mapExpression ctx body
 
@@ -235,7 +257,7 @@ let private mapExpression (ctx: EnclosingFunctionBodyContext) (e: Ast.Expression
 
         None
     | Ast.Binding(identifier, parameters, body) ->
-        let identifierType = ctx.TypeScope.GetIdentifierType(identifier)
+        let identifierTypeParameters, identifierType = ctx.TypeScope.GetIdentifierType(identifier)
         let identifier = ctx.IdentifierScope.MapIdentifier(identifier)
 
         let rec loop (ctx: EnclosingFunctionBodyContext) identifierType identifier parameters first =
@@ -244,7 +266,7 @@ let private mapExpression (ctx: EnclosingFunctionBodyContext) (e: Ast.Expression
             | [ parameterIdentifier ] ->
                 let returnType =
                     match identifierType with
-                    | CsAst.Type.FunctionType(_, resultType) -> resultType
+                    | CsAst.Type.FunctionDelegate(_, resultType) -> resultType
                     | _ -> failwith "Identifier type must be a function"
 
                 let identifierScope = ctx.IdentifierScope.CreateSubScope()
@@ -252,24 +274,29 @@ let private mapExpression (ctx: EnclosingFunctionBodyContext) (e: Ast.Expression
 
                 let body = mapFunctionBody identifierScope typeScope body
 
-                let parameterType = ctx.TypeScope.GetIdentifierType(parameterIdentifier)
+                let parameterTypeParameters, parameterType = ctx.TypeScope.GetIdentifierType(parameterIdentifier)
+                if parameterTypeParameters.Length <> 0 then
+                    failwith "Parameter type cannot be a qualified type"
+
                 let parameterIdentifier = ctx.IdentifierScope.MapIdentifier(parameterIdentifier)
 
-                let typeParameters = if first then typeScope.GetTypeParameterNames() else []
+                let typeParameters = if first then identifierTypeParameters else []
 
                 CsAst.Statement.LocalFunction(returnType, identifier, typeParameters, [ parameterType, parameterIdentifier ], body)
                 |> ctx.AddStatement
             | parameterIdentifier :: parametersRest ->
-                let parameterType = ctx.TypeScope.GetIdentifierType(parameterIdentifier)
+                let parameterTypeParameters, parameterType = ctx.TypeScope.GetIdentifierType(parameterIdentifier)
+                if parameterTypeParameters.Length <> 0 then
+                    failwith "Parameter type cannot be a qualified type"
+
                 let parameterIdentifier = ctx.IdentifierScope.MapIdentifier(parameterIdentifier)
 
                 let subFunctionIdentifier = ctx.IdentifierScope.CreateIdentifier()
 
                 let subFunctionIdentifierType =
                     match identifierType with
-                    | CsAst.Type.FunctionType(_, resultType) ->
-                        resultType
-                        |> Option.require "Identifier type must be a function that returns a function"
+                    | CsAst.Type.FunctionDelegate(_, resultType) ->
+                        resultType |> Option.require "Identifier type must be a function that returns a function"
                     | _ -> failwith "Identifier type must be a function"
 
                 let identifierScope = ctx.IdentifierScope.CreateSubScope()
@@ -284,7 +311,7 @@ let private mapExpression (ctx: EnclosingFunctionBodyContext) (e: Ast.Expression
 
                 let body = subCtx.GetStatements()
 
-                let typeParameters = if first then typeScope.GetTypeParameterNames() else []
+                let typeParameters = if first then identifierTypeParameters else []
 
                 CsAst.Statement.LocalFunction(Some subFunctionIdentifierType, identifier, typeParameters, [ parameterType, parameterIdentifier ], body)
                 |> ctx.AddStatement
@@ -332,7 +359,10 @@ let rec private mapStatements (ctx: EnclosingFunctionBodyContext) (e: Ast.Expres
 let private mapFunctionBody (identifierScope: IdentifierScope) (typeScope: TypeScope) (expression: Ast.Expression) : CsAst.Statement list =
     let ctx = EnclosingFunctionBodyContext(identifierScope, typeScope)
 
-    let generateReturn = typeScope.GetExpressionType(expression) <> None
+    let generateReturn =
+        match typeScope.GetExpressionType(expression) with
+        | _, Some _ -> true
+        | _, None -> false
 
     mapStatements ctx expression generateReturn
 

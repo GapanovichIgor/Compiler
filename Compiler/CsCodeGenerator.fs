@@ -18,7 +18,7 @@ type private Output(streamWriter: StreamWriter) =
 let private getTypeSignature (t: Type) =
     match t with
     | AtomType t -> t
-    | FunctionType (parameters, result) ->
+    | FunctionDelegate (parameters, result) ->
         match result with
         | Some result ->
             if parameters.Length = 0 then

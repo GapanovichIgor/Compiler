@@ -6,7 +6,7 @@ type TypeIdentifier = string
 
 type Type =
     | AtomType of TypeIdentifier
-    | FunctionType of parameters: Type list * result: Type option
+    | FunctionDelegate of parameters: Type list * result: Type option
 
 type BinaryOperator =
     | Add
