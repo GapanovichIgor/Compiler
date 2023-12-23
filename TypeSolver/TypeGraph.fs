@@ -32,6 +32,8 @@ type TypeGraph() =
 
     let instanceMaps = List<PrototypeToInstanceMap>()
 
+    let scopes = Dictionary<Node, List<Node>>()
+
     let createNode =
         let mutable newNodeId = 1
 
@@ -174,6 +176,23 @@ type TypeGraph() =
                             followupOperations.Add(Merge (aPrototype, bPrototype))
 
                     instanceMap.Remove(aPrototype) |> ignore
+
+            // Merge scopes
+            match scopes.TryGetValue(a), scopes.TryGetValue(b) with
+            | (true, aScope), (true, bScope) ->
+                bScope.AddRange(aScope)
+            | (true, aScope), (false, _) ->
+                scopes.Add(b, aScope)
+            | _ ->
+                ()
+
+            scopes.Remove(a) |> ignore
+
+            for kv in scopes do
+                let scope = kv.Value
+                let aIndex = scope.IndexOf(a)
+                if aIndex <> -1 then
+                    scope[aIndex] <- b
 
             Done (followupOperations |> List.ofSeq, Map.ofList [ a, b ])
 
@@ -392,6 +411,18 @@ type TypeGraph() =
     member _.Identical(a: TypeReference, b: TypeReference) =
         runOperation (Merge(getNode a, getNode b))
 
+    member _.Scoped(scopeOwner: TypeReference, scoped: TypeReference) =
+        let scopeOwnerNode = getNode scopeOwner
+        let scope =
+            match scopes.TryGetValue(scopeOwnerNode) with
+            | true, scope -> scope
+            | false, _ ->
+                let scope = List()
+                scopes.Add(scopeOwnerNode, scope)
+                scope
+
+        scope.Add(getNode scoped)
+
     member _.GetResult(): Map<TypeReference, Type> =
         let mutable typeMap = Map.empty
 
@@ -401,31 +432,39 @@ type TypeGraph() =
             match nodeTypeMap.TryGetValue(node) with
             | true, t -> t
             | false, _ ->
-                let t =
+                let type_ =
                     match getAtomType node with
                     | Some atomTypeId ->
                         match getFunctionParamResult node with
-                        | None -> AtomType atomTypeId |> Some
+                        | None -> AtomType atomTypeId
                         | Some _ -> failwith "The type was constrained to be a function and an atom type"
                     | None ->
                         match getFunctionParamResult node with
-                        | Some (param, result) ->
-                            getType param
-                            |> Option.bind(fun p ->
-                                getType result
-                                |> Option.map(fun r ->
-                                    FunctionType (p, r)))
-                        | None -> AtomType (AtomTypeId()) |> Some
+                        | Some (param, result) -> FunctionType (getType param, getType result)
+                        | None -> AtomType (AtomTypeId())
 
-                nodeTypeMap.Add(node, t)
-                t
+                let type_ =
+                    match scopes.TryGetValue(node) with
+                    | true, scope ->
+                        let typeParameters =
+                            scope
+                            |> Seq.map (fun n ->
+                                match getType n with
+                                | AtomType atomTypeId -> atomTypeId
+                                | _ -> failwith "Type parameter must be an atom type")
+                            |> List.ofSeq
+
+                        QualifiedType (typeParameters, type_)
+                    | false, _ -> type_
+
+                nodeTypeMap.Add(node, type_)
+                type_
 
         for kv in typeReferenceNodes do
             let tRef = kv.Key
             let node = kv.Value
 
-            match getType node with
-            | Some t -> typeMap <- typeMap |> Map.add tRef t
-            | _ -> ()
+            let type_ = getType node
+            typeMap <- typeMap |> Map.add tRef type_
 
         typeMap

@@ -11,7 +11,7 @@ type private TypeScopeMut =
 type private Context =
     { identifierTypes: Dictionary<Identifier, TypeReference>
       graph: TypeGraph
-      scopeStack: Stack<TypeScopeMut>
+      scopeOwnerStack: Stack<TypeReference>
       functionApplications: List<FunctionApplication> }
 
     member this.GetIdentifierType(i: Identifier) =
@@ -23,17 +23,20 @@ type private Context =
             tr
 
     member this.PushScope(owner: TypeReference) =
-        let newScope: TypeScopeMut =
-            { containedTypeReferences = List()
-              childScopes = Dictionary() }
+        // let newScope: TypeScopeMut =
+        //     { containedTypeReferences = List()
+        //       childScopes = Dictionary() }
+        //
+        // this.scopeOwnerStack.Peek().childScopes.Add(owner, newScope)
+        // this.scopeOwnerStack.Push(newScope)
+        this.scopeOwnerStack.Push(owner)
 
-        this.scopeStack.Peek().childScopes.Add(owner, newScope)
-        this.scopeStack.Push(newScope)
-
-    member this.PopScope() = this.scopeStack.Pop() |> ignore
+    member this.PopScope() = this.scopeOwnerStack.Pop() |> ignore
 
     member this.AddToScope(typeReference: TypeReference) =
-        this.scopeStack.Peek().containedTypeReferences.Add(typeReference)
+        // this.scopeOwnerStack.Peek().containedTypeReferences.Add(typeReference)
+        if this.scopeOwnerStack.Count > 0 then
+            this.graph.Scoped(this.scopeOwnerStack.Peek(), typeReference)
 
 let private traverseExpression (ctx: Context) (expression: Expression) =
     match expression.expressionShape with
@@ -120,32 +123,32 @@ type FunctionApplication =
       resultFunctionType: TypeReference }
 
 type AstTypeInfo =
-    { rootScope: TypeReferenceScope
+    { (*rootScope: TypeReferenceScope*)
       functionApplications: FunctionApplication list }
 
 let collectInfoFromAst (identifierTypes: Dictionary<Identifier, TypeReference>, graph: TypeGraph) (ast: Program) : AstTypeInfo =
-    let globalScope: TypeScopeMut =
-        { containedTypeReferences = List()
-          childScopes = Dictionary() }
+    // let globalScope: TypeScopeMut =
+    //     { containedTypeReferences = List()
+    //       childScopes = Dictionary() }
 
     let ctx =
         { identifierTypes = identifierTypes
           graph = graph
-          scopeStack = Stack [ globalScope ]
+          scopeOwnerStack = Stack [ ]
           functionApplications = List() }
 
     traverseProgram ctx ast
 
-    if ctx.scopeStack.Count <> 1 then
+    if ctx.scopeOwnerStack.Count <> 0 then
         failwith "Scope stack imbalance"
 
-    let rootScope = ctx.scopeStack.Pop()
+    // let rootScope = ctx.scopeOwnerStack.Pop()
+    //
+    // let rec convertScope (s: TypeScopeMut) =
+    //     { containedTypeReferences = s.containedTypeReferences |> List.ofSeq
+    //       childScopes = s.childScopes |> Seq.map (fun kv -> kv.Key, convertScope kv.Value) |> Map.ofSeq }
 
-    let rec convertScope (s: TypeScopeMut) =
-        { containedTypeReferences = s.containedTypeReferences |> List.ofSeq
-          childScopes = s.childScopes |> Seq.map (fun kv -> kv.Key, convertScope kv.Value) |> Map.ofSeq }
+    // let rootScope = convertScope rootScope
 
-    let rootScope = convertScope rootScope
-
-    { rootScope = rootScope
+    { (*rootScope = rootScope*)
       functionApplications = ctx.functionApplications |> List.ofSeq }
