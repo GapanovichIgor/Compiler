@@ -141,9 +141,9 @@ type private TypeScope
     static member CreateGlobalScope(typeInformation) =
         let atomTypeNameMap =
             [
-                BuiltIn.AtomTypeIds.int, "global::System.Int32"
-                BuiltIn.AtomTypeIds.float, "global::System.Single"
-                BuiltIn.AtomTypeIds.string, "global::System.String"
+                BuiltIn.AtomTypeIds.int, CsBuiltIn.AtomTypeIdentifiers.int32
+                BuiltIn.AtomTypeIds.float, CsBuiltIn.AtomTypeIdentifiers.single
+                BuiltIn.AtomTypeIds.string, CsBuiltIn.AtomTypeIdentifiers.string
             ]
 
         TypeScope(typeInformation, atomTypeNameMap, 0)
@@ -165,8 +165,23 @@ type private TypeScope
             |> this.MapTypeToCsType
         typeParameters, typeBody |> Option.get
 
-    // member this.GetTypeParameterNames() : CsAst.TypeIdentifier list =
-    //     variableTypeIds |> Seq.map this.MapVariableType |> List.ofSeq
+    member this.GetTypeArguments(identifier: Identifier, applicationReference: ApplicationReference) =
+        let identifierType = typeInformation.identifierTypes[identifier]
+
+        match identifierType with
+        | QualifiedType (typeParameters, _) ->
+            let typeArguments = typeInformation.implicitTypeArguments |> Map.tryFind applicationReference
+            match typeArguments with
+            | None -> failwith "Missing type arguments"
+            | Some typeArguments ->
+                typeParameters
+                |> List.map (fun p ->
+                    let t = typeArguments |> Map.find p
+                    let typeParameters, csType = this.MapTypeToCsType(t)
+                    if typeParameters.Length <> 0 then
+                        failwith "Qualified type cannot be a type argument"
+                    csType |> Option.require "Type argument cannot be void")
+        | _ -> []
 
 type private EnclosingFunctionBodyContext(identifierScope: IdentifierScope, typeScope: TypeScope) =
     let statements = List()
@@ -201,25 +216,26 @@ let private mapExpression (ctx: EnclosingFunctionBodyContext) (e: Ast.Expression
         let _, type_ = ctx.TypeScope.GetExpressionType(e)
         type_ |> Option.map (fun t -> CsAst.NumberLiteral(i, f, t))
     | Ast.StringLiteral s -> CsAst.Expression.StringLiteral s |> Some
-    | Ast.Application(_, f, arg) ->
+    | Ast.Application(applicationReference, f, argument) ->
         match f.expressionShape with
         | Ast.Application(_, { expressionShape = Ast.IdentifierReference(BinaryOp op) }, leftOp) ->
             let leftOp = mapExpression ctx leftOp
-            let rightOp = mapExpression ctx arg
+            let rightOp = mapExpression ctx argument
 
             match leftOp, rightOp with
             | Some e1, Some e2 -> CsAst.Expression.BinaryOperation(e1, op, e2) |> Some
             | _ -> failwith "Operands of a binary operation should not be statements"
-        | Ast.IdentifierReference i ->
-            let identifier = ctx.IdentifierScope.MapIdentifier i
+        | Ast.IdentifierReference identifier ->
+            let csIdentifier = ctx.IdentifierScope.MapIdentifier(identifier)
+            let typeArguments = ctx.TypeScope.GetTypeArguments(identifier, applicationReference)
 
-            let arg = mapExpression ctx arg
-            let args =
-                match arg with
+            let argument = mapExpression ctx argument
+            let arguments =
+                match argument with
                 | Some arg -> [ arg ]
                 | None -> []
 
-            CsAst.FunctionCall(identifier, [], args) |> Some
+            CsAst.FunctionCall(csIdentifier, typeArguments, arguments) |> Some
         | _ ->
             let typeParameters, type_ = ctx.TypeScope.GetExpressionType(f)
 
@@ -234,7 +250,7 @@ let private mapExpression (ctx: EnclosingFunctionBodyContext) (e: Ast.Expression
 
             ctx.AddStatement(CsAst.Statement.Var(varT, varId, varBody))
 
-            let arg = mapExpression ctx arg
+            let arg = mapExpression ctx argument
             let args =
                 match arg with
                 | Some arg -> [ arg ]

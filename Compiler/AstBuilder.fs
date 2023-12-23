@@ -8,15 +8,12 @@ type private LexicalContext =
     static member Empty = { identifiers = Map.empty }
 
     member this.AttachIdentifier(identifier: Identifier) =
-        { this with
-            identifiers = this.identifiers |> Map.add identifier.Name identifier }
+        { identifiers = this.identifiers |> Map.add identifier.Name identifier }
 
     member this.CreateIdentifier(identifierName: string) =
         let identifier = Identifier.Create(identifierName)
 
-        let newContext =
-            { this with
-                identifiers = this.identifiers |> Map.add identifierName identifier }
+        let newContext = { identifiers = this.identifiers |> Map.add identifierName identifier }
 
         identifier, newContext
 

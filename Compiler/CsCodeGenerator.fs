@@ -88,9 +88,9 @@ let rec private generateExpression (expression: Expression) (output: Output) =
         output.Write(i)
     | Expression.NumberLiteral (i, f, t) ->
         match t with
-        | AtomType "System.Int32" ->
+        | AtomType a when a = CsBuiltIn.AtomTypeIdentifiers.int32 ->
             output.Write(string i)
-        | AtomType "System.Single" ->
+        | AtomType a when a = CsBuiltIn.AtomTypeIdentifiers.single ->
             output.Write(string i)
             output.Write(".")
             match f with
