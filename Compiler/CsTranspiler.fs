@@ -175,169 +175,168 @@ let private mapBinaryOperator (operator: Identifier) =
 
 let private (|BinaryOp|_|) identifier = mapBinaryOperator identifier
 
-// let private mapExpression (ctx: EnclosingFunctionBodyContext) (e: Ast.Expression) : CsAst.Expression option =
-//     match e.expressionShape with
-//     | Ast.IdentifierReference i ->
-//         CsAst.Expression.IdentifierReference(ctx.IdentifierScope.MapIdentifier i)
-//         |> Some
-//     | Ast.NumberLiteral(i, f) ->
-//         ctx.TypeScope.GetExpressionType(e)
-//         |> Option.map (fun t -> CsAst.NumberLiteral(i, f, t))
-//     | Ast.StringLiteral s -> CsAst.Expression.StringLiteral s |> Some
-//     | Ast.Application(f, arg) ->
-//         match f.expressionShape with
-//         | Ast.Application({ expressionShape = Ast.IdentifierReference(BinaryOp op) }, leftOp) ->
-//             let leftOp = mapExpression ctx leftOp
-//             let rightOp = mapExpression ctx arg
-//
-//             match leftOp, rightOp with
-//             | Some e1, Some e2 -> CsAst.Expression.BinaryOperation(e1, op, e2) |> Some
-//             | _ -> failwith "Operands of a binary operation should not be statements"
-//         | Ast.IdentifierReference i ->
-//             let identifier = ctx.IdentifierScope.MapIdentifier i
-//
-//             let arg = mapExpression ctx arg
-//             let args =
-//                 match arg with
-//                 | Some arg -> [ arg ]
-//                 | None -> []
-//
-//             CsAst.FunctionCall(identifier, [], args) |> Some
-//         | _ ->
-//             let varT =
-//                 ctx.TypeScope.GetExpressionType(f)
-//                 |> Option.require "Function expression must have a type"
-//
-//             let varId = ctx.IdentifierScope.CreateIdentifier()
-//
-//             let varBody =
-//                 mapExpression ctx f |> Option.require "Function expression must have a value"
-//
-//             ctx.AddStatement(CsAst.Statement.Var(varT, varId, varBody))
-//
-//             let arg = mapExpression ctx arg
-//             let args =
-//                 match arg with
-//                 | Some arg -> [ arg ]
-//                 | None -> []
-//
-//             CsAst.FunctionCall(varId, [], args) |> Some
-//     | Ast.Binding(identifier, _, [], body) ->
-//         let bodyType =
-//             ctx.TypeScope.GetExpressionType(body)
-//             |> Option.defaultWith (fun () -> failwith "")
-//
-//         let body = mapExpression ctx body
-//
-//         match body with
-//         | Some body -> ctx.AddStatement(CsAst.Statement.Var(bodyType, ctx.IdentifierScope.MapIdentifier(identifier), body))
-//         | None -> ()
-//
-//         None
-//     | Ast.Binding(identifier, variableTypeScopeReference, parameters, body) ->
-//         let identifierType = ctx.TypeScope.GetIdentifierType(identifier)
-//         let identifier = ctx.IdentifierScope.MapIdentifier(identifier)
-//
-//         let rec loop (ctx: EnclosingFunctionBodyContext) identifierType identifier parameters first =
-//             match parameters with
-//             | [] -> failwith "Impossible state"
-//             | [ parameterIdentifier ] ->
-//                 let returnType =
-//                     match identifierType with
-//                     | CsAst.Type.FunctionType(_, resultType) -> resultType
-//                     | _ -> failwith "Identifier type must be a function"
-//
-//                 let identifierScope = ctx.IdentifierScope.CreateSubScope()
-//                 let typeScope = ctx.TypeScope.CreateSubScope(variableTypeScopeReference)
-//
-//                 let body = mapFunctionBody identifierScope typeScope body
-//
-//                 let parameterType = ctx.TypeScope.GetIdentifierType(parameterIdentifier)
-//                 let parameterIdentifier = ctx.IdentifierScope.MapIdentifier(parameterIdentifier)
-//
-//                 let typeParameters = if first then typeScope.GetTypeParameterNames() else []
-//
-//                 CsAst.Statement.LocalFunction(returnType, identifier, typeParameters, [ parameterType, parameterIdentifier ], body)
-//                 |> ctx.AddStatement
-//             | parameterIdentifier :: parametersRest ->
-//                 let parameterType = ctx.TypeScope.GetIdentifierType(parameterIdentifier)
-//                 let parameterIdentifier = ctx.IdentifierScope.MapIdentifier(parameterIdentifier)
-//
-//                 let subFunctionIdentifier = ctx.IdentifierScope.CreateIdentifier()
-//
-//                 let subFunctionIdentifierType =
-//                     match identifierType with
-//                     | CsAst.Type.FunctionType(_, resultType) ->
-//                         resultType
-//                         |> Option.require "Identifier type must be a function that returns a function"
-//                     | _ -> failwith "Identifier type must be a function"
-//
-//                 let identifierScope = ctx.IdentifierScope.CreateSubScope()
-//                 let typeScope = ctx.TypeScope.CreateSubScope(variableTypeScopeReference)
-//
-//                 let subCtx =
-//                     EnclosingFunctionBodyContext.CreateFromParent(identifierScope, typeScope, variableTypeScopeReference)
-//
-//                 loop subCtx subFunctionIdentifierType subFunctionIdentifier parametersRest false
-//
-//                 CsAst.Statement.Return(CsAst.Expression.IdentifierReference(subFunctionIdentifier))
-//                 |> subCtx.AddStatement
-//
-//                 let body = subCtx.GetStatements()
-//
-//                 let typeParameters = if first then typeScope.GetTypeParameterNames() else []
-//
-//                 CsAst.Statement.LocalFunction(Some subFunctionIdentifierType, identifier, typeParameters, [ parameterType, parameterIdentifier ], body)
-//                 |> ctx.AddStatement
-//
-//         loop ctx identifierType identifier parameters true
-//
-//         None
-//     | Ast.Sequence es ->
-//         let rec loop es =
-//             match es with
-//             | [] -> None
-//             | [ e ] -> mapExpression ctx e
-//             | s :: esRest ->
-//                 mapStatements ctx s false
-//                 loop esRest
-//
-//         loop es
-//     | Ast.InvalidToken _ -> failwith "Invalid AST"
+let private mapExpression (ctx: EnclosingFunctionBodyContext) (e: Ast.Expression) : CsAst.Expression option =
+    match e.expressionShape with
+    | Ast.IdentifierReference i ->
+        CsAst.Expression.IdentifierReference(ctx.IdentifierScope.MapIdentifier i)
+        |> Some
+    | Ast.NumberLiteral(i, f) ->
+        ctx.TypeScope.GetExpressionType(e)
+        |> Option.map (fun t -> CsAst.NumberLiteral(i, f, t))
+    | Ast.StringLiteral s -> CsAst.Expression.StringLiteral s |> Some
+    | Ast.Application(_, f, arg) ->
+        match f.expressionShape with
+        | Ast.Application(_, { expressionShape = Ast.IdentifierReference(BinaryOp op) }, leftOp) ->
+            let leftOp = mapExpression ctx leftOp
+            let rightOp = mapExpression ctx arg
 
-// let rec private mapStatements (ctx: EnclosingFunctionBodyContext) (e: Ast.Expression) (generateReturn: bool) : unit =
-//     match e.expressionShape with
-//     | Ast.Sequence es ->
-//         for i = 0 to es.Length - 1 do
-//             let e = es[i]
-//             let generateReturn = generateReturn && i = es.Length - 1
-//             mapStatements ctx e generateReturn
-//     | Ast.Binding _ -> mapExpression ctx e |> ignore
-//     | _ when generateReturn ->
-//         let e =
-//             mapExpression ctx e
-//             |> Option.require "Expression for a return statement must have a value"
-//
-//         CsAst.Statement.Return e |> ctx.AddStatement
-//     | Ast.Application _ ->
-//         let e = mapExpression ctx e
-//
-//         match e with
-//         | Some e ->
-//             match e with
-//             | CsAst.Expression.FunctionCall(i, tArgs, args) -> CsAst.Statement.FunctionCall(i, tArgs, args) |> ctx.AddStatement
-//             | _ -> failwith "Expected a FunctionCall expression"
-//         | None -> ()
-//     | _ -> failwith "Can not create a statement out of this expression"
+            match leftOp, rightOp with
+            | Some e1, Some e2 -> CsAst.Expression.BinaryOperation(e1, op, e2) |> Some
+            | _ -> failwith "Operands of a binary operation should not be statements"
+        | Ast.IdentifierReference i ->
+            let identifier = ctx.IdentifierScope.MapIdentifier i
 
-// let private mapFunctionBody (identifierScope: IdentifierScope) (typeScope: TypeScope) (expression: Ast.Expression) : CsAst.Statement list =
-//     let ctx = EnclosingFunctionBodyContext(identifierScope, typeScope)
-//
-//     let generateReturn = typeScope.GetExpressionType(expression) <> None
-//
-//     mapStatements ctx expression generateReturn
-//
-//     ctx.GetStatements()
+            let arg = mapExpression ctx arg
+            let args =
+                match arg with
+                | Some arg -> [ arg ]
+                | None -> []
+
+            CsAst.FunctionCall(identifier, [], args) |> Some
+        | _ ->
+            let varT =
+                ctx.TypeScope.GetExpressionType(f)
+                |> Option.require "Function expression must have a type"
+
+            let varId = ctx.IdentifierScope.CreateIdentifier()
+
+            let varBody =
+                mapExpression ctx f |> Option.require "Function expression must have a value"
+
+            ctx.AddStatement(CsAst.Statement.Var(varT, varId, varBody))
+
+            let arg = mapExpression ctx arg
+            let args =
+                match arg with
+                | Some arg -> [ arg ]
+                | None -> []
+
+            CsAst.FunctionCall(varId, [], args) |> Some
+    | Ast.Binding(identifier, [], body) ->
+        let bodyType =
+            ctx.TypeScope.GetExpressionType(body)
+            |> Option.defaultWith (fun () -> failwith "")
+
+        let body = mapExpression ctx body
+
+        match body with
+        | Some body -> ctx.AddStatement(CsAst.Statement.Var(bodyType, ctx.IdentifierScope.MapIdentifier(identifier), body))
+        | None -> ()
+
+        None
+    | Ast.Binding(identifier, parameters, body) ->
+        let identifierType = ctx.TypeScope.GetIdentifierType(identifier)
+        let identifier = ctx.IdentifierScope.MapIdentifier(identifier)
+
+        let rec loop (ctx: EnclosingFunctionBodyContext) identifierType identifier parameters first =
+            match parameters with
+            | [] -> failwith "Impossible state"
+            | [ parameterIdentifier ] ->
+                let returnType =
+                    match identifierType with
+                    | CsAst.Type.FunctionType(_, resultType) -> resultType
+                    | _ -> failwith "Identifier type must be a function"
+
+                let identifierScope = ctx.IdentifierScope.CreateSubScope()
+                let typeScope = ctx.TypeScope.CreateSubScope()
+
+                let body = mapFunctionBody identifierScope typeScope body
+
+                let parameterType = ctx.TypeScope.GetIdentifierType(parameterIdentifier)
+                let parameterIdentifier = ctx.IdentifierScope.MapIdentifier(parameterIdentifier)
+
+                let typeParameters = if first then typeScope.GetTypeParameterNames() else []
+
+                CsAst.Statement.LocalFunction(returnType, identifier, typeParameters, [ parameterType, parameterIdentifier ], body)
+                |> ctx.AddStatement
+            | parameterIdentifier :: parametersRest ->
+                let parameterType = ctx.TypeScope.GetIdentifierType(parameterIdentifier)
+                let parameterIdentifier = ctx.IdentifierScope.MapIdentifier(parameterIdentifier)
+
+                let subFunctionIdentifier = ctx.IdentifierScope.CreateIdentifier()
+
+                let subFunctionIdentifierType =
+                    match identifierType with
+                    | CsAst.Type.FunctionType(_, resultType) ->
+                        resultType
+                        |> Option.require "Identifier type must be a function that returns a function"
+                    | _ -> failwith "Identifier type must be a function"
+
+                let identifierScope = ctx.IdentifierScope.CreateSubScope()
+                let typeScope = ctx.TypeScope.CreateSubScope()
+
+                let subCtx = EnclosingFunctionBodyContext.CreateFromParent(identifierScope, typeScope)
+
+                loop subCtx subFunctionIdentifierType subFunctionIdentifier parametersRest false
+
+                CsAst.Statement.Return(CsAst.Expression.IdentifierReference(subFunctionIdentifier))
+                |> subCtx.AddStatement
+
+                let body = subCtx.GetStatements()
+
+                let typeParameters = if first then typeScope.GetTypeParameterNames() else []
+
+                CsAst.Statement.LocalFunction(Some subFunctionIdentifierType, identifier, typeParameters, [ parameterType, parameterIdentifier ], body)
+                |> ctx.AddStatement
+
+        loop ctx identifierType identifier parameters true
+
+        None
+    | Ast.Sequence es ->
+        let rec loop es =
+            match es with
+            | [] -> None
+            | [ e ] -> mapExpression ctx e
+            | s :: esRest ->
+                mapStatements ctx s false
+                loop esRest
+
+        loop es
+    | Ast.InvalidToken _ -> failwith "Invalid AST"
+
+let rec private mapStatements (ctx: EnclosingFunctionBodyContext) (e: Ast.Expression) (generateReturn: bool) : unit =
+    match e.expressionShape with
+    | Ast.Sequence es ->
+        for i = 0 to es.Length - 1 do
+            let e = es[i]
+            let generateReturn = generateReturn && i = es.Length - 1
+            mapStatements ctx e generateReturn
+    | Ast.Binding _ -> mapExpression ctx e |> ignore
+    | _ when generateReturn ->
+        let e =
+            mapExpression ctx e
+            |> Option.require "Expression for a return statement must have a value"
+
+        CsAst.Statement.Return e |> ctx.AddStatement
+    | Ast.Application _ ->
+        let e = mapExpression ctx e
+
+        match e with
+        | Some e ->
+            match e with
+            | CsAst.Expression.FunctionCall(i, tArgs, args) -> CsAst.Statement.FunctionCall(i, tArgs, args) |> ctx.AddStatement
+            | _ -> failwith "Expected a FunctionCall expression"
+        | None -> ()
+    | _ -> failwith "Can not create a statement out of this expression"
+
+let private mapFunctionBody (identifierScope: IdentifierScope) (typeScope: TypeScope) (expression: Ast.Expression) : CsAst.Statement list =
+    let ctx = EnclosingFunctionBodyContext(identifierScope, typeScope)
+
+    let generateReturn = typeScope.GetExpressionType(expression) <> None
+
+    mapStatements ctx expression generateReturn
+
+    ctx.GetStatements()
 
 let transpile (ast: Ast.Program, typeInformation: TypeSolver.TypeInformation) : CsAst.Program =
     let (Ast.Program e) = ast
@@ -354,13 +353,12 @@ let transpile (ast: Ast.Program, typeInformation: TypeSolver.TypeInformation) : 
       BuiltIn.Identifiers.floatToStr ]
     |> List.iter globalIdentifierScope.AttachIdentifier
 
-    // let globalTypeScope = TypeScope.CreateGlobalScope(typeInformation)
-    //
-    // let ctx = EnclosingFunctionBodyContext(globalIdentifierScope, globalTypeScope)
-    //
-    // mapStatements ctx e false
-    //
-    // let statements = ctx.GetStatements()
-    //
-    // CsAst.Program statements
-    failwith "TODO"
+    let globalTypeScope = TypeScope.CreateGlobalScope(typeInformation)
+
+    let ctx = EnclosingFunctionBodyContext(globalIdentifierScope, globalTypeScope)
+
+    mapStatements ctx e false
+
+    let statements = ctx.GetStatements()
+
+    CsAst.Program statements
