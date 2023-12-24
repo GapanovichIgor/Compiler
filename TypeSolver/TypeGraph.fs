@@ -35,7 +35,7 @@ type TypeGraph() =
 
     let atoms = AtomNodeProperty()
 
-    let functions = HashSet<Node * Node * Node>()
+    let functions = FunctionNodeRelations()
 
     let instanceMaps = List<PrototypeToInstanceMap>()
 
@@ -136,13 +136,15 @@ type TypeGraph() =
             atoms.Unset(a)
 
             // Merge functions
-            let functionA = getFunctionParamResult a
-            let functionsWithParameterA = getFunctionsOfParam a
-            let functionsWithResultA = getFunctionsOfResult a
-            functions.RemoveWhere (fun (f, p, r) -> f = a || p = a || r = a) |> ignore
+            let paramResultA = functions.TryGetParamResultOfFunction(a)
+            let functionsWithParameterA = functions.GetFunctionsOfParameter(a)
+            let functionsWithResultA = functions.GetFunctionsOfResult(a)
+            functions.RemoveWhereFunction(a)
+            functions.RemoveWhereParameter(a)
+            functions.RemoveWhereResult(a)
 
             // Merge functions where a is the function
-            match functionA, getFunctionParamResult b with
+            match paramResultA, functions.TryGetParamResultOfFunction(b) with
             | None, _ -> ()
             | Some (aParam, aResult), None ->
                 followupOperations.Add(AddFunction (b, aParam, aResult))
@@ -151,11 +153,11 @@ type TypeGraph() =
                 followupOperations.Add(Merge (aResult, bResult))
 
             // Merge functions where a is parameter
-            for func, result in functionsWithParameterA do
+            for func, _, result in functionsWithParameterA do
                 followupOperations.Add(AddFunction (func, b, result))
 
             // Merge functions where a is result
-            for func, param in functionsWithResultA do
+            for func, param, _ in functionsWithResultA do
                 followupOperations.Add(AddFunction (func, param, b))
 
             // Merge instances
@@ -232,7 +234,7 @@ type TypeGraph() =
                 | None -> ()
 
                 // If prototype is a function, then enforce (paramProto -> paramInst) and (resultProto -> resultInst)
-                match getFunctionParamResult prototype, getFunctionParamResult instance with
+                match functions.TryGetParamResultOfFunction(prototype), functions.TryGetParamResultOfFunction(instance) with
                 | None, None
                 | None, Some _ -> ()
                 | Some (paramProto, resultProto), None ->
@@ -269,8 +271,7 @@ type TypeGraph() =
             OperationOutcome.Followup(followupOperations)
 
     and setAsAtom (node: Node, atomTypeId: AtomTypeId): OperationOutcome =
-        let nodeIsFunction = functions |> Seq.exists (fun (f, _, _) -> f = node)
-        if nodeIsFunction then
+        if functions.IsFunction(node) then
             failwith "The node cannot be an atom type because it is a function"
 
         let followupOperations = List()
@@ -289,18 +290,13 @@ type TypeGraph() =
 
         let followupOperations = List()
 
-        let anotherFunctionsOfSameParamResult =
-            functions
-            |> Seq.choose (function
-                | f, p, r when p = param && r = result -> Some f
-                | _ -> None)
-            |> List.ofSeq
+        let anotherFunctionsOfSameParamResult = functions.TryGetFunctionOfParamResult(param, result)
 
         match anotherFunctionsOfSameParamResult with
-        | [ anotherFunc ] ->
+        | Some anotherFunc ->
             followupOperations.Add(Merge (func, anotherFunc))
-        | [] ->
-            match getFunctionParamResult func with
+        | None ->
+            match functions.TryGetParamResultOfFunction(func) with
             | Some (anotherParam, anotherResult) ->
                 if anotherParam <> param then
                     followupOperations.Add(Merge (param, anotherParam))
@@ -308,31 +304,27 @@ type TypeGraph() =
                 if anotherResult <> result then
                     followupOperations.Add(Merge (result, anotherResult))
             | None ->
+                if functions.Set(func, param, result) then
+                    for instanceMap in instanceMaps do
+                        match instanceMap |> getInstance func with
+                        | Some inst -> followupOperations.Add(EnforcePrototypeInstance (func, inst, instanceMap))
+                        | None -> ()
 
-                functions.Add(func, param, result) |> ignore
+                    for kv in scopes do
+                        let scope = kv.Value
+                        if scope.Contains(func) then
+                            let rec addToScope node =
+                                let paramResult = functions.TryGetParamResultOfFunction(node)
+                                match paramResult with
+                                | Some (param, result) ->
+                                    addToScope param
+                                    addToScope result
+                                | None ->
+                                    scope.Add(node)
 
-                for instanceMap in instanceMaps do
-                    match instanceMap |> getInstance func with
-                    | Some inst -> followupOperations.Add(EnforcePrototypeInstance (func, inst, instanceMap))
-                    | None -> ()
-
-                for kv in scopes do
-                    let scope = kv.Value
-                    if scope.Contains(func) then
-                        let rec addToScope node =
-                            let paramResult = getFunctionParamResult node
-                            match paramResult with
-                            | Some (param, result) ->
-                                addToScope param
-                                addToScope result
-                            | None ->
-                                scope.Add(node)
-
-                        scope.Remove(func) |> ignore
-                        addToScope param
-                        addToScope result
-
-        | _ -> failwith "There are multiple functions of same parameter and result"
+                            scope.Remove(func) |> ignore
+                            addToScope param
+                            addToScope result
 
         OperationOutcome.Followup(followupOperations)
 
@@ -352,33 +344,6 @@ type TypeGraph() =
                         followupOperations.Add(Merge (prototype, instance))
 
             OperationOutcome.Followup(followupOperations)
-
-    and getFunctionParamResult (node: Node) =
-        let paramResult =
-            functions
-            |> Seq.choose (function
-                | f, p, r when f = node -> Some (p, r)
-                | _ -> None)
-            |> List.ofSeq
-
-        match paramResult with
-        | [] -> None
-        | [ param, result ] -> Some (param, result)
-        | _ -> failwith "The node has more than one function constraint"
-
-    and getFunctionsOfParam (node: Node) =
-        functions
-        |> Seq.choose (function
-            | f, p, r when p = node -> Some (f, r)
-            | _ -> None)
-        |> List.ofSeq
-
-    and getFunctionsOfResult (node: Node) =
-        functions
-        |> Seq.choose (function
-            | f, p, r when r = node -> Some (f, p)
-            | _ -> None)
-        |> List.ofSeq
 
     and getInstance (prototype: Node) (instanceMap: PrototypeToInstanceMap) =
         match instanceMap.TryGetValue(prototype) with
@@ -464,9 +429,7 @@ type TypeGraph() =
                 scope
 
         let rec addNodeToScope node =
-            let paramResult = getFunctionParamResult node
-
-            match paramResult with
+            match functions.TryGetParamResultOfFunction(node) with
             | None -> scope.Add(node)
             | Some (param, result) ->
                 addNodeToScope param
@@ -484,15 +447,11 @@ type TypeGraph() =
             | true, t -> t
             | false, _ ->
                 let type_ =
-                    match atoms.TryGetAtomTypeId(node) with
-                    | Some atomTypeId ->
-                        match getFunctionParamResult node with
-                        | None -> AtomType atomTypeId
-                        | Some _ -> failwith "The type was constrained to be a function and an atom type"
-                    | None ->
-                        match getFunctionParamResult node with
-                        | Some (param, result) -> FunctionType (getType param, getType result)
-                        | None -> AtomType (AtomTypeId())
+                    match atoms.TryGetAtomTypeId(node), functions.TryGetParamResultOfFunction(node) with
+                    | None, None -> AtomType (AtomTypeId())
+                    | Some atomTypeId, None -> AtomType atomTypeId
+                    | None, Some (param, result) -> FunctionType (getType param, getType result)
+                    | Some _, Some _ -> failwith "The type was constrained to be a function and an atom type"
 
                 let type_ =
                     match scopes.TryGetValue(node) with
