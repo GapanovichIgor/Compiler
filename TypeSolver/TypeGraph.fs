@@ -37,10 +37,9 @@ type TypeGraph() =
     let atoms = AtomNodeProperty()
     let functions = FunctionNodeRelations()
     let instances = InstanceNodeRelations()
+    let nonGeneralizable = FlagNodeProperty()
 
     let scopes = Dictionary<Node, List<Node>>()
-
-    let nonGeneralizable = HashSet<Node>()
 
     let createNode =
         let mutable newNodeId = 1
@@ -204,8 +203,8 @@ type TypeGraph() =
                     scope[aIndex] <- b
 
             // Merge nonGeneralizable
-            if nonGeneralizable.Contains(a) then
-                nonGeneralizable.Add(b) |> ignore
+            if nonGeneralizable.IsSet(a) then
+                nonGeneralizable.Set(b)
 
             { followupOperations = followupOperations |> List.ofSeq
               nodeSubstitutions = Map.ofList [ a, b ] }
@@ -213,7 +212,7 @@ type TypeGraph() =
     and enforcePrototypeInstance (prototype: Node, instance: Node, group: Guid): OperationOutcome =
         if prototype = instance then
             failwith "A type cannot be a prototype of itself"
-        elif nonGeneralizable.Contains(prototype) then
+        elif nonGeneralizable.IsSet(prototype) then
             OperationOutcome.Followup([ Merge (prototype, instance) ])
         else
             let followupOperations = List()
@@ -323,10 +322,12 @@ type TypeGraph() =
         OperationOutcome.Followup(followupOperations)
 
     and forbidGeneralization (node: Node) =
-        if not (nonGeneralizable.Add(node)) then
+        if nonGeneralizable.IsSet(node) then
             OperationOutcome.Empty
         else
             let followupOperations = List()
+
+            nonGeneralizable.Set(node)
 
             for _, instance in instances.GetInstances(node) do
                 followupOperations.Add(Merge (node, instance))
@@ -347,7 +348,6 @@ type TypeGraph() =
     member _.Instance(prototype: TypeReference, instance: TypeReference) =
         let prototypeNode = getNode prototype
         let instanceNode = getNode instance
-
 
         match instances.TryCreateGroup(prototypeNode, instanceNode) with
         | Some mapId ->

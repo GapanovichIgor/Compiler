@@ -10,6 +10,7 @@
         <Compile Include="AtomNodeProperty.fs" />
         <Compile Include="FunctionNodeRelations.fs" />
         <Compile Include="InstanceNodeRelations.fs" />
+        <Compile Include="FlagNodeProperty.fs" />
         <Compile Include="TypeGraph.fs" />
         <Compile Include="AstTraverser.fs" />
         <Compile Include="TypeInformation.fs" />
