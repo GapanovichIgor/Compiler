@@ -170,6 +170,8 @@ type TypeGraph() =
                 | None ->
                     followupOperations.Add(EnforcePrototypeInstance (b, aInstance, group))
 
+                instances.RemoveFromGroup(a, aInstance, group)
+
             // If a is an instance then set prototype for b
             match instances.TryGetPrototype(a) with
             | None -> ()
@@ -184,7 +186,7 @@ type TypeGraph() =
                     if aPrototype <> bPrototype then
                         followupOperations.Add(Merge (aPrototype, bPrototype))
 
-                    instances.RemoveFromGroup(aPrototype, a, aGroup)
+                instances.RemoveFromGroup(aPrototype, a, aGroup)
 
             // Merge scopes
             match scopes.TryGetValue(a), scopes.TryGetValue(b) with
@@ -205,6 +207,7 @@ type TypeGraph() =
 
             // Merge nonGeneralizable
             if nonGeneralizable.IsSet(a) then
+                nonGeneralizable.Unset(a)
                 nonGeneralizable.Set(b)
 
             { followupOperations = followupOperations |> List.ofSeq

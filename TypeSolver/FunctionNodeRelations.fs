@@ -66,11 +66,6 @@ type internal FunctionNodeRelations() =
     override _.ToString() =
         dict
         |> Seq.map (fun kv ->
-            let rec getStr node =
-                match dict.TryGetValue(node) with
-                | true, (p, r) -> $"({getStr p} -> {getStr r})"
-                | false, _ -> node.ToString()
-
             let p, r = kv.Value
-            $"{kv.Key} : {getStr p} -> {getStr r}")
+            $"{kv.Key} : {p} -> {r}")
         |> String.concat "\n"
