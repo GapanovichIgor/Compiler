@@ -1,3 +1,1 @@
-let id x = x
-let a = id "a"
-println a
+let higher f = f 0

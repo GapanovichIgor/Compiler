@@ -16,10 +16,19 @@ type private Operation =
     | AddFunction of func: Node * parameter: Node * result: Node
     | Merge of a: Node * b: Node
     | EnforcePrototypeInstance of prototype: Node * instance: Node * map: PrototypeToInstanceMap
+    | ForbidGeneralization of Node
 
 type private OperationOutcome =
-    | Done of followupOperations: Operation list * nodeSubstitutions: Map<Node, Node>
-    | Blocked of blockingOperations: Operation list
+    { followupOperations: Operation list
+      nodeSubstitutions: Map<Node, Node> }
+
+    static member Empty =
+        { followupOperations = List.empty
+          nodeSubstitutions = Map.empty }
+
+    static member Followup(followupOperations: #seq<Operation>) =
+        { followupOperations = followupOperations |> List.ofSeq
+          nodeSubstitutions = Map.empty }
 
 type TypeGraph() =
     let allNodes = HashSet<Node>()
@@ -33,6 +42,8 @@ type TypeGraph() =
     let instanceMaps = List<PrototypeToInstanceMap>()
 
     let scopes = Dictionary<Node, List<Node>>()
+
+    let nonGeneralizable = HashSet<Node>()
 
     let createNode =
         let mutable newNodeId = 1
@@ -76,6 +87,7 @@ type TypeGraph() =
                         | AddFunction (func, param, result) -> AddFunction (replace func, replace param, replace result)
                         | Merge (a, b) -> Merge (replace a, replace b)
                         | EnforcePrototypeInstance (proto, inst, map) -> EnforcePrototypeInstance (replace proto, replace inst, map)
+                        | ForbidGeneralization node -> ForbidGeneralization (replace node)
 
                     operationSet.Add(operation) |> ignore
 
@@ -84,8 +96,9 @@ type TypeGraph() =
             |> Seq.sortBy (function
                 | Merge _ -> 1
                 | SetAsAtom _ -> 2
-                | AddFunction _ -> 3
-                | EnforcePrototypeInstance _ -> 4)
+                | ForbidGeneralization _ -> 3
+                | AddFunction _ -> 4
+                | EnforcePrototypeInstance _ -> 5)
             |> Seq.head
 
         while operationSet.Count > 0 do
@@ -99,18 +112,16 @@ type TypeGraph() =
                 | AddFunction (func, param, result) -> addFunction (func, param, result)
                 | Merge (a, b) -> merge (a, b)
                 | EnforcePrototypeInstance (proto, inst, map) -> enforcePrototypeInstance (proto, inst, map)
+                | ForbidGeneralization node -> forbidGeneralization node
 
-            match outcome with
-            | Done (followupOperations, nodeSubstitutions) ->
-                rebuildSet nodeSubstitutions
-                for operation in followupOperations do
-                    operationSet.Add(operation) |> ignore
-            | Blocked _ ->
-                failwith "Not used"
+
+            rebuildSet outcome.nodeSubstitutions
+            for operation in outcome.followupOperations do
+                operationSet.Add(operation) |> ignore
 
     and merge (a: Node, b: Node) =
         if a = b then
-            Done ([], Map.empty)
+            OperationOutcome.Empty
         else
             let followupOperations = List()
 
@@ -194,11 +205,18 @@ type TypeGraph() =
                 if aIndex <> -1 then
                     scope[aIndex] <- b
 
-            Done (followupOperations |> List.ofSeq, Map.ofList [ a, b ])
+            // Merge nonGeneralizable
+            if nonGeneralizable.Contains(a) then
+                nonGeneralizable.Add(b) |> ignore
+
+            { followupOperations = followupOperations |> List.ofSeq
+              nodeSubstitutions = Map.ofList [ a, b ] }
 
     and enforcePrototypeInstance (prototype: Node, instance: Node, instanceMap: PrototypeToInstanceMap): OperationOutcome =
         if prototype = instance then
             failwith "A type cannot be a prototype of itself"
+        elif nonGeneralizable.Contains(prototype) then
+            OperationOutcome.Followup([ Merge (prototype, instance) ])
         else
             let followupOperations = List()
 
@@ -250,7 +268,7 @@ type TypeGraph() =
                         if resultInst <> resultInstFromMap then
                             followupOperations.Add(Merge (resultInst, resultInstFromMap))
 
-            Done (followupOperations |> List.ofSeq, Map.empty)
+            OperationOutcome.Followup(followupOperations)
 
     and setAsAtom (node: Node, atomTypeId: AtomTypeId): OperationOutcome =
         let followupOperations = List()
@@ -271,7 +289,7 @@ type TypeGraph() =
                 | Some inst -> followupOperations.Add(EnforcePrototypeInstance (node, inst, instanceMap))
                 | None -> ()
 
-        Done (followupOperations |> List.ofSeq, Map.empty)
+        OperationOutcome.Followup(followupOperations)
 
     and addFunction (func: Node, param: Node, result: Node): OperationOutcome =
         let followupOperations = List()
@@ -305,9 +323,43 @@ type TypeGraph() =
                     match instanceMap |> getInstance func with
                     | Some inst -> followupOperations.Add(EnforcePrototypeInstance (func, inst, instanceMap))
                     | None -> ()
+
+                for kv in scopes do
+                    let scope = kv.Value
+                    if scope.Contains(func) then
+                        let rec addToScope node =
+                            let paramResult = getFunctionParamResult node
+                            match paramResult with
+                            | Some (param, result) ->
+                                addToScope param
+                                addToScope result
+                            | None ->
+                                scope.Add(node)
+
+                        scope.Remove(func) |> ignore
+                        addToScope param
+                        addToScope result
+
         | _ -> failwith "There are multiple functions of same parameter and result"
 
-        Done (followupOperations |> List.ofSeq, Map.empty)
+        OperationOutcome.Followup(followupOperations)
+
+    and forbidGeneralization (node: Node) =
+        if not (nonGeneralizable.Add(node)) then
+            OperationOutcome.Empty
+        else
+            let followupOperations = List()
+
+            for instanceMap in instanceMaps do
+                for kv in instanceMap |> List.ofSeq do
+                    let prototype = kv.Key
+                    let instance = kv.Value
+
+                    if prototype = node || instance = node then
+                        instanceMap.Remove(prototype) |> ignore
+                        followupOperations.Add(Merge (prototype, instance))
+
+            OperationOutcome.Followup(followupOperations)
 
     and getAtomType (node: Node) =
         match atoms.TryGetValue(node) with
@@ -411,7 +463,10 @@ type TypeGraph() =
     member _.Identical(a: TypeReference, b: TypeReference) =
         runOperation (Merge(getNode a, getNode b))
 
-    member _.Scoped(scopeOwner: TypeReference, scoped: TypeReference) =
+    member _.NonGeneralizable(typeReference: TypeReference) =
+        runOperation (ForbidGeneralization (getNode typeReference))
+
+    member this.Scoped(scopeOwner: TypeReference, scoped: TypeReference) =
         let scopeOwnerNode = getNode scopeOwner
         let scope =
             match scopes.TryGetValue(scopeOwnerNode) with
@@ -421,7 +476,16 @@ type TypeGraph() =
                 scopes.Add(scopeOwnerNode, scope)
                 scope
 
-        scope.Add(getNode scoped)
+        let rec addNodeToScope node =
+            let paramResult = getFunctionParamResult node
+
+            match paramResult with
+            | None -> scope.Add(node)
+            | Some (param, result) ->
+                addNodeToScope param
+                addNodeToScope result
+
+        addNodeToScope (getNode scoped)
 
     member _.GetResult(): Map<TypeReference, Type> =
         let mutable typeMap = Map.empty
@@ -451,7 +515,7 @@ type TypeGraph() =
                             |> Seq.map (fun n ->
                                 match getType n with
                                 | AtomType atomTypeId -> atomTypeId
-                                | _ -> failwith "Type parameter must be an atom type")
+                                | _ -> failwith "Scopes should only contain atom types")
                             |> List.ofSeq
 
                         QualifiedType (typeParameters, type_)

@@ -30,6 +30,21 @@ type private Context =
         if this.scopeOwnerStack.Count > 0 then
             this.graph.Scoped(this.scopeOwnerStack.Peek(), typeReference)
 
+    member this.Application(applicationReference: ApplicationReference, fnType: TypeReference, argumentType: TypeReference, resultType: TypeReference) =
+        let fnInstanceType = TypeReference($"instance of {fnType}")
+
+        this.graph.Instance(fnType, fnInstanceType)
+
+        this.functionApplications.Add
+            { applicationReference = applicationReference
+              definedFunctionType = fnType
+              resultFunctionType = fnInstanceType }
+
+        this.graph.Function(fnInstanceType, argumentType, resultType)
+
+    member this.NonGeneralizable(typeReference: TypeReference) =
+        this.graph.NonGeneralizable(typeReference)
+
 let private traverseExpression (ctx: Context) (expression: Expression) =
     match expression.expressionShape with
     | IdentifierReference identifier ->
@@ -44,16 +59,7 @@ let private traverseExpression (ctx: Context) (expression: Expression) =
         ctx.graph.Atom(expression.expressionType, numberType)
     | StringLiteral _ -> ctx.graph.Atom(expression.expressionType, BuiltIn.AtomTypeIds.string)
     | Application(applicationReference, fn, argument) ->
-        let fnInstanceType = TypeReference($"instance of {fn.expressionType}")
-        ctx.graph.Instance(fn.expressionType, fnInstanceType)
-
-        ctx.functionApplications.Add
-            { applicationReference = applicationReference
-              definedFunctionType = fn.expressionType
-              resultFunctionType = fnInstanceType }
-
-        ctx.graph.Function(fnInstanceType, argument.expressionType, expression.expressionType)
-
+        ctx.Application(applicationReference, fn.expressionType, argument.expressionType, expression.expressionType)
         traverseExpression ctx fn
         traverseExpression ctx argument
     | Binding(identifier, parameters, body) ->
@@ -71,10 +77,12 @@ let private traverseExpression (ctx: Context) (expression: Expression) =
                 | [ parameter ] ->
                     let parameterType = ctx.GetIdentifierType(parameter)
                     ctx.AddToScope(parameterType)
+                    ctx.NonGeneralizable(parameterType)
                     ctx.graph.Function(currentFunctionType, parameterType, body.expressionType)
                 | parameter :: parametersRest ->
                     let parameterType = ctx.GetIdentifierType(parameter)
                     ctx.AddToScope(parameterType)
+                    ctx.NonGeneralizable(parameterType)
 
                     let subFunctionType =
                         TypeReference($"binding sub-function of ({identifier}) on parameter ({parameter})")

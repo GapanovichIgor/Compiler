@@ -22,21 +22,21 @@ let private getTypeSignature (t: Type) =
         match result with
         | Some result ->
             if parameters.Length = 0 then
-                $"System.Func<%s{getTypeSignature result}>"
+                $"global::System.Func<%s{getTypeSignature result}>"
             else
                 let args =
                     parameters
                     |> Seq.map getTypeSignature
                     |> String.concat ", "
-                $"System.Func<%s{args}, %s{getTypeSignature result}>"
+                $"global::System.Func<%s{args}, %s{getTypeSignature result}>"
         | None ->
             if parameters.Length = 0 then
-                "System.Action"
+                "global::System.Action"
             else
                 parameters
                 |> Seq.map getTypeSignature
                 |> String.concat ", "
-                |> sprintf "System.Action<%s>"
+                |> sprintf "global::System.Action<%s>"
 
 let private getTypeOrVoidSignature (t: Type option) =
     match t with
