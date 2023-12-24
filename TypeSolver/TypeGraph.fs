@@ -1,5 +1,6 @@
 ﻿namespace rec TypeSolver
 
+open System
 open System.Collections.Generic
 open Common
 
@@ -13,7 +14,7 @@ type private Operation =
     | SetAsAtom of Node * AtomTypeId
     | AddFunction of func: Node * parameter: Node * result: Node
     | Merge of a: Node * b: Node
-    | EnforcePrototypeInstance of prototype: Node * instance: Node * map: PrototypeToInstanceMap
+    | EnforcePrototypeInstance of prototype: Node * instance: Node * group: Guid
     | ForbidGeneralization of Node
 
 type private OperationOutcome =
@@ -34,10 +35,8 @@ type TypeGraph() =
     let typeReferenceNodes = Dictionary<TypeReference, Node>()
 
     let atoms = AtomNodeProperty()
-
     let functions = FunctionNodeRelations()
-
-    let instanceMaps = List<PrototypeToInstanceMap>()
+    let instances = InstanceNodeRelations()
 
     let scopes = Dictionary<Node, List<Node>>()
 
@@ -161,32 +160,31 @@ type TypeGraph() =
                 followupOperations.Add(AddFunction (func, param, b))
 
             // Merge instances
-            for instanceMap in instanceMaps do
-                // If a is a prototype then move the instance to b
-                match instanceMap |> getInstance a with
-                | None -> ()
-                | Some aInstance ->
-                    match instanceMap |> getInstance b with
-                    | None ->
-                        followupOperations.Add(EnforcePrototypeInstance (b, aInstance, instanceMap))
-                    | Some bInstance ->
-                        if aInstance <> bInstance then
-                            followupOperations.Add(Merge (aInstance, bInstance))
 
-                    instanceMap.Remove(a) |> ignore
+            // If a is a prototype then move the instances to b
+            for group, aInstance in instances.GetInstances(a) do
+                match instances.TryGetInstance(b, group) with
+                | Some bInstance ->
+                    if aInstance <> bInstance then
+                        followupOperations.Add(Merge (aInstance, bInstance))
+                | None ->
+                    followupOperations.Add(EnforcePrototypeInstance (b, aInstance, group))
 
-                // If a is an instance then set prototype for b
-                match instanceMap |> getPrototype a with
-                | None -> ()
-                | Some aPrototype ->
-                    match instanceMap |> getPrototype b with
-                    | None ->
-                        followupOperations.Add(EnforcePrototypeInstance (aPrototype, b, instanceMap))
-                    | Some bPrototype ->
-                        if aPrototype <> bPrototype then
-                            followupOperations.Add(Merge (aPrototype, bPrototype))
+            // If a is an instance then set prototype for b
+            match instances.TryGetPrototype(a) with
+            | None -> ()
+            | Some (aGroup, aPrototype) ->
+                match instances.TryGetPrototype(b) with
+                | None ->
+                    followupOperations.Add(EnforcePrototypeInstance (aPrototype, b, aGroup))
+                | Some (bGroup, bPrototype) ->
+                    if bGroup <> aGroup then
+                        failwith "Merged nodes have prototypes in different groups"
 
-                    instanceMap.Remove(aPrototype) |> ignore
+                    if aPrototype <> bPrototype then
+                        followupOperations.Add(Merge (aPrototype, bPrototype))
+
+                    instances.RemoveFromGroup(aPrototype, a, aGroup)
 
             // Merge scopes
             match scopes.TryGetValue(a), scopes.TryGetValue(b) with
@@ -212,7 +210,7 @@ type TypeGraph() =
             { followupOperations = followupOperations |> List.ofSeq
               nodeSubstitutions = Map.ofList [ a, b ] }
 
-    and enforcePrototypeInstance (prototype: Node, instance: Node, instanceMap: PrototypeToInstanceMap): OperationOutcome =
+    and enforcePrototypeInstance (prototype: Node, instance: Node, group: Guid): OperationOutcome =
         if prototype = instance then
             failwith "A type cannot be a prototype of itself"
         elif nonGeneralizable.Contains(prototype) then
@@ -220,13 +218,13 @@ type TypeGraph() =
         else
             let followupOperations = List()
 
-            match instanceMap.TryGetValue(prototype) with
-            | true, anotherInstance when anotherInstance <> instance ->
+            match instances.TryGetInstance(prototype, group) with
+            | Some existingInstance when existingInstance <> instance ->
                 // If prototype already has another instance, then merge the two instances
-                followupOperations.Add(Merge (instance, anotherInstance))
-            | alreadyLinked, _ ->
-                if not alreadyLinked then
-                    instanceMap.Add(prototype, instance)
+                followupOperations.Add(Merge (instance, existingInstance))
+            | existingInstance ->
+                if existingInstance |> Option.isNone then
+                    instances.AddToGroup(prototype, instance, group)
 
                 // If prototype is an atom, then apply atom to instance
                 match atoms.TryGetAtomTypeId(prototype) with
@@ -239,31 +237,31 @@ type TypeGraph() =
                 | None, Some _ -> ()
                 | Some (paramProto, resultProto), None ->
                     let paramInst =
-                        match instanceMap |> getInstance paramProto with
+                        match instances.TryGetInstance(paramProto, group) with
                         | Some paramInst -> paramInst
                         | None ->
                             let paramInst = createNode ()
-                            followupOperations.Add(EnforcePrototypeInstance (paramProto, paramInst, instanceMap))
+                            followupOperations.Add(EnforcePrototypeInstance (paramProto, paramInst, group))
                             paramInst
 
                     let resultInst =
-                        match instanceMap |> getInstance resultProto with
+                        match instances.TryGetInstance(resultProto, group) with
                         | Some resultInst -> resultInst
                         | None ->
                             let resultInst = createNode ()
-                            followupOperations.Add(EnforcePrototypeInstance (resultProto, resultInst, instanceMap))
+                            followupOperations.Add(EnforcePrototypeInstance (resultProto, resultInst, group))
                             resultInst
 
                     followupOperations.Add(AddFunction (instance, paramInst, resultInst))
                 | Some (paramProto, resultProto), Some (paramInst, resultInst) ->
-                    match instanceMap |> getInstance paramProto with
-                    | None -> followupOperations.Add(EnforcePrototypeInstance (paramProto, paramInst, instanceMap))
+                    match instances.TryGetInstance(paramProto, group) with
+                    | None -> followupOperations.Add(EnforcePrototypeInstance (paramProto, paramInst, group))
                     | Some paramInstFromMap ->
                         if paramInst <> paramInstFromMap then
                             followupOperations.Add(Merge (paramInst, paramInstFromMap))
 
-                    match instanceMap |> getInstance resultProto with
-                    | None -> followupOperations.Add(EnforcePrototypeInstance (resultProto, resultInst, instanceMap))
+                    match instances.TryGetInstance(resultProto, group) with
+                    | None -> followupOperations.Add(EnforcePrototypeInstance (resultProto, resultInst, group))
                     | Some resultInstFromMap ->
                         if resultInst <> resultInstFromMap then
                             followupOperations.Add(Merge (resultInst, resultInstFromMap))
@@ -277,10 +275,8 @@ type TypeGraph() =
         let followupOperations = List()
 
         if atoms.Set(node, atomTypeId) then
-            for instanceMap in instanceMaps do
-                match instanceMap |> getInstance node with
-                | Some inst -> followupOperations.Add(EnforcePrototypeInstance (node, inst, instanceMap))
-                | None -> ()
+            for group, instance in instances.GetInstances(node) do
+                followupOperations.Add(EnforcePrototypeInstance (node, instance, group))
 
         OperationOutcome.Followup(followupOperations)
 
@@ -305,10 +301,8 @@ type TypeGraph() =
                     followupOperations.Add(Merge (result, anotherResult))
             | None ->
                 if functions.Set(func, param, result) then
-                    for instanceMap in instanceMaps do
-                        match instanceMap |> getInstance func with
-                        | Some inst -> followupOperations.Add(EnforcePrototypeInstance (func, inst, instanceMap))
-                        | None -> ()
+                    for group, funcInstance in instances.GetInstances(func) do
+                        followupOperations.Add(EnforcePrototypeInstance (func, funcInstance, group))
 
                     for kv in scopes do
                         let scope = kv.Value
@@ -334,44 +328,10 @@ type TypeGraph() =
         else
             let followupOperations = List()
 
-            for instanceMap in instanceMaps do
-                for kv in instanceMap |> List.ofSeq do
-                    let prototype = kv.Key
-                    let instance = kv.Value
-
-                    if prototype = node || instance = node then
-                        instanceMap.Remove(prototype) |> ignore
-                        followupOperations.Add(Merge (prototype, instance))
+            for _, instance in instances.GetInstances(node) do
+                followupOperations.Add(Merge (node, instance))
 
             OperationOutcome.Followup(followupOperations)
-
-    and getInstance (prototype: Node) (instanceMap: PrototypeToInstanceMap) =
-        match instanceMap.TryGetValue(prototype) with
-        | true, instance -> Some instance
-        | false, _ -> None
-
-    and getPrototype (instance: Node) (instanceMap: PrototypeToInstanceMap) =
-        let prototypes =
-            instanceMap
-            |> Seq.choose (fun kv ->
-                if kv.Value = instance then
-                    Some kv.Key
-                else
-                    None)
-            |> List.ofSeq
-
-        match prototypes with
-        | [] -> None
-        | [ prototype ] -> Some prototype
-        | _ -> failwith "There should not be more than one prototype in one instance map"
-
-    and getOrCreateInstance (prototype: Node) (instanceMap: PrototypeToInstanceMap): bool * Node =
-        match instanceMap.TryGetValue(prototype) with
-        | true, instance -> false, instance
-        | false, _ ->
-            let instance = createNode ()
-            instanceMap.Add(prototype, instance)
-            true, instance
 
     member _.Atom(tRef: TypeReference, atomTypeId: AtomTypeId) =
         let node = getNode tRef
@@ -388,29 +348,12 @@ type TypeGraph() =
         let prototypeNode = getNode prototype
         let instanceNode = getNode instance
 
-        if prototypeNode = instanceNode then
-            failwith "Type cannot be a prototype of itself"
 
-        let instanceHasDifferentPrototype =
-            instanceMaps
-            |> Seq.collect id
-            |> Seq.exists (fun kv -> kv.Value = instanceNode && kv.Key <> prototypeNode)
-
-        if instanceHasDifferentPrototype then
-            failwith "Instance already has a different prototype"
-
-        let thisPrototypeRelationAlreadyExists =
-            instanceMaps
-            |> Seq.exists (fun instanceMap ->
-                match instanceMap.TryGetValue(prototypeNode) with
-                | true, i when i = instanceNode -> true
-                | _ -> false)
-
-        if not thisPrototypeRelationAlreadyExists then
-            let map = PrototypeToInstanceMap()
-            instanceMaps.Add(map)
-
-            runOperation (EnforcePrototypeInstance (prototypeNode, instanceNode, map))
+        match instances.TryCreateGroup(prototypeNode, instanceNode) with
+        | Some mapId ->
+            runOperation (EnforcePrototypeInstance (prototypeNode, instanceNode, mapId))
+        | None ->
+            ()
 
     member _.Identical(a: TypeReference, b: TypeReference) =
         runOperation (Merge(getNode a, getNode b))

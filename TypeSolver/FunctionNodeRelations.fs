@@ -1,7 +1,9 @@
 ﻿namespace TypeSolver
 
 open System.Collections.Generic
+open System.Diagnostics
 
+[<DebuggerDisplay("{ToString()}")>]
 type internal FunctionNodeRelations() =
     let dict = Dictionary<Node, Node * Node>()
 
@@ -60,3 +62,15 @@ type internal FunctionNodeRelations() =
             let p, r = kv.Value
             if r = result then Some(kv.Key, p, r) else None)
         |> List.ofSeq
+
+    override _.ToString() =
+        dict
+        |> Seq.map (fun kv ->
+            let rec getStr node =
+                match dict.TryGetValue(node) with
+                | true, (p, r) -> $"({getStr p} -> {getStr r})"
+                | false, _ -> node.ToString()
+
+            let p, r = kv.Value
+            $"{kv.Key} : {getStr p} -> {getStr r}")
+        |> String.concat "\n"

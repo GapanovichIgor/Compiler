@@ -1,8 +1,10 @@
 ﻿namespace TypeSolver
 
 open System.Collections.Generic
+open System.Diagnostics
 open Common
 
+[<DebuggerDisplay("{ToString()}")>]
 type internal AtomNodeProperty() =
     let dict = Dictionary<Node, AtomTypeId>()
 
@@ -25,3 +27,8 @@ type internal AtomNodeProperty() =
         | false, _ -> None
 
     member _.IsAtom(node: Node) : bool = dict.ContainsKey(node)
+
+    override _.ToString() =
+        dict
+        |> Seq.map (fun kv -> $"{kv.Key} : {kv.Value}")
+        |> String.concat "\n"
