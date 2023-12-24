@@ -26,9 +26,18 @@ type private Context =
 
     member this.PopScope() = this.scopeOwnerStack.Pop() |> ignore
 
+    member this.Identical(a: TypeReference, b: TypeReference) =
+        this.graph.Identical(a, b)
+
+    member this.Atom(typeReference: TypeReference, atomTypeId: AtomTypeId) =
+        this.graph.Atom(typeReference, atomTypeId)
+
     member this.AddToScope(typeReference: TypeReference) =
         if this.scopeOwnerStack.Count > 0 then
             this.graph.Scoped(this.scopeOwnerStack.Peek(), typeReference)
+
+    member this.FunctionDefinition(fnType: TypeReference, parameterType: TypeReference, resultType: TypeReference) =
+        this.graph.Function(fnType, parameterType, resultType)
 
     member this.Application(applicationReference: ApplicationReference, fnType: TypeReference, argumentType: TypeReference, resultType: TypeReference) =
         let fnInstanceType = TypeReference($"instance of {fnType}")
@@ -49,15 +58,15 @@ let private traverseExpression (ctx: Context) (expression: Expression) =
     match expression.expressionShape with
     | IdentifierReference identifier ->
         let identifierTypeRef = ctx.GetIdentifierType(identifier)
-        ctx.graph.Identical(expression.expressionType, identifierTypeRef)
+        ctx.Identical(expression.expressionType, identifierTypeRef)
     | NumberLiteral(_, fractionalPart) ->
         let numberType =
             match fractionalPart with
             | Some _ -> BuiltIn.AtomTypeIds.float
             | None -> BuiltIn.AtomTypeIds.int
 
-        ctx.graph.Atom(expression.expressionType, numberType)
-    | StringLiteral _ -> ctx.graph.Atom(expression.expressionType, BuiltIn.AtomTypeIds.string)
+        ctx.Atom(expression.expressionType, numberType)
+    | StringLiteral _ -> ctx.Atom(expression.expressionType, BuiltIn.AtomTypeIds.string)
     | Application(applicationReference, fn, argument) ->
         ctx.Application(applicationReference, fn.expressionType, argument.expressionType, expression.expressionType)
         traverseExpression ctx fn
@@ -68,7 +77,7 @@ let private traverseExpression (ctx: Context) (expression: Expression) =
         ctx.AddToScope(identifierType)
 
         if parameters.Length = 0 then
-            ctx.graph.Identical(identifierType, body.expressionType)
+            ctx.Identical(identifierType, body.expressionType)
         else
             ctx.PushScope(identifierType)
 
@@ -78,22 +87,21 @@ let private traverseExpression (ctx: Context) (expression: Expression) =
                     let parameterType = ctx.GetIdentifierType(parameter)
                     ctx.AddToScope(parameterType)
                     ctx.NonGeneralizable(parameterType)
-                    ctx.graph.Function(currentFunctionType, parameterType, body.expressionType)
+                    ctx.FunctionDefinition(currentFunctionType, parameterType, body.expressionType)
                 | parameter :: parametersRest ->
                     let parameterType = ctx.GetIdentifierType(parameter)
                     ctx.AddToScope(parameterType)
                     ctx.NonGeneralizable(parameterType)
 
-                    let subFunctionType =
-                        TypeReference($"binding sub-function of ({identifier}) on parameter ({parameter})")
+                    let subFunctionType = TypeReference($"binding sub-function of ({identifier}) on parameter ({parameter})")
 
-                    ctx.graph.Function(currentFunctionType, parameterType, subFunctionType)
+                    ctx.FunctionDefinition(currentFunctionType, parameterType, subFunctionType)
                     loop subFunctionType parametersRest
                 | _ -> failwith "Invalid state"
 
             loop identifierType parameters
 
-        ctx.graph.Atom(expression.expressionType, BuiltIn.AtomTypeIds.unit)
+        ctx.Atom(expression.expressionType, BuiltIn.AtomTypeIds.unit)
 
         traverseExpression ctx body
 
@@ -104,8 +112,8 @@ let private traverseExpression (ctx: Context) (expression: Expression) =
         expressions |> List.iter (traverseExpression ctx)
 
         match List.tryLast expressions with
-        | Some lastExpression -> ctx.graph.Identical(expression.expressionType, lastExpression.expressionType)
-        | None -> ctx.graph.Atom(expression.expressionType, BuiltIn.AtomTypeIds.unit)
+        | Some lastExpression -> ctx.Identical(expression.expressionType, lastExpression.expressionType)
+        | None -> ctx.Atom(expression.expressionType, BuiltIn.AtomTypeIds.unit)
 
     | InvalidToken _ -> failwith "TODO"
 

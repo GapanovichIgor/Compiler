@@ -35,9 +35,9 @@ type TypeGraph() =
     let typeReferenceNodes = Dictionary<TypeReference, Node>()
 
     let atoms = AtomNodeProperty()
+    let nonGeneralizable = FlagNodeProperty()
     let functions = FunctionNodeRelations()
     let instances = InstanceNodeRelations()
-    let nonGeneralizable = FlagNodeProperty()
 
     let scopes = Dictionary<Node, List<Node>>()
 
@@ -131,6 +131,7 @@ type TypeGraph() =
             | None, _ -> ()
             | Some aAtomTypeId, Some bAtomTypeId when aAtomTypeId = bAtomTypeId -> ()
             | Some atomTypeId, _ -> followupOperations.Add(SetAsAtom (b, atomTypeId))
+
             atoms.Unset(a)
 
             // Merge functions
