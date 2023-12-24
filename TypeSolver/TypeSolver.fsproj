@@ -6,6 +6,8 @@
     </PropertyGroup>
 
     <ItemGroup>
+        <Compile Include="Node.fs" />
+        <Compile Include="AtomNodeProperty.fs" />
         <Compile Include="TypeGraph.fs" />
         <Compile Include="AstTraverser.fs" />
         <Compile Include="TypeInformation.fs" />

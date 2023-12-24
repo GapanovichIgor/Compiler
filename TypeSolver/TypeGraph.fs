@@ -3,8 +3,6 @@
 open System.Collections.Generic
 open Common
 
-type private Node = int
-
 type private PrototypeToInstanceMap = Dictionary<Node, Node>
 
 type private NodeShape =
@@ -35,7 +33,7 @@ type TypeGraph() =
 
     let typeReferenceNodes = Dictionary<TypeReference, Node>()
 
-    let atoms = Dictionary<Node, AtomTypeId>()
+    let atoms = AtomNodeProperty()
 
     let functions = HashSet<Node * Node * Node>()
 
@@ -131,11 +129,11 @@ type TypeGraph() =
                     typeReferenceNodes[kv.Key] <- b
 
             // If a is an atom type, then set b as this atom type
-            match getAtomType a, getAtomType b with
+            match atoms.TryGetAtomTypeId(a), atoms.TryGetAtomTypeId(b) with
             | None, _ -> ()
             | Some aAtomTypeId, Some bAtomTypeId when aAtomTypeId = bAtomTypeId -> ()
             | Some atomTypeId, _ -> followupOperations.Add(SetAsAtom (b, atomTypeId))
-            atoms.Remove(a) |> ignore
+            atoms.Unset(a)
 
             // Merge functions
             let functionA = getFunctionParamResult a
@@ -229,9 +227,9 @@ type TypeGraph() =
                     instanceMap.Add(prototype, instance)
 
                 // If prototype is an atom, then apply atom to instance
-                match atoms.TryGetValue(prototype) with
-                | true, atomTypeId -> followupOperations.Add(SetAsAtom (instance, atomTypeId))
-                | false, _ -> ()
+                match atoms.TryGetAtomTypeId(prototype) with
+                | Some atomTypeId -> followupOperations.Add(SetAsAtom (instance, atomTypeId))
+                | None -> ()
 
                 // If prototype is a function, then enforce (paramProto -> paramInst) and (resultProto -> resultInst)
                 match getFunctionParamResult prototype, getFunctionParamResult instance with
@@ -271,19 +269,13 @@ type TypeGraph() =
             OperationOutcome.Followup(followupOperations)
 
     and setAsAtom (node: Node, atomTypeId: AtomTypeId): OperationOutcome =
+        let nodeIsFunction = functions |> Seq.exists (fun (f, _, _) -> f = node)
+        if nodeIsFunction then
+            failwith "The node cannot be an atom type because it is a function"
+
         let followupOperations = List()
 
-        match atoms.TryGetValue(node) with
-        | true, anotherAtomTypeId ->
-            if anotherAtomTypeId <> atomTypeId then
-                failwith "The node is constrained to be two different atom types"
-        | false, _ ->
-            let nodeIsFunction = functions |> Seq.exists (fun (f, _, _) -> f = node)
-            if nodeIsFunction then
-                failwith "The node cannot be an atom type because it is a function"
-
-            atoms.Add(node, atomTypeId)
-
+        if atoms.Set(node, atomTypeId) then
             for instanceMap in instanceMaps do
                 match instanceMap |> getInstance node with
                 | Some inst -> followupOperations.Add(EnforcePrototypeInstance (node, inst, instanceMap))
@@ -292,6 +284,9 @@ type TypeGraph() =
         OperationOutcome.Followup(followupOperations)
 
     and addFunction (func: Node, param: Node, result: Node): OperationOutcome =
+        if atoms.IsAtom(func) then
+            failwith "The node cannot be a function because it is an atom"
+
         let followupOperations = List()
 
         let anotherFunctionsOfSameParamResult =
@@ -313,9 +308,6 @@ type TypeGraph() =
                 if anotherResult <> result then
                     followupOperations.Add(Merge (result, anotherResult))
             | None ->
-                let nodeIsAtom = atoms.ContainsKey(func)
-                if nodeIsAtom then
-                    failwith "The node cannot be a function because it is an atom"
 
                 functions.Add(func, param, result) |> ignore
 
@@ -360,11 +352,6 @@ type TypeGraph() =
                         followupOperations.Add(Merge (prototype, instance))
 
             OperationOutcome.Followup(followupOperations)
-
-    and getAtomType (node: Node) =
-        match atoms.TryGetValue(node) with
-        | true, atomTypeId -> Some atomTypeId
-        | false, _ -> None
 
     and getFunctionParamResult (node: Node) =
         let paramResult =
@@ -497,7 +484,7 @@ type TypeGraph() =
             | true, t -> t
             | false, _ ->
                 let type_ =
-                    match getAtomType node with
+                    match atoms.TryGetAtomTypeId(node) with
                     | Some atomTypeId ->
                         match getFunctionParamResult node with
                         | None -> AtomType atomTypeId
