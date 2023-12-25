@@ -2,6 +2,7 @@
 
 open System
 open System.Collections.Generic
+open System.Text
 open Common
 
 type private PrototypeToInstanceMap = Dictionary<Node, Node>
@@ -112,7 +113,6 @@ type TypeGraph() =
                 | EnforcePrototypeInstance (proto, inst, map) -> enforcePrototypeInstance (proto, inst, map)
                 | ForbidGeneralization node -> forbidGeneralization node
 
-
             rebuildSet outcome.nodeSubstitutions
             for operation in outcome.followupOperations do
                 operationSet.Add(operation) |> ignore
@@ -200,7 +200,7 @@ type TypeGraph() =
 
     and enforcePrototypeInstance (prototype: Node, instance: Node, group: Guid): OperationOutcome =
         if prototype = instance then
-            failwith "A type cannot be a prototype of itself"
+            OperationOutcome.Empty
         elif nonGeneralizable.IsSet(prototype) then
             OperationOutcome.Followup([ Merge (prototype, instance) ])
         else
@@ -297,6 +297,10 @@ type TypeGraph() =
                     for group, funcInstance in instances.GetInstances(func) do
                         followupOperations.Add(EnforcePrototypeInstance (func, funcInstance, group))
 
+                    if nonGeneralizable.IsSet(func) then
+                        followupOperations.Add(ForbidGeneralization param)
+                        followupOperations.Add(ForbidGeneralization result)
+
         OperationOutcome.Followup(followupOperations)
 
     and forbidGeneralization (node: Node) =
@@ -306,6 +310,12 @@ type TypeGraph() =
             let followupOperations = List()
 
             nonGeneralizable.Set(node)
+
+            match functions.TryGetParamResultOfFunction(node) with
+            | Some (param, result) ->
+                followupOperations.Add(ForbidGeneralization param)
+                followupOperations.Add(ForbidGeneralization result)
+            | None -> ()
 
             for _, instance in instances.GetInstances(node) do
                 followupOperations.Add(Merge (node, instance))
@@ -375,3 +385,22 @@ type TypeGraph() =
 
         { typeReferenceTypes = typeReferenceTypes
           typeReferenceIdentities = typeReferenceIdentities }
+
+    override _.ToString() =
+        let sb = StringBuilder()
+
+        sb.AppendLine("=== TypeReferences ===") |> ignore
+        for kv in typeReferenceNodes do
+            sb.Append(kv.Key.ToString()) |> ignore
+            sb.Append(" = ") |> ignore
+            sb.AppendLine(kv.Value.ToString()) |> ignore
+        sb.AppendLine("=== Atoms ===") |> ignore
+        sb.AppendLine(atoms.ToString()) |> ignore
+        sb.AppendLine("=== Functions ===") |> ignore
+        sb.AppendLine(functions.ToString()) |> ignore
+        sb.AppendLine("=== Instances ===") |> ignore
+        sb.AppendLine(instances.ToString()) |> ignore
+        sb.AppendLine("=== Non-generalizable ===") |> ignore
+        sb.AppendLine(nonGeneralizable.ToString()) |> ignore
+
+        sb.ToString()
