@@ -56,8 +56,8 @@ type internal InstanceNodeRelations() =
         match group.TryGetValue(prototype) with
         | true, i when i = instance ->
             group.Remove(prototype) |> ignore
-            if group.Count = 0 then
-                groups.Remove(groupId) |> ignore
+            // if group.Count = 0 then
+            //     groups.Remove(groupId) |> ignore
         | _ -> failwith "Invalid prototype instance pair"
 
     member _.TryGetPrototype(instance: Node) : (Guid * Node) option =
