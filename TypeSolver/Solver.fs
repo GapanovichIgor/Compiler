@@ -4,17 +4,7 @@ open System.Collections.Generic
 open Ast
 open Common
 
-type private AtomTypeScopeOwner =
-    | Global
-    | Owner of TypeReference
-
-type private AtomTypeScope =
-    { owner: AtomTypeScopeOwner
-      parentScope: AtomTypeScope option
-      childScopes: List<AtomTypeScope>
-      atomTypes: List<AtomTypeId> }
-
-let private addBuiltIns (identifierTypes: Dictionary<Identifier, TypeReference>) (graph: TypeGraph) =
+let private addBuiltIns (identifierTypes: Dictionary<Identifier, TypeReference>, graph: TypeGraph, scopeTree: ScopeTree) =
     let getIdentifierTypeRef identifier =
         match identifierTypes.TryGetValue(identifier) with
         | true, tr -> tr
@@ -58,24 +48,35 @@ let private addBuiltIns (identifierTypes: Dictionary<Identifier, TypeReference>)
       BuiltIn.AtomTypeIds.float
       BuiltIn.AtomTypeIds.string
       //
-    ]
+      ]
     |> List.iter (fun atomTypeId ->
-        let typeReference = TypeReference()
+        let typeReference = TypeReference(atomTypeId.ToString())
         graph.Atom(typeReference, atomTypeId)
-        graph.ScopedGlobal(typeReference))
+        scopeTree.Add(typeReference))
+
+let private createQualifiedTypes
+    (
+        identifierTypes: IReadOnlyDictionary<Identifier, TypeReference>,
+        graphInfo: TypeGraphInfo,
+        scopeTree: ScopeTree,
+        functionApplications: IReadOnlyList<FunctionApplication>
+    ) : Map<TypeReference, Type> =
+
+    failwith "TODO"
 
 let private getImplicitTypeArguments
     (
         typeReferenceTypes: Map<TypeReference, Type>,
-        functionApplications: AstTraverser.FunctionApplication list
+        functionApplications: IReadOnlyList<FunctionApplication>
     ) : Map<ApplicationReference, Map<AtomTypeId, Type>> =
 
     let mutable map = Map.empty
 
     for app in functionApplications do
         let definedType = typeReferenceTypes[app.definedFunctionType]
+
         match definedType with
-        | QualifiedType (typeParameters, definedTypeBody) ->
+        | QualifiedType(typeParameters, definedTypeBody) ->
             let resultType = typeReferenceTypes[app.resultFunctionType]
 
             let rec getArguments definedType resultType argumentMap =
@@ -88,7 +89,7 @@ let private getImplicitTypeArguments
                         | None -> argumentMap |> Map.add atomTypeId argument
                     else
                         argumentMap
-                | FunctionType (dp, dr), FunctionType (rp, rr) ->
+                | FunctionType(dp, dr), FunctionType(rp, rr) ->
                     let argumentMap = getArguments dp rp argumentMap
                     let argumentMap = getArguments dr rr argumentMap
                     argumentMap
@@ -105,12 +106,16 @@ let private getImplicitTypeArguments
 let getTypeInformation (ast: Program) : TypeInformation =
     let identifierTypes = Dictionary()
     let graph = TypeGraph()
+    let scopeTree = ScopeTree()
+    let functionApplications = List()
 
-    addBuiltIns identifierTypes graph
+    addBuiltIns (identifierTypes, graph, scopeTree)
 
-    let astTypeInfo = AstTraverser.collectInfoFromAst (identifierTypes, graph) ast
+    AstTraverser.collectInfoFromAst (identifierTypes, graph, scopeTree, functionApplications) ast
 
-    let typeReferenceTypes = graph.GetResult()
+    let graphInfo = graph.GetResult()
+
+    let typeReferenceTypes = createQualifiedTypes (identifierTypes, graphInfo, scopeTree, functionApplications)
 
     let identifierTypes =
         identifierTypes
@@ -118,7 +123,7 @@ let getTypeInformation (ast: Program) : TypeInformation =
         |> Map.ofSeq
 
     let implicitTypeArguments =
-        getImplicitTypeArguments (typeReferenceTypes, astTypeInfo.functionApplications)
+        getImplicitTypeArguments (typeReferenceTypes, functionApplications)
 
     { identifierTypes = identifierTypes
       typeReferenceTypes = typeReferenceTypes

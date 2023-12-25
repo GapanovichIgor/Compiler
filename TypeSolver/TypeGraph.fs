@@ -29,6 +29,10 @@ type private OperationOutcome =
         { followupOperations = followupOperations |> List.ofSeq
           nodeSubstitutions = Map.empty }
 
+type TypeGraphInfo =
+    { typeReferenceTypes: Map<TypeReference, Type>
+      typeReferenceIdentities: Map<TypeReference, Guid> }
+
 type TypeGraph() =
     let allNodes = HashSet<Node>()
 
@@ -38,7 +42,6 @@ type TypeGraph() =
     let nonGeneralizable = FlagNodeProperty()
     let functions = FunctionNodeRelations()
     let instances = InstanceNodeRelations()
-    let scopes = NodeScopes()
 
     let createNode =
         let mutable newNodeId = 1
@@ -187,20 +190,6 @@ type TypeGraph() =
 
                 instances.RemoveFromGroup(aPrototype, a, aGroup)
 
-            // Merge scopes
-            match scopes.GetChildNodes(a) with
-            | [] -> ()
-            | aContainedNodes ->
-                for n in aContainedNodes do
-                    scopes.Unscope(n)
-                    scopes.Scope(b, n)
-
-            match scopes.TryGetParentNode(a) with
-            | Some aContainer ->
-                scopes.Unscope(a)
-                scopes.Scope(aContainer, b)
-            | None -> ()
-
             // Merge nonGeneralizable
             if nonGeneralizable.IsSet(a) then
                 nonGeneralizable.Unset(a)
@@ -308,21 +297,6 @@ type TypeGraph() =
                     for group, funcInstance in instances.GetInstances(func) do
                         followupOperations.Add(EnforcePrototypeInstance (func, funcInstance, group))
 
-                    match scopes.TryGetParentNode(func) with
-                    | Some funcContainer ->
-                        scopes.Unscope(func)
-                        let rec addToScope containedNode =
-                            let paramResult = functions.TryGetParamResultOfFunction(containedNode)
-                            match paramResult with
-                            | None -> scopes.Scope(funcContainer, containedNode)
-                            | Some (param, result) ->
-                                scopes.Unscope(containedNode)
-                                addToScope param
-                                addToScope result
-                        addToScope param
-                        addToScope result
-                    | None -> ()
-
         OperationOutcome.Followup(followupOperations)
 
     and forbidGeneralization (node: Node) =
@@ -365,32 +339,9 @@ type TypeGraph() =
     member _.NonGeneralizable(typeReference: TypeReference) =
         runOperation (ForbidGeneralization (getNode typeReference))
 
-    member this.Scoped(container: TypeReference, contained: TypeReference) =
-        let containerNode = getNode container
-
-        let rec addNodeToScope containedNode =
-            match functions.TryGetParamResultOfFunction(containedNode) with
-            | None -> scopes.Scope(containerNode, containedNode)
-            | Some (param, result) ->
-                scopes.Unscope(containedNode)
-                addNodeToScope param
-                addNodeToScope result
-
-        addNodeToScope (getNode contained)
-
-    member this.ScopedGlobal(contained: TypeReference) =
-        let rec addNodeToScope containedNode =
-            match functions.TryGetParamResultOfFunction(containedNode) with
-            | None -> scopes.ScopeRoot(containedNode)
-            | Some (param, result) ->
-                scopes.Unscope(containedNode)
-                addNodeToScope param
-                addNodeToScope result
-
-        addNodeToScope (getNode contained)
-
-    member _.GetResult(): Map<TypeReference, Type> =
-        let mutable typeMap = Map.empty
+    member _.GetResult(): TypeGraphInfo =
+        let mutable typeReferenceTypes = Map.empty
+        let mutable typeReferenceIdentities = Map.empty
 
         let nodeTypeMap = Dictionary()
 
@@ -405,28 +356,22 @@ type TypeGraph() =
                     | None, Some (param, result) -> FunctionType (getType param, getType result)
                     | Some _, Some _ -> failwith "The type was constrained to be a function and an atom type"
 
-                let type_ =
-                    match scopes.GetChildNodes(node) with
-                    | [] -> type_
-                    | containedNodes ->
-                        let typeParameters =
-                            containedNodes
-                            |> Seq.map getType
-                            |> Seq.map (function
-                                | AtomType atomTypeId -> atomTypeId
-                                | _ -> failwith "Scopes should only contain atom types")
-                            |> List.ofSeq
-
-                        QualifiedType (typeParameters, type_)
-
                 nodeTypeMap.Add(node, type_)
                 type_
+
+        let nodeGuids =
+            allNodes
+            |> Seq.map (fun node -> (node, Guid.NewGuid()))
+            |> Map.ofSeq
 
         for kv in typeReferenceNodes do
             let tRef = kv.Key
             let node = kv.Value
 
             let type_ = getType node
-            typeMap <- typeMap |> Map.add tRef type_
+            let identity = nodeGuids |> Map.find node
+            typeReferenceTypes <- typeReferenceTypes |> Map.add tRef type_
+            typeReferenceIdentities <- typeReferenceIdentities |> Map.add tRef identity
 
-        typeMap
+        { typeReferenceTypes = typeReferenceTypes
+          typeReferenceIdentities = typeReferenceIdentities }

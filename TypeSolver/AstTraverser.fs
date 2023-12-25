@@ -4,57 +4,43 @@ open System.Collections.Generic
 open Common
 open Ast
 
-type private TypeScopeMut =
-    { containedTypeReferences: List<TypeReference>
-      childScopes: Dictionary<TypeReference, TypeScopeMut> }
+type private Context
+    (identifierTypes: Dictionary<Identifier, TypeReference>, graph: TypeGraph, scopeTree: ScopeTree, functionApplications: List<FunctionApplication>) =
 
-type private Context =
-    { identifierTypes: Dictionary<Identifier, TypeReference>
-      graph: TypeGraph
-      scopeOwnerStack: Stack<TypeReference>
-      functionApplications: List<FunctionApplication> }
-
-    member this.GetIdentifierType(i: Identifier) =
-        match this.identifierTypes.TryGetValue(i) with
+    member _.GetIdentifierType(i: Identifier) =
+        match identifierTypes.TryGetValue(i) with
         | true, tr -> tr
         | false, _ ->
             let tr = TypeReference($"identifier '{i}'")
-            this.identifierTypes.Add(i, tr)
+            identifierTypes.Add(i, tr)
             tr
 
-    member this.PushScope(owner: TypeReference) = this.scopeOwnerStack.Push(owner)
+    member _.PushScope(identifier: Identifier) = scopeTree.Push(identifier)
 
-    member this.PopScope() = this.scopeOwnerStack.Pop() |> ignore
+    member _.PopScope() = scopeTree.Pop()
 
-    member this.Identical(a: TypeReference, b: TypeReference) =
-        this.graph.Identical(a, b)
+    member _.Identical(a: TypeReference, b: TypeReference) = graph.Identical(a, b)
 
-    member this.Atom(typeReference: TypeReference, atomTypeId: AtomTypeId) =
-        this.graph.Atom(typeReference, atomTypeId)
+    member _.Atom(typeReference: TypeReference, atomTypeId: AtomTypeId) = graph.Atom(typeReference, atomTypeId)
 
-    member this.AddToScope(typeReference: TypeReference) =
-        if this.scopeOwnerStack.Count = 0 then
-            this.graph.ScopedGlobal(typeReference)
-        else
-            this.graph.Scoped(this.scopeOwnerStack.Peek(), typeReference)
+    member _.AddToScope(typeReference: TypeReference) = scopeTree.Add(typeReference)
 
-    member this.FunctionDefinition(fnType: TypeReference, parameterType: TypeReference, resultType: TypeReference) =
-        this.graph.Function(fnType, parameterType, resultType)
+    member _.FunctionDefinition(fnType: TypeReference, parameterType: TypeReference, resultType: TypeReference) =
+        graph.Function(fnType, parameterType, resultType)
 
-    member this.Application(applicationReference: ApplicationReference, fnType: TypeReference, argumentType: TypeReference, resultType: TypeReference) =
+    member _.Application(applicationReference: ApplicationReference, fnType: TypeReference, argumentType: TypeReference, resultType: TypeReference) =
         let fnInstanceType = TypeReference($"instance of {fnType}")
 
-        this.graph.Instance(fnType, fnInstanceType)
+        graph.Instance(fnType, fnInstanceType)
 
-        this.functionApplications.Add
+        functionApplications.Add
             { applicationReference = applicationReference
               definedFunctionType = fnType
               resultFunctionType = fnInstanceType }
 
-        this.graph.Function(fnInstanceType, argumentType, resultType)
+        graph.Function(fnInstanceType, argumentType, resultType)
 
-    member this.NonGeneralizable(typeReference: TypeReference) =
-        this.graph.NonGeneralizable(typeReference)
+    member _.NonGeneralizable(typeReference: TypeReference) = graph.NonGeneralizable(typeReference)
 
 let private traverseExpression (ctx: Context) (expression: Expression) =
     match expression.expressionShape with
@@ -81,7 +67,7 @@ let private traverseExpression (ctx: Context) (expression: Expression) =
         if parameters.Length = 0 then
             ctx.Identical(identifierType, body.expressionType)
         else
-            ctx.PushScope(identifierType)
+            ctx.PushScope(identifier)
 
             let rec loop currentFunctionType parameters =
                 match parameters with
@@ -95,7 +81,8 @@ let private traverseExpression (ctx: Context) (expression: Expression) =
                     ctx.AddToScope(parameterType)
                     ctx.NonGeneralizable(parameterType)
 
-                    let subFunctionType = TypeReference($"binding sub-function of ({identifier}) on parameter ({parameter})")
+                    let subFunctionType =
+                        TypeReference($"binding sub-function of ({identifier}) on parameter ({parameter})")
 
                     ctx.FunctionDefinition(currentFunctionType, parameterType, subFunctionType)
                     loop subFunctionType parametersRest
@@ -127,24 +114,11 @@ type TypeReferenceScope =
     { containedTypeReferences: TypeReference list
       childScopes: Map<TypeReference, TypeReferenceScope> }
 
-type FunctionApplication =
-    { applicationReference: ApplicationReference
-      definedFunctionType: TypeReference
-      resultFunctionType: TypeReference }
+let collectInfoFromAst
+    (identifierTypes: Dictionary<Identifier, TypeReference>, graph: TypeGraph, scopeTree: ScopeTree, functionApplications: List<FunctionApplication>)
+    (ast: Program)
+    =
 
-type AstTypeInfo =
-    { functionApplications: FunctionApplication list }
-
-let collectInfoFromAst (identifierTypes: Dictionary<Identifier, TypeReference>, graph: TypeGraph) (ast: Program) : AstTypeInfo =
-    let ctx =
-        { identifierTypes = identifierTypes
-          graph = graph
-          scopeOwnerStack = Stack []
-          functionApplications = List() }
+    let ctx = Context(identifierTypes, graph, scopeTree, functionApplications)
 
     traverseProgram ctx ast
-
-    if ctx.scopeOwnerStack.Count <> 0 then
-        failwith "Scope stack imbalance"
-
-    { functionApplications = ctx.functionApplications |> List.ofSeq }
