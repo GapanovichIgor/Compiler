@@ -58,11 +58,50 @@ let private createQualifiedTypes
     (
         identifierTypes: IReadOnlyDictionary<Identifier, TypeReference>,
         graphInfo: TypeGraphInfo,
-        scopeTree: ScopeTree,
+        scopeTreeInfo: ScopeTreeInfo,
         functionApplications: IReadOnlyList<FunctionApplication>
     ) : Map<TypeReference, Type> =
 
-    failwith "TODO"
+    let typeReferenceIdentifiers =
+        identifierTypes
+        |> Seq.map (fun kv -> kv.Value, kv.Key)
+        |> Map.ofSeq
+
+    let mutable typeReferenceTypes = Map.empty
+
+    for typeReference, type_ in graphInfo.typeReferenceTypes |> Map.toSeq do
+        let identity = graphInfo.typeReferenceIdentities |> Map.find typeReference
+
+        let identicalTypeReferences =
+            graphInfo.typeReferenceIdentities
+            |> Seq.choose (fun kv ->
+                if kv.Value = identity then
+                    Some kv.Key
+                else
+                    None)
+            |> List.ofSeq
+
+        let aliasedIdentifiers =
+            identicalTypeReferences
+            |> List.choose (fun tRef -> typeReferenceIdentifiers |> Map.tryFind tRef)
+
+        let scopedAtomTypes =
+            aliasedIdentifiers
+            |> Seq.choose (fun i -> scopeTreeInfo.identifierScopedAtomTypes |> Map.tryFind i)
+            |> List.ofSeq
+            |> function
+                | [] -> None
+                | [ s ] -> Some s
+                | _ -> failwith "Only one of aliased identifiers can have a scope"
+
+        let type_ =
+            match scopedAtomTypes with
+            | None -> type_
+            | Some scopedAtomTypes -> QualifiedType (scopedAtomTypes, type_)
+
+        typeReferenceTypes <- typeReferenceTypes |> Map.add typeReference type_
+
+    typeReferenceTypes
 
 let private getImplicitTypeArguments
     (
@@ -115,7 +154,9 @@ let getTypeInformation (ast: Program) : TypeInformation =
 
     let graphInfo = graph.GetResult()
 
-    let typeReferenceTypes = createQualifiedTypes (identifierTypes, graphInfo, scopeTree, functionApplications)
+    let scopeTreeInfo = scopeTree.GetResult(graphInfo.typeReferenceTypes)
+
+    let typeReferenceTypes = createQualifiedTypes (identifierTypes, graphInfo, scopeTreeInfo, functionApplications)
 
     let identifierTypes =
         identifierTypes
