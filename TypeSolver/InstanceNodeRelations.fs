@@ -43,18 +43,21 @@ type internal InstanceNodeRelations() =
         else
             None
 
-    member _.AddToGroup(prototype: Node, instance: Node, group: Guid) : unit =
+    member _.AddToGroup(prototype: Node, instance: Node, groupId: Guid) : unit =
         validateCanAdd (prototype, instance)
 
-        let group = getGroup group
+        let group = getGroup groupId
 
         group[prototype] <- instance
 
-    member _.RemoveFromGroup(prototype: Node, instance: Node, group: Guid) : unit =
-        let group = getGroup group
+    member _.RemoveFromGroup(prototype: Node, instance: Node, groupId: Guid) : unit =
+        let group = getGroup groupId
 
         match group.TryGetValue(prototype) with
-        | true, i when i = instance -> group.Remove(prototype) |> ignore
+        | true, i when i = instance ->
+            group.Remove(prototype) |> ignore
+            if group.Count = 0 then
+                groups.Remove(groupId) |> ignore
         | _ -> failwith "Invalid prototype instance pair"
 
     member _.TryGetPrototype(instance: Node) : (Guid * Node) option =
