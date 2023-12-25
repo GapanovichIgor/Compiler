@@ -1,1 +1,10 @@
-let higher f = f 0
+let x = 5
+let higher f = f x
+
+let TRUE a b = a 0
+let FALSE a b = b 0
+
+let apply x y = x y
+
+let ifThenElse boolean trueBranch falseBranch =
+    boolean trueBranch falseBranch

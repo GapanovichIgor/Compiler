@@ -55,6 +55,7 @@ type internal ScopeTree() =
                 | AtomType atomTypeId -> Some atomTypeId
                 | _ -> None)
             |> List.ofSeq
+            |> List.distinct
 
         let identifierScopedAtomTypes =
             subScopes
@@ -70,6 +71,7 @@ type internal ScopeTree() =
                         typeReferenceTypes[tr]
                         |> collectAtomTypes)
                     |> List.ofSeq
+                    |> List.distinct
 
                 if atomTypes.IsEmpty then
                     None
