@@ -16,6 +16,9 @@ type internal AtomNodeProperty() =
             else
                 failwith "Node is set to be two different atom types"
         | false, _ ->
+            if dict.Values |> Seq.contains atomTypeId then
+                failwith "Another node was already set to this AtomTypeId"
+
             dict.Add(node, atomTypeId)
             true
 
@@ -27,6 +30,15 @@ type internal AtomNodeProperty() =
         | false, _ -> None
 
     member _.IsAtom(node: Node) : bool = dict.ContainsKey(node)
+
+    member _.TryGetNodeByAtomTypeId(atomTypeId: AtomTypeId) : Node option =
+        dict
+        |> Seq.choose (fun kv ->
+            if kv.Value = atomTypeId then
+                Some kv.Key
+            else
+                None)
+        |> Seq.tryHead
 
     override _.ToString() =
         dict

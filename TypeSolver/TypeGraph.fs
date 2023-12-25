@@ -188,14 +188,14 @@ type TypeGraph() =
                 instances.RemoveFromGroup(aPrototype, a, aGroup)
 
             // Merge scopes
-            match scopes.GetContainedNodes(a) with
+            match scopes.GetChildNodes(a) with
             | [] -> ()
             | aContainedNodes ->
                 for n in aContainedNodes do
                     scopes.Unscope(n)
                     scopes.Scope(b, n)
 
-            match scopes.TryGetContainerNode(a) with
+            match scopes.TryGetParentNode(a) with
             | Some aContainer ->
                 scopes.Unscope(a)
                 scopes.Scope(aContainer, b)
@@ -273,9 +273,14 @@ type TypeGraph() =
 
         let followupOperations = List()
 
-        if atoms.Set(node, atomTypeId) then
-            for group, instance in instances.GetInstances(node) do
-                followupOperations.Add(EnforcePrototypeInstance (node, instance, group))
+        match atoms.TryGetNodeByAtomTypeId(atomTypeId) with
+        | Some existingNode ->
+            if existingNode <> node then
+                followupOperations.Add(Merge (node, existingNode))
+        | None ->
+            if atoms.Set(node, atomTypeId) then
+                for group, instance in instances.GetInstances(node) do
+                    followupOperations.Add(EnforcePrototypeInstance (node, instance, group))
 
         OperationOutcome.Followup(followupOperations)
 
@@ -303,7 +308,7 @@ type TypeGraph() =
                     for group, funcInstance in instances.GetInstances(func) do
                         followupOperations.Add(EnforcePrototypeInstance (func, funcInstance, group))
 
-                    match scopes.TryGetContainerNode(func) with
+                    match scopes.TryGetParentNode(func) with
                     | Some funcContainer ->
                         scopes.Unscope(func)
                         let rec addToScope containedNode =
@@ -401,7 +406,7 @@ type TypeGraph() =
                     | Some _, Some _ -> failwith "The type was constrained to be a function and an atom type"
 
                 let type_ =
-                    match scopes.GetContainedNodes(node) with
+                    match scopes.GetChildNodes(node) with
                     | [] -> type_
                     | containedNodes ->
                         let typeParameters =
