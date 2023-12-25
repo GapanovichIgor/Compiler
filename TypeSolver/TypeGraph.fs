@@ -38,8 +38,7 @@ type TypeGraph() =
     let nonGeneralizable = FlagNodeProperty()
     let functions = FunctionNodeRelations()
     let instances = InstanceNodeRelations()
-
-    let scopes = Dictionary<Node, List<Node>>()
+    let scopes = NodeScopes()
 
     let createNode =
         let mutable newNodeId = 1
@@ -189,21 +188,18 @@ type TypeGraph() =
                 instances.RemoveFromGroup(aPrototype, a, aGroup)
 
             // Merge scopes
-            match scopes.TryGetValue(a), scopes.TryGetValue(b) with
-            | (true, aScope), (true, bScope) ->
-                bScope.AddRange(aScope)
-            | (true, aScope), (false, _) ->
-                scopes.Add(b, aScope)
-            | _ ->
-                ()
+            match scopes.GetContainedNodes(a) with
+            | [] -> ()
+            | aContainedNodes ->
+                for n in aContainedNodes do
+                    scopes.Unscope(n)
+                    scopes.Scope(b, n)
 
-            scopes.Remove(a) |> ignore
-
-            for kv in scopes do
-                let scope = kv.Value
-                let aIndex = scope.IndexOf(a)
-                if aIndex <> -1 then
-                    scope[aIndex] <- b
+            match scopes.TryGetContainerNode(a) with
+            | Some aContainer ->
+                scopes.Unscope(a)
+                scopes.Scope(aContainer, b)
+            | None -> ()
 
             // Merge nonGeneralizable
             if nonGeneralizable.IsSet(a) then
@@ -307,21 +303,20 @@ type TypeGraph() =
                     for group, funcInstance in instances.GetInstances(func) do
                         followupOperations.Add(EnforcePrototypeInstance (func, funcInstance, group))
 
-                    for kv in scopes do
-                        let scope = kv.Value
-                        if scope.Contains(func) then
-                            let rec addToScope node =
-                                let paramResult = functions.TryGetParamResultOfFunction(node)
-                                match paramResult with
-                                | Some (param, result) ->
-                                    addToScope param
-                                    addToScope result
-                                | None ->
-                                    scope.Add(node)
-
-                            scope.Remove(func) |> ignore
-                            addToScope param
-                            addToScope result
+                    match scopes.TryGetContainerNode(func) with
+                    | Some funcContainer ->
+                        scopes.Unscope(func)
+                        let rec addToScope containedNode =
+                            let paramResult = functions.TryGetParamResultOfFunction(containedNode)
+                            match paramResult with
+                            | None -> scopes.Scope(funcContainer, containedNode)
+                            | Some (param, result) ->
+                                scopes.Unscope(containedNode)
+                                addToScope param
+                                addToScope result
+                        addToScope param
+                        addToScope result
+                    | None -> ()
 
         OperationOutcome.Followup(followupOperations)
 
@@ -365,24 +360,29 @@ type TypeGraph() =
     member _.NonGeneralizable(typeReference: TypeReference) =
         runOperation (ForbidGeneralization (getNode typeReference))
 
-    member this.Scoped(scopeOwner: TypeReference, scoped: TypeReference) =
-        let scopeOwnerNode = getNode scopeOwner
-        let scope =
-            match scopes.TryGetValue(scopeOwnerNode) with
-            | true, scope -> scope
-            | false, _ ->
-                let scope = List()
-                scopes.Add(scopeOwnerNode, scope)
-                scope
+    member this.Scoped(container: TypeReference, contained: TypeReference) =
+        let containerNode = getNode container
 
-        let rec addNodeToScope node =
-            match functions.TryGetParamResultOfFunction(node) with
-            | None -> scope.Add(node)
+        let rec addNodeToScope containedNode =
+            match functions.TryGetParamResultOfFunction(containedNode) with
+            | None -> scopes.Scope(containerNode, containedNode)
             | Some (param, result) ->
+                scopes.Unscope(containedNode)
                 addNodeToScope param
                 addNodeToScope result
 
-        addNodeToScope (getNode scoped)
+        addNodeToScope (getNode contained)
+
+    member this.ScopedGlobal(contained: TypeReference) =
+        let rec addNodeToScope containedNode =
+            match functions.TryGetParamResultOfFunction(containedNode) with
+            | None -> scopes.ScopeRoot(containedNode)
+            | Some (param, result) ->
+                scopes.Unscope(containedNode)
+                addNodeToScope param
+                addNodeToScope result
+
+        addNodeToScope (getNode contained)
 
     member _.GetResult(): Map<TypeReference, Type> =
         let mutable typeMap = Map.empty
@@ -401,18 +401,18 @@ type TypeGraph() =
                     | Some _, Some _ -> failwith "The type was constrained to be a function and an atom type"
 
                 let type_ =
-                    match scopes.TryGetValue(node) with
-                    | true, scope ->
+                    match scopes.GetContainedNodes(node) with
+                    | [] -> type_
+                    | containedNodes ->
                         let typeParameters =
-                            scope
-                            |> Seq.map (fun n ->
-                                match getType n with
+                            containedNodes
+                            |> Seq.map getType
+                            |> Seq.map (function
                                 | AtomType atomTypeId -> atomTypeId
                                 | _ -> failwith "Scopes should only contain atom types")
                             |> List.ofSeq
 
                         QualifiedType (typeParameters, type_)
-                    | false, _ -> type_
 
                 nodeTypeMap.Add(node, type_)
                 type_

@@ -33,7 +33,9 @@ type private Context =
         this.graph.Atom(typeReference, atomTypeId)
 
     member this.AddToScope(typeReference: TypeReference) =
-        if this.scopeOwnerStack.Count > 0 then
+        if this.scopeOwnerStack.Count = 0 then
+            this.graph.ScopedGlobal(typeReference)
+        else
             this.graph.Scoped(this.scopeOwnerStack.Peek(), typeReference)
 
     member this.FunctionDefinition(fnType: TypeReference, parameterType: TypeReference, resultType: TypeReference) =

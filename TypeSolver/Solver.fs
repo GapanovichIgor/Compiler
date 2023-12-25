@@ -14,7 +14,7 @@ type private AtomTypeScope =
       childScopes: List<AtomTypeScope>
       atomTypes: List<AtomTypeId> }
 
-let private addBuiltInIdentifiers (identifierTypes: Dictionary<Identifier, TypeReference>) (graph: TypeGraph) =
+let private addBuiltIns (identifierTypes: Dictionary<Identifier, TypeReference>) (graph: TypeGraph) =
     let getIdentifierTypeRef identifier =
         match identifierTypes.TryGetValue(identifier) with
         | true, tr -> tr
@@ -22,22 +22,6 @@ let private addBuiltInIdentifiers (identifierTypes: Dictionary<Identifier, TypeR
             let tr = TypeReference($"identifier '{identifier}'")
             identifierTypes[identifier] <- tr
             tr
-
-    let add (identifier, type_) =
-        let rec add typeRef type_ =
-            match type_ with
-            | AtomType atomTypeId -> graph.Atom(typeRef, atomTypeId)
-            | FunctionType(param, result) ->
-                let paramTr = TypeReference()
-                let resultTr = TypeReference()
-                graph.Function(typeRef, paramTr, resultTr)
-
-                add paramTr param
-                add resultTr result
-            | QualifiedType _ -> failwith "TODO"
-
-        let identifierType = getIdentifierTypeRef identifier
-        add identifierType type_
 
     [
       //
@@ -51,13 +35,34 @@ let private addBuiltInIdentifiers (identifierTypes: Dictionary<Identifier, TypeR
       // BuiltIn.Identifiers.opDivide, BuiltIn.IdentifierTypes.opDivide
       //
       ]
-    |> List.iter add
+    |> List.iter (fun (identifier, type_) ->
+        let rec add typeRef type_ =
+            match type_ with
+            | AtomType atomTypeId -> graph.Atom(typeRef, atomTypeId)
+            | FunctionType(param, result) ->
+                let paramTr = TypeReference()
+                let resultTr = TypeReference()
+                graph.Function(typeRef, paramTr, resultTr)
 
-let private getBuiltInAtomTypeIds () =
-    [ BuiltIn.AtomTypeIds.unit
+                add paramTr param
+                add resultTr result
+            | QualifiedType _ -> failwith "TODO"
+
+        let identifierType = getIdentifierTypeRef identifier
+        add identifierType type_)
+
+    [
+      //
+      BuiltIn.AtomTypeIds.unit
       BuiltIn.AtomTypeIds.int
       BuiltIn.AtomTypeIds.float
-      BuiltIn.AtomTypeIds.string ]
+      BuiltIn.AtomTypeIds.string
+      //
+    ]
+    |> List.iter (fun atomTypeId ->
+        let typeReference = TypeReference()
+        graph.Atom(typeReference, atomTypeId)
+        graph.ScopedGlobal(typeReference))
 
 let private getImplicitTypeArguments
     (
@@ -101,7 +106,7 @@ let getTypeInformation (ast: Program) : TypeInformation =
     let identifierTypes = Dictionary()
     let graph = TypeGraph()
 
-    addBuiltInIdentifiers identifierTypes graph
+    addBuiltIns identifierTypes graph
 
     let astTypeInfo = AstTraverser.collectInfoFromAst (identifierTypes, graph) ast
 
