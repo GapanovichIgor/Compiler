@@ -9,7 +9,7 @@ let private addBuiltIns (identifierTypes: Dictionary<Identifier, TypeReference>,
         match identifierTypes.TryGetValue(identifier) with
         | true, tr -> tr
         | false, _ ->
-            let tr = TypeReference($"identifier '{identifier}'")
+            let tr = TypeReference($"id({identifier})")
             identifierTypes[identifier] <- tr
             tr
 

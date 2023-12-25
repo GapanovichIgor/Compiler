@@ -23,13 +23,13 @@ type private LexicalContext =
 let private expression (shape, position) : Ast.Expression =
     let typeRefHint =
         match shape with
-        | Ast.IdentifierReference identifier -> $"identifier ref {identifier.Name}"
-        | Ast.NumberLiteral _ -> "number literal"
-        | Ast.StringLiteral _ -> "string literal"
+        | Ast.IdentifierReference identifier -> $"idRef({identifier.Name})"
+        | Ast.NumberLiteral _ -> "numLiteral"
+        | Ast.StringLiteral _ -> "strLiteral"
         | Ast.Application _ -> "application"
         | Ast.Binding _ -> "binding"
         | Ast.Sequence _ -> "sequence"
-        | Ast.InvalidToken _ -> "invalid token"
+        | Ast.InvalidToken _ -> "invalidToken"
 
     { expressionShape = shape
       expressionType = TypeReference(typeRefHint)
