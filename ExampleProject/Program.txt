@@ -6,3 +6,5 @@ let ifThenElse boolean trueBranch falseBranch =
 
 let printTrue x = println "True"
 let printFalse x = println "False"
+
+ifThenElse TRUE printTrue printFalse

@@ -101,21 +101,22 @@ type TypeGraph() =
             |> Seq.head
 
         while operationSet.Count > 0 do
-            let operation = getHighestPriorityOperation operationSet
+            let op = getHighestPriorityOperation operationSet
 
-            operationSet.Remove(operation) |> ignore
+            operationSet.Remove(op) |> ignore
 
             let outcome =
-                match operation with
+                match op with
                 | SetAsAtom (node, shape) -> setAsAtom (node, shape)
                 | AddFunction (func, param, result) -> addFunction (func, param, result)
                 | Merge (a, b) -> merge (a, b)
                 | EnforcePrototypeInstance (proto, inst, map) -> enforcePrototypeInstance (proto, inst, map)
                 | ForbidGeneralization node -> forbidGeneralization node
 
-            rebuildSet outcome.nodeSubstitutions
             for operation in outcome.followupOperations do
                 operationSet.Add(operation) |> ignore
+
+            rebuildSet outcome.nodeSubstitutions
 
     and merge (a: Node, b: Node) =
         if a = b then
@@ -194,6 +195,9 @@ type TypeGraph() =
             if nonGeneralizable.IsSet(a) then
                 nonGeneralizable.Unset(a)
                 nonGeneralizable.Set(b)
+
+            // Remove from all nodes
+            allNodes.Remove(a) |> ignore
 
             { followupOperations = followupOperations |> List.ofSeq
               nodeSubstitutions = Map.ofList [ a, b ] }
