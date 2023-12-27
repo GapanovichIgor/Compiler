@@ -22,24 +22,28 @@ type private Context
     member _.PopScope() = scopeTree.Pop()
 
     member _.Identical(a: TypeReference, b: TypeReference) =
-        System.Console.WriteLine($"Identical {a} {b}")
+        System.Console.WriteLine($"+ Identical {a} {b}")
+        System.Console.WriteLine()
         graph.Identical(a, b)
         System.Console.WriteLine(graph.ToString())
 
     member _.Atom(typeReference: TypeReference, atomTypeId: AtomTypeId) =
-        System.Console.WriteLine($"Atom {typeReference} {atomTypeId}")
+        System.Console.WriteLine($"+ Atom {typeReference} {atomTypeId}")
+        System.Console.WriteLine()
         graph.Atom(typeReference, atomTypeId)
         System.Console.WriteLine(graph.ToString())
 
     member _.AddToScope(typeReference: TypeReference) = scopeTree.Add(typeReference)
 
     member _.FunctionDefinition(fnType: TypeReference, parameterType: TypeReference, resultType: TypeReference) =
-        System.Console.WriteLine($"FunctionDefinition {fnType} : {parameterType} -> {resultType}")
+        System.Console.WriteLine($"+ FunctionDefinition {fnType} : {parameterType} -> {resultType}")
+        System.Console.WriteLine()
         graph.Function(fnType, parameterType, resultType)
         System.Console.WriteLine(graph.ToString())
 
     member _.Application(applicationReference: ApplicationReference, fnType: TypeReference, argumentType: TypeReference, resultType: TypeReference) =
-        System.Console.WriteLine($"Application {fnType} : {argumentType} -> {resultType}")
+        System.Console.WriteLine($"+ Application {fnType} : {argumentType} -> {resultType}")
+        System.Console.WriteLine()
         let fnInstanceType = TypeReference($"instance({fnType})")
 
         graph.Instance(fnType, fnInstanceType)
@@ -54,7 +58,8 @@ type private Context
         System.Console.WriteLine(graph.ToString())
 
     member _.NonGeneralizable(typeReference: TypeReference) =
-        System.Console.WriteLine($"NonGeneralizable {typeReference}")
+        System.Console.WriteLine($"+ NonGeneralizable {typeReference}")
+        System.Console.WriteLine()
         graph.NonGeneralizable(typeReference)
         System.Console.WriteLine(graph.ToString())
 

@@ -18,5 +18,5 @@ type internal FlagNodeProperty() =
 
     override _.ToString() =
         set
-        |> List.ofSeq
-        |> string
+        |> Seq.map string
+        |> String.concat ", "

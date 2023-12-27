@@ -386,21 +386,82 @@ type TypeGraph() =
         { typeReferenceTypes = typeReferenceTypes
           typeReferenceIdentities = typeReferenceIdentities }
 
-    override _.ToString() =
-        let sb = StringBuilder()
+    // override _.ToString() =
+    //     let sb = StringBuilder()
+    //
+    //     sb.AppendLine("=== TypeReferences ===") |> ignore
+    //     for kv in typeReferenceNodes do
+    //         sb.Append(kv.Key.ToString()) |> ignore
+    //         sb.Append(" = ") |> ignore
+    //         sb.AppendLine(kv.Value.ToString()) |> ignore
+    //     sb.AppendLine("=== Atoms ===") |> ignore
+    //     sb.AppendLine(atoms.ToString()) |> ignore
+    //     sb.AppendLine("=== Functions ===") |> ignore
+    //     sb.AppendLine(functions.ToString()) |> ignore
+    //     sb.AppendLine("=== Instances ===") |> ignore
+    //     sb.AppendLine(instances.ToString()) |> ignore
+    //     sb.AppendLine("=== Non-generalizable ===") |> ignore
+    //     sb.AppendLine(nonGeneralizable.ToString()) |> ignore
+    //
+    //     sb.ToString()
 
-        sb.AppendLine("=== TypeReferences ===") |> ignore
-        for kv in typeReferenceNodes do
-            sb.Append(kv.Key.ToString()) |> ignore
-            sb.Append(" = ") |> ignore
-            sb.AppendLine(kv.Value.ToString()) |> ignore
-        sb.AppendLine("=== Atoms ===") |> ignore
-        sb.AppendLine(atoms.ToString()) |> ignore
-        sb.AppendLine("=== Functions ===") |> ignore
-        sb.AppendLine(functions.ToString()) |> ignore
-        sb.AppendLine("=== Instances ===") |> ignore
-        sb.AppendLine(instances.ToString()) |> ignore
-        sb.AppendLine("=== Non-generalizable ===") |> ignore
-        sb.AppendLine(nonGeneralizable.ToString()) |> ignore
+    override _.ToString() =
+        let nameCounters = Dictionary()
+        let nodeNames =
+            typeReferenceNodes
+            |> Seq.groupBy (fun kv -> kv.Value)
+            |> Seq.map (fun (key, tRefs) ->
+                let name =
+                    tRefs
+                    |> Seq.map (fun kv -> kv.Key)
+                    |> Seq.map string
+                    |> Seq.sortBy (fun s -> s.Length)
+                    |> Seq.head
+
+                let name =
+                    match nameCounters.TryGetValue(name) with
+                    | false, _ ->
+                        nameCounters[name] <- 2
+                        name
+                    | true, counter ->
+                        nameCounters[name] <- counter + 1
+                        name + string counter
+                key, name)
+            |> Map.ofSeq
+
+        let sb = StringBuilder()
+        let append (s: string) = sb.Append(s) |> ignore
+        let appendLine (s: string) = sb.AppendLine(s) |> ignore
+
+        for node, name in nodeNames |> Map.toSeq do
+            appendLine name
+
+            match atoms.TryGetAtomTypeId(node) with
+            | Some atomTypeId ->
+                appendLine $"   is atom {atomTypeId}"
+            | None ->
+                match functions.TryGetParamResultOfFunction(node) with
+                | Some (param, result) ->
+                    let rec getExpanded n =
+                        match functions.TryGetParamResultOfFunction(n) with
+                        | Some (param, result) ->
+                            if functions.IsFunction(param) then
+                                $"({getExpanded param}) -> {getExpanded result}"
+                            else
+                                $"{getExpanded param} -> {getExpanded result}"
+                        | None -> nodeNames[n]
+
+                    append $"   is function {nodeNames[param]} -> {nodeNames[result]}"
+                    if functions.IsFunction(param) || functions.IsFunction(result) then
+                        append $" | {getExpanded node}"
+                    appendLine ""
+                | None ->
+                    appendLine "   is unknown atom"
+
+            match instances.TryGetPrototype(node) with
+            | Some (_, prototype) -> appendLine $"   is instance of {nodeNames[prototype]}"
+            | None -> ()
+
+            appendLine ""
 
         sb.ToString()

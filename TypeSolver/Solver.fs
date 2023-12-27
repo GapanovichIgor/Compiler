@@ -13,18 +13,14 @@ let private addBuiltIns (identifierTypes: Dictionary<Identifier, TypeReference>,
             identifierTypes[identifier] <- tr
             tr
 
-    [
-      //
-      BuiltIn.Identifiers.println, BuiltIn.IdentifierTypes.println
-      // BuiltIn.Identifiers.intToStr, BuiltIn.IdentifierTypes.intToStr
-      // BuiltIn.Identifiers.intToStrFmt, BuiltIn.IdentifierTypes.intToStrFmt
-      // BuiltIn.Identifiers.floatToStr, BuiltIn.IdentifierTypes.floatToStr
-      // BuiltIn.Identifiers.opAdd, BuiltIn.IdentifierTypes.opAdd
-      // BuiltIn.Identifiers.opSubtract, BuiltIn.IdentifierTypes.opSubtract
-      // BuiltIn.Identifiers.opMultiply, BuiltIn.IdentifierTypes.opMultiply
-      // BuiltIn.Identifiers.opDivide, BuiltIn.IdentifierTypes.opDivide
-      //
-      ]
+    [ BuiltIn.Identifiers.println, BuiltIn.IdentifierTypes.println
+      BuiltIn.Identifiers.intToStr, BuiltIn.IdentifierTypes.intToStr
+      BuiltIn.Identifiers.intToStrFmt, BuiltIn.IdentifierTypes.intToStrFmt
+      BuiltIn.Identifiers.floatToStr, BuiltIn.IdentifierTypes.floatToStr
+      BuiltIn.Identifiers.opAdd, BuiltIn.IdentifierTypes.opAdd
+      BuiltIn.Identifiers.opSubtract, BuiltIn.IdentifierTypes.opSubtract
+      BuiltIn.Identifiers.opMultiply, BuiltIn.IdentifierTypes.opMultiply
+      BuiltIn.Identifiers.opDivide, BuiltIn.IdentifierTypes.opDivide ]
     |> List.iter (fun (identifier, type_) ->
         let rec add typeRef type_ =
             match type_ with
@@ -41,14 +37,10 @@ let private addBuiltIns (identifierTypes: Dictionary<Identifier, TypeReference>,
         let identifierType = getIdentifierTypeRef identifier
         add identifierType type_)
 
-    [
-      //
-      BuiltIn.AtomTypeIds.unit
+    [ BuiltIn.AtomTypeIds.unit
       BuiltIn.AtomTypeIds.int
       BuiltIn.AtomTypeIds.float
-      BuiltIn.AtomTypeIds.string
-      //
-      ]
+      BuiltIn.AtomTypeIds.string ]
     |> List.iter (fun atomTypeId ->
         let typeReference = TypeReference(atomTypeId.ToString())
         graph.Atom(typeReference, atomTypeId)
@@ -63,9 +55,7 @@ let private createQualifiedTypes
     ) : Map<TypeReference, Type> =
 
     let typeReferenceIdentifiers =
-        identifierTypes
-        |> Seq.map (fun kv -> kv.Value, kv.Key)
-        |> Map.ofSeq
+        identifierTypes |> Seq.map (fun kv -> kv.Value, kv.Key) |> Map.ofSeq
 
     let mutable typeReferenceTypes = Map.empty
 
@@ -74,11 +64,7 @@ let private createQualifiedTypes
 
         let identicalTypeReferences =
             graphInfo.typeReferenceIdentities
-            |> Seq.choose (fun kv ->
-                if kv.Value = identity then
-                    Some kv.Key
-                else
-                    None)
+            |> Seq.choose (fun kv -> if kv.Value = identity then Some kv.Key else None)
             |> List.ofSeq
 
         let aliasedIdentifiers =
@@ -94,10 +80,29 @@ let private createQualifiedTypes
                 | [ s ] -> Some s
                 | _ -> failwith "Only one of aliased identifiers can have a scope"
 
+        // let scopedAtomTypes =
+        //     match typeReferenceIdentifiers |> Map.tryFind typeReference with
+        //     | None -> None
+        //     | Some mainIdentifier ->
+        //         match scopeTreeInfo.identifierScopedAtomTypes |> Map.tryFind mainIdentifier with
+        //         | Some scope -> Some scope
+        //         | None ->
+        //             let aliasedIdentifiers =
+        //                 identicalTypeReferences
+        //                 |> List.choose (fun tRef -> typeReferenceIdentifiers |> Map.tryFind tRef)
+        //
+        //             aliasedIdentifiers
+        //             |> Seq.choose (fun i -> scopeTreeInfo.identifierScopedAtomTypes |> Map.tryFind i)
+        //             |> List.ofSeq
+        //             |> function
+        //                 | [] -> None
+        //                 | [ s ] -> Some s
+        //                 | _ -> failwith "Only one of aliased identifiers can have a scope"
+
         let type_ =
             match scopedAtomTypes with
             | None -> type_
-            | Some scopedAtomTypes -> QualifiedType (scopedAtomTypes, type_)
+            | Some scopedAtomTypes -> QualifiedType(scopedAtomTypes, type_)
 
         typeReferenceTypes <- typeReferenceTypes |> Map.add typeReference type_
 
@@ -119,6 +124,11 @@ let private getImplicitTypeArguments
             let resultType = typeReferenceTypes[app.resultFunctionType]
 
             let rec getArguments definedType resultType argumentMap =
+                let resultType =
+                    match resultType with
+                    | QualifiedType (_, body) -> body
+                    | t -> t
+
                 match definedType, resultType with
                 | AtomType atomTypeId, argument ->
                     if typeParameters |> List.contains atomTypeId then
@@ -156,7 +166,8 @@ let getTypeInformation (ast: Program) : TypeInformation =
 
     let scopeTreeInfo = scopeTree.GetResult(graphInfo.typeReferenceTypes)
 
-    let typeReferenceTypes = createQualifiedTypes (identifierTypes, graphInfo, scopeTreeInfo, functionApplications)
+    let typeReferenceTypes =
+        createQualifiedTypes (identifierTypes, graphInfo, scopeTreeInfo, functionApplications)
 
     let identifierTypes =
         identifierTypes
