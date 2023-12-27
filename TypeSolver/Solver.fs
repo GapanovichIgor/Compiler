@@ -74,6 +74,7 @@ let private createQualifiedTypes
         let scopedAtomTypes =
             aliasedIdentifiers
             |> Seq.choose (fun i -> scopeTreeInfo.identifierScopedAtomTypes |> Map.tryFind i)
+            |> Seq.distinct
             |> List.ofSeq
             |> function
                 | [] -> None

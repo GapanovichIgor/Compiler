@@ -1,3 +1,3 @@
-let apply f = f 0
+let apply f x = f 0
 
-let apply2 f x = apply f
+let apply2 f x = apply f x
