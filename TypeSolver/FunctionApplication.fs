@@ -2,7 +2,7 @@
 
 open Common
 
-type internal FunctionApplication =
+type FunctionApplication =
     { applicationReference: ApplicationReference
       definedFunctionType: TypeReference
       resultFunctionType: TypeReference }

@@ -4,8 +4,8 @@ open System.Collections.Generic
 open Common
 open Ast
 
-type private Context
-    (identifierTypes: Dictionary<Identifier, TypeReference>, graph: TypeGraph, scopeTree: ScopeTree, functionApplications: List<FunctionApplication>) =
+type private Context(identifierTypes: Dictionary<Identifier, TypeReference>, graph: TypeGraph, scopeTree: ScopeTree) =
+    let scopeStack = Stack([ GlobalScope ])
 
     do System.Console.WriteLine(graph.ToString())
 
@@ -17,9 +17,13 @@ type private Context
             identifierTypes.Add(i, tr)
             tr
 
-    member _.PushScope(identifier: Identifier) = scopeTree.Push(identifier)
+    member _.PushScope(identifier: Identifier) =
+        scopeTree.Push(identifier)
+        scopeStack.Push(IdentifierScope identifier)
 
-    member _.PopScope() = scopeTree.Pop()
+    member _.PopScope() =
+        scopeTree.Pop()
+        scopeStack.Pop() |> ignore
 
     member _.Identical(a: TypeReference, b: TypeReference) =
         System.Console.WriteLine($"+ Identical {a} {b}")
@@ -33,34 +37,22 @@ type private Context
         graph.Atom(typeReference, atomTypeId)
         System.Console.WriteLine(graph.ToString())
 
-    member _.AddToScope(typeReference: TypeReference) = scopeTree.Add(typeReference)
+    member _.AddToCurrentScope(typeReference: TypeReference) =
+        scopeTree.Add(typeReference)
+        graph.NonGeneralizable(scopeStack.Peek(), typeReference)
 
     member _.FunctionDefinition(fnType: TypeReference, parameterType: TypeReference, resultType: TypeReference) =
         System.Console.WriteLine($"+ FunctionDefinition {fnType} : {parameterType} -> {resultType}")
         System.Console.WriteLine()
-        graph.Function(fnType, parameterType, resultType)
+        graph.FunctionDefinition(fnType, parameterType, resultType)
         System.Console.WriteLine(graph.ToString())
 
     member _.Application(applicationReference: ApplicationReference, fnType: TypeReference, argumentType: TypeReference, resultType: TypeReference) =
         System.Console.WriteLine($"+ Application {fnType} : {argumentType} -> {resultType}")
         System.Console.WriteLine()
-        let fnInstanceType = TypeReference($"instance({fnType})")
 
-        graph.Instance(fnType, fnInstanceType)
+        graph.Application(scopeStack.Peek(), applicationReference, fnType, argumentType, resultType)
 
-        functionApplications.Add
-            { applicationReference = applicationReference
-              definedFunctionType = fnType
-              resultFunctionType = fnInstanceType }
-
-        graph.Function(fnInstanceType, argumentType, resultType)
-
-        System.Console.WriteLine(graph.ToString())
-
-    member _.NonGeneralizable(typeReference: TypeReference) =
-        System.Console.WriteLine($"+ NonGeneralizable {typeReference}")
-        System.Console.WriteLine()
-        graph.NonGeneralizable(typeReference)
         System.Console.WriteLine(graph.ToString())
 
 let private traverseExpression (ctx: Context) (expression: Expression) =
@@ -83,7 +75,7 @@ let private traverseExpression (ctx: Context) (expression: Expression) =
     | Binding(identifier, parameters, body) ->
         let identifierType = ctx.GetIdentifierType(identifier)
 
-        ctx.AddToScope(identifierType)
+        ctx.AddToCurrentScope(identifierType)
 
         if parameters.Length = 0 then
             ctx.Identical(identifierType, body.expressionType)
@@ -94,13 +86,11 @@ let private traverseExpression (ctx: Context) (expression: Expression) =
                 match parameters with
                 | [ parameter ] ->
                     let parameterType = ctx.GetIdentifierType(parameter)
-                    ctx.AddToScope(parameterType)
-                    ctx.NonGeneralizable(parameterType)
+                    ctx.AddToCurrentScope(parameterType)
                     ctx.FunctionDefinition(currentFunctionType, parameterType, body.expressionType)
                 | parameter :: parametersRest ->
                     let parameterType = ctx.GetIdentifierType(parameter)
-                    ctx.AddToScope(parameterType)
-                    ctx.NonGeneralizable(parameterType)
+                    ctx.AddToCurrentScope(parameterType)
 
                     let subFunctionType =
                         TypeReference($"binding sub-function of ({identifier}) on parameter ({parameter})")
@@ -135,11 +125,7 @@ type TypeReferenceScope =
     { containedTypeReferences: TypeReference list
       childScopes: Map<TypeReference, TypeReferenceScope> }
 
-let collectInfoFromAst
-    (identifierTypes: Dictionary<Identifier, TypeReference>, graph: TypeGraph, scopeTree: ScopeTree, functionApplications: List<FunctionApplication>)
-    (ast: Program)
-    =
-
-    let ctx = Context(identifierTypes, graph, scopeTree, functionApplications)
+let collectInfoFromAst (identifierTypes: Dictionary<Identifier, TypeReference>, graph: TypeGraph, scopeTree: ScopeTree) (ast: Program) =
+    let ctx = Context(identifierTypes, graph, scopeTree)
 
     traverseProgram ctx ast

@@ -1,10 +1,5 @@
 let TRUE a b = a 0
-let FALSE a b = b 0
 
-let ifThenElse boolean trueBranch falseBranch =
-    boolean trueBranch falseBranch
+let f x = x
 
-let printTrue x = println "True"
-let printFalse x = println "False"
-
-ifThenElse TRUE printTrue printFalse
+TRUE f "b"

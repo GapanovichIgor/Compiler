@@ -28,7 +28,7 @@ let private addBuiltIns (identifierTypes: Dictionary<Identifier, TypeReference>,
             | FunctionType(param, result) ->
                 let paramTr = TypeReference()
                 let resultTr = TypeReference()
-                graph.Function(typeRef, paramTr, resultTr)
+                graph.FunctionDefinition(typeRef, paramTr, resultTr)
 
                 add paramTr param
                 add resultTr result
@@ -50,8 +50,7 @@ let private createQualifiedTypes
     (
         identifierTypes: IReadOnlyDictionary<Identifier, TypeReference>,
         graphInfo: TypeGraphInfo,
-        scopeTreeInfo: ScopeTreeInfo,
-        functionApplications: IReadOnlyList<FunctionApplication>
+        scopeTreeInfo: ScopeTreeInfo
     ) : Map<TypeReference, Type> =
 
     let typeReferenceIdentifiers =
@@ -157,26 +156,23 @@ let getTypeInformation (ast: Program) : TypeInformation =
     let identifierTypes = Dictionary()
     let graph = TypeGraph()
     let scopeTree = ScopeTree()
-    let functionApplications = List()
 
     addBuiltIns (identifierTypes, graph, scopeTree)
 
-    AstTraverser.collectInfoFromAst (identifierTypes, graph, scopeTree, functionApplications) ast
+    AstTraverser.collectInfoFromAst (identifierTypes, graph, scopeTree) ast
 
     let graphInfo = graph.GetResult()
 
     let scopeTreeInfo = scopeTree.GetResult(graphInfo.typeReferenceTypes)
 
-    let typeReferenceTypes =
-        createQualifiedTypes (identifierTypes, graphInfo, scopeTreeInfo, functionApplications)
+    let typeReferenceTypes = createQualifiedTypes (identifierTypes, graphInfo, scopeTreeInfo)
 
     let identifierTypes =
         identifierTypes
         |> Seq.map (fun kv -> kv.Key, typeReferenceTypes[kv.Value])
         |> Map.ofSeq
 
-    let implicitTypeArguments =
-        getImplicitTypeArguments (typeReferenceTypes, functionApplications)
+    let implicitTypeArguments = getImplicitTypeArguments (typeReferenceTypes, graphInfo.functionApplications)
 
     { identifierTypes = identifierTypes
       typeReferenceTypes = typeReferenceTypes
