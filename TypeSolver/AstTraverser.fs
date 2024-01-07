@@ -1,13 +1,15 @@
 ﻿module internal rec TypeSolver.AstTraverser
 
+open System
 open System.Collections.Generic
 open Common
 open Ast
 
 type private Context(identifierTypes: Dictionary<Identifier, TypeReference>, graph: TypeGraph, scopeTree: ScopeTree) =
-    let scopeStack = Stack([ GlobalScope ])
+    let globalScope = Guid.NewGuid()
+    let scopeStack = Stack([ globalScope ])
 
-    do System.Console.WriteLine(graph.ToString())
+    do Console.WriteLine(graph.ToString())
 
     member _.GetIdentifierType(i: Identifier) =
         match identifierTypes.TryGetValue(i) with
@@ -19,47 +21,34 @@ type private Context(identifierTypes: Dictionary<Identifier, TypeReference>, gra
 
     member _.PushScope(identifier: Identifier) =
         scopeTree.Push(identifier)
-        scopeStack.Push(IdentifierScope identifier)
+        scopeStack.Push(Guid.NewGuid())
 
     member _.PopScope() =
         scopeTree.Pop()
         scopeStack.Pop() |> ignore
 
     member _.Identical(a: TypeReference, b: TypeReference) =
-        System.Console.WriteLine($"+ Identical {a} {b}")
-        System.Console.WriteLine()
         graph.Identical(a, b)
-        System.Console.WriteLine(graph.ToString())
+
+    member this.IdentifierReference(identifier: Identifier, expressionType: TypeReference) =
+        let identifierType = this.GetIdentifierType(identifier)
+        graph.Assignable(scopeStack.Peek(), expressionType, identifierType)
 
     member _.Atom(typeReference: TypeReference, atomTypeId: AtomTypeId) =
-        System.Console.WriteLine($"+ Atom {typeReference} {atomTypeId}")
-        System.Console.WriteLine()
         graph.Atom(typeReference, atomTypeId)
-        System.Console.WriteLine(graph.ToString())
 
-    member _.AddToCurrentScope(typeReference: TypeReference) =
+    member this.DefinedInCurrentScope(identifier: Identifier) =
+        let typeReference = this.GetIdentifierType(identifier)
         scopeTree.Add(typeReference)
         graph.NonGeneralizable(scopeStack.Peek(), typeReference)
 
-    member _.FunctionDefinition(fnType: TypeReference, parameterType: TypeReference, resultType: TypeReference) =
-        System.Console.WriteLine($"+ FunctionDefinition {fnType} : {parameterType} -> {resultType}")
-        System.Console.WriteLine()
-        graph.FunctionDefinition(fnType, parameterType, resultType)
-        System.Console.WriteLine(graph.ToString())
-
-    member _.Application(applicationReference: ApplicationReference, fnType: TypeReference, argumentType: TypeReference, resultType: TypeReference) =
-        System.Console.WriteLine($"+ Application {fnType} : {argumentType} -> {resultType}")
-        System.Console.WriteLine()
-
-        graph.Application(scopeStack.Peek(), applicationReference, fnType, argumentType, resultType)
-
-        System.Console.WriteLine(graph.ToString())
+    member _.Function(fnType: TypeReference, parameterType: TypeReference, resultType: TypeReference) =
+        graph.Function(fnType, parameterType, resultType)
 
 let private traverseExpression (ctx: Context) (expression: Expression) =
     match expression.expressionShape with
     | IdentifierReference identifier ->
-        let identifierTypeRef = ctx.GetIdentifierType(identifier)
-        ctx.Identical(expression.expressionType, identifierTypeRef)
+        ctx.IdentifierReference(identifier, expression.expressionType)
     | NumberLiteral(_, fractionalPart) ->
         let numberType =
             match fractionalPart with
@@ -68,14 +57,14 @@ let private traverseExpression (ctx: Context) (expression: Expression) =
 
         ctx.Atom(expression.expressionType, numberType)
     | StringLiteral _ -> ctx.Atom(expression.expressionType, BuiltIn.AtomTypeIds.string)
-    | Application(applicationReference, fn, argument) ->
-        ctx.Application(applicationReference, fn.expressionType, argument.expressionType, expression.expressionType)
+    | Application(_, fn, argument) ->
+        ctx.Function(fn.expressionType, argument.expressionType, expression.expressionType)
         traverseExpression ctx fn
         traverseExpression ctx argument
     | Binding(identifier, parameters, body) ->
-        let identifierType = ctx.GetIdentifierType(identifier)
+        ctx.DefinedInCurrentScope(identifier)
 
-        ctx.AddToCurrentScope(identifierType)
+        let identifierType = ctx.GetIdentifierType(identifier)
 
         if parameters.Length = 0 then
             ctx.Identical(identifierType, body.expressionType)
@@ -85,17 +74,18 @@ let private traverseExpression (ctx: Context) (expression: Expression) =
             let rec loop currentFunctionType parameters =
                 match parameters with
                 | [ parameter ] ->
-                    let parameterType = ctx.GetIdentifierType(parameter)
-                    ctx.AddToCurrentScope(parameterType)
-                    ctx.FunctionDefinition(currentFunctionType, parameterType, body.expressionType)
-                | parameter :: parametersRest ->
-                    let parameterType = ctx.GetIdentifierType(parameter)
-                    ctx.AddToCurrentScope(parameterType)
+                    ctx.DefinedInCurrentScope(parameter)
 
+                    let parameterType = ctx.GetIdentifierType(parameter)
+                    ctx.Function(currentFunctionType, parameterType, body.expressionType)
+                | parameter :: parametersRest ->
+                    ctx.DefinedInCurrentScope(parameter)
+
+                    let parameterType = ctx.GetIdentifierType(parameter)
                     let subFunctionType =
                         TypeReference($"binding sub-function of ({identifier}) on parameter ({parameter})")
 
-                    ctx.FunctionDefinition(currentFunctionType, parameterType, subFunctionType)
+                    ctx.Function(currentFunctionType, parameterType, subFunctionType)
                     loop subFunctionType parametersRest
                 | _ -> failwith "Invalid state"
 

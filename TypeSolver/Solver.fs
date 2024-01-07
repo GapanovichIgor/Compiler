@@ -28,7 +28,7 @@ let private addBuiltIns (identifierTypes: Dictionary<Identifier, TypeReference>,
             | FunctionType(param, result) ->
                 let paramTr = TypeReference()
                 let resultTr = TypeReference()
-                graph.FunctionDefinition(typeRef, paramTr, resultTr)
+                graph.Function(typeRef, paramTr, resultTr)
 
                 add paramTr param
                 add resultTr result
@@ -172,7 +172,7 @@ let getTypeInformation (ast: Program) : TypeInformation =
         |> Seq.map (fun kv -> kv.Key, typeReferenceTypes[kv.Value])
         |> Map.ofSeq
 
-    let implicitTypeArguments = getImplicitTypeArguments (typeReferenceTypes, graphInfo.functionApplications)
+    let implicitTypeArguments = getImplicitTypeArguments (typeReferenceTypes, [ (*TODO*) ])
 
     { identifierTypes = identifierTypes
       typeReferenceTypes = typeReferenceTypes

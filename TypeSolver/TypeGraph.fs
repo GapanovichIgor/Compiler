@@ -12,11 +12,11 @@ type private NodeShape =
     | Function of param: Node * result: Node
 
 type private Operation =
-    | SetAsAtom of Node * AtomTypeId
-    | AddFunction of func: Node * parameter: Node * result: Node
     | Merge of a: Node * b: Node
-    | EnforcePrototypeInstance of applicationReference: ApplicationReference * prototype: Node * instance: Node
-    | SetNonGeneralizable of scope: Scope * node: Node
+    | SetAsAtom of Node * AtomTypeId
+    | SetNonGeneralizable of scope: Guid * node: Node
+    | AddFunction of func: Node * parameter: Node * result: Node
+    | UpdateAssignable of scope: Guid * target: Node * assignee: Node
 
 type private OperationOutcome =
     { followupOperations: Operation list
@@ -30,14 +30,9 @@ type private OperationOutcome =
         { followupOperations = followupOperations |> List.ofSeq
           nodeSubstitutions = Map.empty }
 
-type Scope =
-    | GlobalScope
-    | IdentifierScope of Identifier
-
 type TypeGraphInfo =
     { typeReferenceTypes: Map<TypeReference, Type>
-      typeReferenceIdentities: Map<TypeReference, Guid>
-      functionApplications: FunctionApplication list }
+      typeReferenceIdentities: Map<TypeReference, Guid> }
 
 type TypeGraph() =
     let allNodes = HashSet<Node>()
@@ -46,13 +41,8 @@ type TypeGraph() =
 
     let atoms = AtomNodeProperty()
     let functions = FunctionNodeRelations()
-    let instances = ApplicationInstanceNodeRelations()
-
-    // let applicationScopes = Dictionary<ApplicationReference, Scope>()
-    let nonGeneralizableScopes = Dictionary<Scope, HashSet<Node>>()
-    let applicationScopes = Dictionary<Scope, HashSet<ApplicationReference>>()
-
-    // let applications = HashSet<ApplicationReference * Node * Node>()
+    let assignable = AssignableNodeRelations()
+    let nonGeneralizable = NonGeneralizableNodeProperty()
 
     let createNode =
         let mutable newNodeId = 1
@@ -92,11 +82,11 @@ type TypeGraph() =
                 for operation in oldOperations do
                     let operation =
                         match operation with
-                        | SetAsAtom (node, atomTypeId) -> SetAsAtom (replace node, atomTypeId)
-                        | AddFunction (func, param, result) -> AddFunction (replace func, replace param, replace result)
                         | Merge (a, b) -> Merge (replace a, replace b)
-                        | EnforcePrototypeInstance (appRef, proto, inst) -> EnforcePrototypeInstance (appRef, replace proto, replace inst)
+                        | SetAsAtom (node, atomTypeId) -> SetAsAtom (replace node, atomTypeId)
                         | SetNonGeneralizable (scope, node) -> SetNonGeneralizable (scope, replace node)
+                        | AddFunction (func, param, result) -> AddFunction (replace func, replace param, replace result)
+                        | UpdateAssignable (scope, target, assignee) -> UpdateAssignable (scope, replace target, replace assignee)
 
                     operationSet.Add(operation) |> ignore
 
@@ -107,7 +97,7 @@ type TypeGraph() =
                 | SetAsAtom _ -> 2
                 | SetNonGeneralizable _ -> 3
                 | AddFunction _ -> 4
-                | EnforcePrototypeInstance _ -> 5)
+                | UpdateAssignable _ -> 5)
             |> Seq.head
 
         while operationSet.Count > 0 do
@@ -121,7 +111,7 @@ type TypeGraph() =
                 | SetAsAtom (node, shape) -> setAsAtom (node, shape)
                 | SetNonGeneralizable (scope, node) -> setNonGeneralizable (scope, node)
                 | AddFunction (func, param, result) -> addFunction (func, param, result)
-                | EnforcePrototypeInstance (appRef, proto, inst) -> enforcePrototypeInstance (appRef, proto, inst)
+                | UpdateAssignable (scope, target, assignee) -> updateAssignable (scope, target, assignee)
 
             for operation in outcome.followupOperations do
                 operationSet.Add(operation) |> ignore
@@ -172,40 +162,33 @@ type TypeGraph() =
             for func, param, _ in functionsWithResultA do
                 followupOperations.Add(AddFunction (func, param, b))
 
-            // Merge instances
+            // Merge assignable
 
-            // If a is a prototype then move the instances to b
-            for appRef, aInstance in instances.GetInstances(a) do
-                match instances.TryGetInstance(appRef, b) with
-                | Some bInstance ->
-                    if aInstance <> bInstance then
-                        followupOperations.Add(Merge (aInstance, bInstance))
-                | None ->
-                    followupOperations.Add(EnforcePrototypeInstance (appRef, b, aInstance))
+            // If a is a target then move the assignees to b
+            for scope, aAssignee in assignable.GetAssignees(a) do
+                followupOperations.Add(UpdateAssignable (scope, b, aAssignee))
 
-                instances.RemoveFromApplication(appRef, a, aInstance)
+                assignable.Unset(scope, a, aAssignee)
 
-            // If a is an instance then set prototype for b
-            match instances.TryGetPrototype(a) with
+            // If a is an assignee then set its target to b
+            match assignable.TryGetTarget(a) with
             | None -> ()
-            | Some (aAppRef, aPrototype) ->
-                match instances.TryGetPrototype(b) with
-                | None ->
-                    followupOperations.Add(EnforcePrototypeInstance (aAppRef, aPrototype, b))
-                | Some (bAppRef, bPrototype) ->
-                    if bAppRef <> aAppRef then
-                        failwith "Merged nodes are instances in different applications"
+            | Some (aScope, aTarget) ->
+                match assignable.TryGetTarget(b) with
+                | None -> followupOperations.Add(UpdateAssignable (aScope, aTarget, b))
+                | Some (bScope, bTarget) ->
+                    if bScope <> aScope then
+                        failwith "Merged nodes are assignees in different scopes"
 
-                    if aPrototype <> bPrototype then
-                        followupOperations.Add(Merge (aPrototype, bPrototype))
+                    if aTarget <> bTarget then
+                        followupOperations.Add(Merge (aTarget, bTarget))
 
-                instances.RemoveFromApplication(aAppRef, aPrototype, a)
+                assignable.Unset(aScope, aTarget, a)
 
             // Merge nonGeneralizableScopes
-            for kv in nonGeneralizableScopes do
-                let nodes = kv.Value
-                if nodes.Remove(a) then
-                    nodes.Add(b) |> ignore
+            for aScope in nonGeneralizable.GetScopesWhereNotGeneralizable(a) do
+                nonGeneralizable.Unset(aScope, a)
+                followupOperations.Add(SetNonGeneralizable(aScope, b))
 
             // Remove from all nodes
             allNodes.Remove(a) |> ignore
@@ -225,99 +208,49 @@ type TypeGraph() =
                 followupOperations.Add(Merge (node, existingNode))
         | None ->
             if atoms.Set(node, atomTypeId) then
-                for appRef, instance in instances.GetInstances(node) do
-                    followupOperations.Add(EnforcePrototypeInstance (appRef, node, instance))
+                for scope, assignee in assignable.GetAssignees(node) do
+                    followupOperations.Add(UpdateAssignable (scope, node, assignee))
 
         OperationOutcome.Followup(followupOperations)
 
-    and setNonGeneralizable (scope: Scope, node: Node) =
+    and setNonGeneralizable (scope: Guid, node: Node) =
         let followupOperations = List()
 
-        let scopeNonGeneralizableTRefs =
-            match nonGeneralizableScopes.TryGetValue(scope) with
-            | true, tRefs -> tRefs
-            | false, _ ->
-                let tRefs = HashSet()
-                nonGeneralizableScopes.Add(scope, tRefs)
-                tRefs
-
-        if scopeNonGeneralizableTRefs.Add(node) then
-            match applicationScopes.TryGetValue(scope) with
-            | false, _ -> ()
-            | true, applicationReferences ->
-                for appRef in applicationReferences do
-                    match instances.TryGetInstance(appRef, node) with
-                    | None -> ()
-                    | Some instance -> followupOperations.Add(Merge (node, instance))
+        if nonGeneralizable.Set(scope, node) then
+            for assignee in assignable.GetAssignees(scope, node) do
+                assignable.Unset(scope, node, assignee)
+                followupOperations.Add(Merge (assignee, node))
 
         OperationOutcome.Followup(followupOperations)
 
-    and enforcePrototypeInstance (applicationReference: ApplicationReference, prototype: Node, instance: Node): OperationOutcome =
-        if prototype = instance then
+    and updateAssignable (scope: Guid, target: Node, assignee: Node): OperationOutcome =
+        if target = assignee then
             OperationOutcome.Empty
+        elif nonGeneralizable.IsNotGeneralizable(scope, target) then
+            OperationOutcome.Followup([ Merge (target, assignee) ])
         else
             let followupOperations = List()
 
-            let scope =
-                applicationScopes
-                |> Seq.choose (fun kv ->
-                    if kv.Value.Contains(applicationReference) then
-                        Some kv.Key
-                    else
-                        None)
-                |> Seq.head
+            // If target is an atom, then assignee is also this atom
+            match atoms.TryGetAtomTypeId(target) with
+            | Some atomTypeId -> followupOperations.Add(SetAsAtom (assignee, atomTypeId))
+            | None -> ()
 
-            match nonGeneralizableScopes.TryGetValue(scope) with
-            | true, nonGeneralizableTRefs when nonGeneralizableTRefs.Contains(prototype) ->
-                followupOperations.Add(Merge (prototype, instance))
-            | _ ->
-                match instances.TryGetInstance(applicationReference, prototype) with
-                | Some existingInstance when existingInstance <> instance ->
-                    // If prototype already has another instance, then merge the two instances
-                    followupOperations.Add(Merge (instance, existingInstance))
-                | existingInstance ->
-                    if existingInstance |> Option.isNone then
-                        instances.AddToApplication(applicationReference, prototype, instance)
+            // If target is a function, then set assignable (target.param <- assignee.param) and (assignee.result <- target.result)
+            match functions.TryGetParamResultOfFunction(target) with
+            | None -> ()
+            | Some (targetParam, targetResult) ->
+                let assigneeParam, assigneeResult =
+                    match functions.TryGetParamResultOfFunction(assignee) with
+                    | None ->
+                        let p = createNode ()
+                        let r = createNode ()
+                        followupOperations.Add(AddFunction (assignee, p, r))
+                        p, r
+                    | Some (p, r) -> p, r
 
-                    // If prototype is an atom, then apply atom to instance
-                    match atoms.TryGetAtomTypeId(prototype) with
-                    | Some atomTypeId -> followupOperations.Add(SetAsAtom (instance, atomTypeId))
-                    | None -> ()
-
-                    // If prototype is a function, then enforce (paramProto -> paramInst) and (resultProto -> resultInst)
-                    match functions.TryGetParamResultOfFunction(prototype), functions.TryGetParamResultOfFunction(instance) with
-                    | None, None
-                    | None, Some _ -> ()
-                    | Some (paramProto, resultProto), None ->
-                        let paramInst =
-                            match instances.TryGetInstance(applicationReference, paramProto) with
-                            | Some paramInst -> paramInst
-                            | None ->
-                                let paramInst = createNode ()
-                                followupOperations.Add(EnforcePrototypeInstance (applicationReference, paramProto, paramInst))
-                                paramInst
-
-                        let resultInst =
-                            match instances.TryGetInstance(applicationReference, resultProto) with
-                            | Some resultInst -> resultInst
-                            | None ->
-                                let resultInst = createNode ()
-                                followupOperations.Add(EnforcePrototypeInstance (applicationReference, resultProto, resultInst))
-                                resultInst
-
-                        followupOperations.Add(AddFunction (instance, paramInst, resultInst))
-                    | Some (paramProto, resultProto), Some (paramInst, resultInst) ->
-                        match instances.TryGetInstance(applicationReference, paramProto) with
-                        | None -> followupOperations.Add(EnforcePrototypeInstance (applicationReference, paramProto, paramInst))
-                        | Some paramInstFromMap ->
-                            if paramInst <> paramInstFromMap then
-                                followupOperations.Add(Merge (paramInst, paramInstFromMap))
-
-                        match instances.TryGetInstance(applicationReference, resultProto) with
-                        | None -> followupOperations.Add(EnforcePrototypeInstance (applicationReference, resultProto, resultInst))
-                        | Some resultInstFromMap ->
-                            if resultInst <> resultInstFromMap then
-                                followupOperations.Add(Merge (resultInst, resultInstFromMap))
+                followupOperations.Add(UpdateAssignable (scope, targetParam, assigneeParam))
+                followupOperations.Add(UpdateAssignable (scope, assigneeResult, targetResult))
 
             OperationOutcome.Followup(followupOperations)
 
@@ -342,8 +275,8 @@ type TypeGraph() =
                     followupOperations.Add(Merge (result, anotherResult))
             | None ->
                 if functions.Set(func, param, result) then
-                    for appRef, funcInstance in instances.GetInstances(func) do
-                        followupOperations.Add(EnforcePrototypeInstance (appRef, func, funcInstance))
+                    for scope, funcAssignee in assignable.GetAssignees(func) do
+                        followupOperations.Add(UpdateAssignable (scope, func, funcAssignee))
 
         OperationOutcome.Followup(followupOperations)
 
@@ -351,37 +284,16 @@ type TypeGraph() =
         let node = getNode tRef
         runOperation (SetAsAtom (node, atomTypeId))
 
-    member _.FunctionDefinition(fn: TypeReference, param: TypeReference, result: TypeReference) =
-        let fnNode = getNode fn
-        let paramNode = getNode param
-        let resultNode = getNode result
+    member _.Function(fn: TypeReference, param: TypeReference, result: TypeReference) =
+        runOperation (AddFunction (getNode fn, getNode param, getNode result))
 
-        runOperation (AddFunction (fnNode, paramNode, resultNode))
-
-    member _.Application(scope: Scope, applicationReference: ApplicationReference, fn: TypeReference, argument: TypeReference, result: TypeReference) =
-        let fnNode = getNode fn
-        let argumentNode = getNode argument
-        let resultNode = getNode result
-
-        let fnInstanceNode = createNode ()
-
-        let scopeApplications =
-            match applicationScopes.TryGetValue(scope) with
-            | true, apps -> apps
-            | false, _ ->
-                let apps = HashSet()
-                applicationScopes.Add(scope, apps)
-                apps
-
-        scopeApplications.Add(applicationReference) |> ignore
-
-        runOperation (AddFunction (fnInstanceNode, argumentNode, resultNode))
-        runOperation (EnforcePrototypeInstance (applicationReference, fnNode, fnInstanceNode))
+    member _.Assignable(scope: Guid, target: TypeReference, assignee: TypeReference) =
+        runOperation (UpdateAssignable(scope, getNode target, getNode assignee))
 
     member _.Identical(a: TypeReference, b: TypeReference) =
         runOperation (Merge(getNode a, getNode b))
 
-    member _.NonGeneralizable(scope: Scope, typeReference: TypeReference) =
+    member _.NonGeneralizable(scope: Guid, typeReference: TypeReference) =
         runOperation (SetNonGeneralizable (scope, getNode typeReference))
 
     member _.GetResult(): TypeGraphInfo =
@@ -419,8 +331,7 @@ type TypeGraph() =
             typeReferenceIdentities <- typeReferenceIdentities |> Map.add tRef identity
 
         { typeReferenceTypes = typeReferenceTypes
-          typeReferenceIdentities = typeReferenceIdentities
-          functionApplications = [ (* TODO *) ] }
+          typeReferenceIdentities = typeReferenceIdentities }
 
     override _.ToString() =
         let nameCounters = Dictionary()
@@ -480,8 +391,8 @@ type TypeGraph() =
                 | None ->
                     appendLine "   is unknown atom"
 
-            match instances.TryGetPrototype(node) with
-            | Some (_, prototype) -> appendLine $"   is instance of {getNodeName prototype}"
+            match assignable.TryGetTarget(node) with
+            | Some (_, target) -> appendLine $"   is assignable to {getNodeName target}"
             | None -> ()
 
             appendLine ""
