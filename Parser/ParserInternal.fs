@@ -1,4 +1,4 @@
-module internal rec Compiler.Parser
+module rec Compiler.ParserInternal
 
 (*
 STATES

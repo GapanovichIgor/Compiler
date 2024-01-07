@@ -1,0 +1,23 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net7.0</TargetFramework>
+        <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <Content Include="Grammar.txt" />
+        <Content Include="RegenerateParser.cmd" />
+        <Compile Include="ParserInternal.fs" />
+        <Compile Include="Tokenization.fs" />
+        <Compile Include="AstBuilder.fs" />
+        <Compile Include="Parser.fs" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="..\Ast\Ast.fsproj" />
+      <ProjectReference Include="..\Common\Common.fsproj" />
+      <ProjectReference Include="..\Libs\ParserCombinator\ParserCombinator\ParserCombinator.fsproj" />
+    </ItemGroup>
+
+</Project>

@@ -10,9 +10,9 @@ open ParserCombinator.CharPrimitives
 
 open Common
 
-type Token = Parser.InputItem
+type Token = ParserInternal.InputItem
 
-type Parser.InputItem with
+type ParserInternal.InputItem with
 
     member this.GetPosition() =
         match this with

@@ -7,13 +7,8 @@
 
     <ItemGroup>
         <None Include="Properties\launchSettings.json" />
-        <Content Include="Grammar.txt" />
-        <Content Include="RegenerateParser.cmd" />
         <Compile Include="Utils.fs" />
         <Compile Include="Diagnostics.fs" />
-        <Compile Include="Parser.fs" />
-        <Compile Include="Tokenization.fs" />
-        <Compile Include="AstBuilder.fs" />
         <Compile Include="AstDiagnostics.fs" />
         <Compile Include="CsAst.fs" />
         <Compile Include="CsBuiltIn.fs" />
@@ -28,6 +23,7 @@
       <ProjectReference Include="..\Ast\Ast.fsproj" />
       <ProjectReference Include="..\Common\Common.fsproj" />
       <ProjectReference Include="..\Libs\ParserCombinator\ParserCombinator\ParserCombinator.fsproj" />
+      <ProjectReference Include="..\Parser\Parser.fsproj" />
       <ProjectReference Include="..\TypeSolver\TypeSolver.fsproj" />
     </ItemGroup>
 

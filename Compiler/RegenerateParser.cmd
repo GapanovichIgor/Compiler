@@ -1,1 +1,0 @@
-dotnet run --project ..\Libs\ParserGenerator\ParserGenerator\ParserGenerator.fsproj Grammar.txt Parser.fs Compiler.Parser

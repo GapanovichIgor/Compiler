@@ -21,6 +21,10 @@ Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "Common", "Common\Common.fsp
 EndProject
 Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "TypeSolver.Tests", "TypeSolver.Tests\TypeSolver.Tests.fsproj", "{30E291F8-6808-4788-A718-88E2FF8DA1AC}"
 EndProject
+Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "Parser", "Parser\Parser.fsproj", "{A12AC81A-DA3E-416D-9E10-50759C1C307C}"
+EndProject
+Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "Tests", "Tests\Tests.fsproj", "{4ACDA053-0061-4C85-B550-4CAA90D82D78}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -55,6 +59,14 @@ Global
 		{30E291F8-6808-4788-A718-88E2FF8DA1AC}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{30E291F8-6808-4788-A718-88E2FF8DA1AC}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{30E291F8-6808-4788-A718-88E2FF8DA1AC}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A12AC81A-DA3E-416D-9E10-50759C1C307C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A12AC81A-DA3E-416D-9E10-50759C1C307C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A12AC81A-DA3E-416D-9E10-50759C1C307C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A12AC81A-DA3E-416D-9E10-50759C1C307C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{4ACDA053-0061-4C85-B550-4CAA90D82D78}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{4ACDA053-0061-4C85-B550-4CAA90D82D78}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{4ACDA053-0061-4C85-B550-4CAA90D82D78}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{4ACDA053-0061-4C85-B550-4CAA90D82D78}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{1FFDFE2C-2713-4122-8327-AE49518D75DF} = {C3B73BDA-4EA8-4239-9DDC-31631F4BF671}

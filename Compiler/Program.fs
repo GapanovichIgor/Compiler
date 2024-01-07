@@ -3,8 +3,6 @@ open System.Diagnostics
 open System.IO
 open System.Text
 open Compiler
-open Compiler.Parser
-open Compiler.Tokenization
 
 type private CompilerException() =
     inherit Exception()
@@ -50,16 +48,12 @@ let private generateCsProject (sourceFilePath: string, outputDir: string) =
         ms.Position <- 0
         str, ms
 
-    let tokens = tokenize sourceCodeStream
-
-    let parseTree =
-        match parse tokens with
-        | Ok parseTree -> parseTree
+    let ast =
+        match Parser.Parser.parseAst sourceCodeStream with
+        | Ok ast -> ast
         | Error e ->
             OutputMessaging.printParseError sourceCode e
             fail ()
-
-    let ast = AstBuilder.buildFromParseTree parseTree
 
     let astDiagnostics = AstDiagnostics.get ast
 

@@ -236,7 +236,7 @@ type TypeGraph() =
             | Some atomTypeId -> followupOperations.Add(SetAsAtom (assignee, atomTypeId))
             | None -> ()
 
-            // If target is a function, then set assignable (target.param <- assignee.param) and (assignee.result <- target.result)
+            // If target is a function, then set assignable (assignee.param <- target.param) and (target.result <- assignee.result)
             match functions.TryGetParamResultOfFunction(target) with
             | None -> ()
             | Some (targetParam, targetResult) ->
@@ -249,8 +249,8 @@ type TypeGraph() =
                         p, r
                     | Some (p, r) -> p, r
 
-                followupOperations.Add(UpdateAssignable (scope, targetParam, assigneeParam))
-                followupOperations.Add(UpdateAssignable (scope, assigneeResult, targetResult))
+                followupOperations.Add(UpdateAssignable (scope, assigneeParam, targetParam))
+                followupOperations.Add(UpdateAssignable (scope, targetResult, assigneeResult))
 
             OperationOutcome.Followup(followupOperations)
 

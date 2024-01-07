@@ -3,7 +3,7 @@
 open System
 open System.IO
 open Compiler.Diagnostics
-open Compiler.Parser
+open Compiler.ParserInternal
 
 type private ProblemReport =
     { lineNumber: int
