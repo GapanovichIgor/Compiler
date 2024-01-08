@@ -110,7 +110,30 @@ let genericFunctionBindingAToInt () =
     Assert (xType <> fResultType)
     Assert (fResultType = BuiltIn.Types.int)
     Assert (fTypeParams.Length = 1)
-    Assert (xType = AtomType (fTypeParams[0]))
+    Assert (xType = AtomType fTypeParams[0])
+
+[<Test>]
+let functionBindingIntToA () =
+    let typeInfo =
+        "\
+let f x =
+    let y = intToStr x
+    failwith \"test\""
+        |> run
+
+    let xType = typeInfo |> getIdentifierType "x"
+    let fType = typeInfo |> getIdentifierType "f"
+
+    let fTypeParams = fType |> getTypeParameters
+    let fParamType = fType |> getFunctionParameterType
+    let fResultType = fType |> getFunctionResultType
+
+    Assert (xType = BuiltIn.Types.int)
+    Assert (xType = fParamType)
+    Assert (xType <> fResultType)
+    Assert (fResultType |> isSomeAtomType)
+    Assert (fTypeParams.Length = 1)
+    Assert (fResultType = AtomType fTypeParams[0])
 
 [<Test>]
 let functionBindingStringToUnit () =

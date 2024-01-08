@@ -139,6 +139,7 @@ let buildFromParseTree (parseTree: ParserInternal.Program) : Ast.Program =
             .AttachIdentifier(BuiltIn.Identifiers.intToStr)
             .AttachIdentifier(BuiltIn.Identifiers.intToStrFmt)
             .AttachIdentifier(BuiltIn.Identifiers.floatToStr)
+            .AttachIdentifier(BuiltIn.Identifiers.failwith)
 
     match parseTree with
     | ParserInternal.Program e ->
