@@ -14,22 +14,50 @@ let private run (code: string) =
     | Ok ast -> Solver.getTypeInformation ast
     | Error _ -> failwith "Failed to parse"
 
-let private identifierType (identifier: string) (typeInfo: TypeInformation) =
-    typeInfo.identifierTypes
-    |> Map.toSeq
-    |> Seq.choose (fun (i, t) -> if i.Name = identifier then Some t else None)
-    |> Seq.exactlyOne
+let private getIdentifierType (identifier: string) (typeInfo: TypeInformation) =
+    let types =
+        typeInfo.identifierTypes
+        |> Map.toSeq
+        |> Seq.choose (fun (i, t) -> if i.Name = identifier then Some t else None)
+        |> List.ofSeq
 
-let private assertIsAtom (atomTypeId: AtomTypeId) (t: Type) =
+    match types with
+    | [] -> failwith $"Type is not defined for identifier {identifier}"
+    | [ t ] -> t
+    | _ -> failwith $"Found more than one identifier {identifier}"
+
+let rec private getFunctionParameterType (t: Type) =
     match t with
-    | AtomType aId when aId = atomTypeId -> ()
-    | _ -> Assert.Fail($"The type is not an atom type {atomTypeId}")
+    | FunctionType (p, _) -> p
+    | QualifiedType (_ , body) -> getFunctionParameterType body
+    | _ -> failwith "Type is not a function"
+
+let rec private getFunctionResultType (t: Type) =
+    match t with
+    | FunctionType (_, r) -> r
+    | QualifiedType (_ , body) -> getFunctionResultType body
+    | _ -> failwith "Type is not a function"
+
+let private getTypeParameters (t: Type) =
+    match t with
+    | QualifiedType (ps, _) -> ps
+    | _ -> failwith "Type is not a qualified type"
+
+let private isSomeAtomType (t: Type) =
+    match t with
+    | AtomType _ -> true
+    | _ -> false
+
+let private Assert (cond: bool) =
+    Assert.IsTrue(cond)
 
 [<Test>]
 let valueBindingToLiteral () =
     let typeInfo = run "let x = 5"
 
-    typeInfo |> identifierType "x" |> assertIsAtom BuiltIn.AtomTypeIds.int
+    let xType = typeInfo |> getIdentifierType "x"
+
+    Assert (xType = BuiltIn.Types.int)
 
 [<Test>]
 let valueBindingToIdentifier () =
@@ -38,5 +66,25 @@ let valueBindingToIdentifier () =
          let y = x"
         |> run
 
-    typeInfo |> identifierType "x" |> assertIsAtom BuiltIn.AtomTypeIds.int
-    typeInfo |> identifierType "y" |> assertIsAtom BuiltIn.AtomTypeIds.int
+    let xType = typeInfo |> getIdentifierType "x"
+    let yType = typeInfo |> getIdentifierType "y"
+
+    Assert (xType = BuiltIn.Types.int)
+    Assert (yType = BuiltIn.Types.int)
+
+[<Test>]
+let genericFunctionBinding () =
+    let typeInfo = run "let id x = x"
+
+    let xType = typeInfo |> getIdentifierType "x"
+    let idType = typeInfo |> getIdentifierType "id"
+
+    let idTypeParams = idType |> getTypeParameters
+    let idParamType = idType |> getFunctionParameterType
+    let idResultType = idType |> getFunctionResultType
+
+    Assert (xType |> isSomeAtomType)
+    Assert (xType = idParamType)
+    Assert (xType = idResultType)
+    Assert (idTypeParams.Length = 1)
+    Assert (xType = AtomType (idTypeParams[0]))

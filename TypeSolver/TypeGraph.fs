@@ -217,16 +217,18 @@ type TypeGraph() =
         let followupOperations = List()
 
         if nonGeneralizable.Set(scope, node) then
-            for assignee in assignable.GetAssignees(scope, node) do
-                assignable.Unset(scope, node, assignee)
-                followupOperations.Add(Merge (assignee, node))
+            match assignable.TryGetTarget(scope, node) with
+            | Some target ->
+                assignable.Unset(scope, target, node)
+                followupOperations.Add(Merge (target, node))
+            | None -> ()
 
         OperationOutcome.Followup(followupOperations)
 
     and updateAssignable (scope: Guid, target: Node, assignee: Node): OperationOutcome =
         if target = assignee then
             OperationOutcome.Empty
-        elif nonGeneralizable.IsNotGeneralizable(scope, target) then
+        elif nonGeneralizable.IsNotGeneralizable(scope, assignee) then
             OperationOutcome.Followup([ Merge (target, assignee) ])
         else
             let followupOperations = List()

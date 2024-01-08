@@ -80,6 +80,14 @@ type internal AssignableNodeRelations() =
             | false, _ -> None)
         |> Seq.tryExactlyOne
 
+    member _.TryGetTarget(scopeId: Guid, assignee: Node) : Node option =
+        match scopes.TryGetValue(scopeId) with
+        | false, _ -> None
+        | true, scope ->
+            match scope.TryGetValue(assignee) with
+            | true, target -> Some target
+            | false, _ -> None
+
     override _.ToString() =
         scopes.Values
         |> Seq.map (fun group -> group |> Seq.map (fun kv -> $"{kv.Value} <- {kv.Key}") |> String.concat "\n")
