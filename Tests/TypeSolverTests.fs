@@ -73,7 +73,7 @@ let valueBindingToIdentifier () =
     Assert (yType = BuiltIn.Types.int)
 
 [<Test>]
-let genericFunctionBinding () =
+let genericFunctionBindingAToA () =
     let typeInfo = run "let id x = x"
 
     let xType = typeInfo |> getIdentifierType "x"
@@ -86,5 +86,23 @@ let genericFunctionBinding () =
     Assert (xType |> isSomeAtomType)
     Assert (xType = idParamType)
     Assert (xType = idResultType)
+    Assert (idTypeParams.Length = 1)
+    Assert (xType = AtomType (idTypeParams[0]))
+
+[<Test>]
+let genericFunctionBindingAToInt () =
+    let typeInfo = run "let id x = 0"
+
+    let xType = typeInfo |> getIdentifierType "x"
+    let idType = typeInfo |> getIdentifierType "id"
+
+    let idTypeParams = idType |> getTypeParameters
+    let idParamType = idType |> getFunctionParameterType
+    let idResultType = idType |> getFunctionResultType
+
+    Assert (xType |> isSomeAtomType)
+    Assert (xType = idParamType)
+    Assert (xType <> idResultType)
+    Assert (idResultType = BuiltIn.Types.int)
     Assert (idTypeParams.Length = 1)
     Assert (xType = AtomType (idTypeParams[0]))
