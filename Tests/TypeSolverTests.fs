@@ -48,6 +48,11 @@ let private isSomeAtomType (t: Type) =
     | AtomType _ -> true
     | _ -> false
 
+let private isQualifiedType (t: Type) =
+    match t with
+    | QualifiedType _ -> true
+    | _ -> false
+
 let private Assert (cond: bool) =
     Assert.IsTrue(cond)
 
@@ -91,18 +96,33 @@ let genericFunctionBindingAToA () =
 
 [<Test>]
 let genericFunctionBindingAToInt () =
-    let typeInfo = run "let id x = 0"
+    let typeInfo = run "let f x = 0"
 
     let xType = typeInfo |> getIdentifierType "x"
-    let idType = typeInfo |> getIdentifierType "id"
+    let fType = typeInfo |> getIdentifierType "f"
 
-    let idTypeParams = idType |> getTypeParameters
-    let idParamType = idType |> getFunctionParameterType
-    let idResultType = idType |> getFunctionResultType
+    let fTypeParams = fType |> getTypeParameters
+    let fParamType = fType |> getFunctionParameterType
+    let fResultType = fType |> getFunctionResultType
 
     Assert (xType |> isSomeAtomType)
-    Assert (xType = idParamType)
-    Assert (xType <> idResultType)
-    Assert (idResultType = BuiltIn.Types.int)
-    Assert (idTypeParams.Length = 1)
-    Assert (xType = AtomType (idTypeParams[0]))
+    Assert (xType = fParamType)
+    Assert (xType <> fResultType)
+    Assert (fResultType = BuiltIn.Types.int)
+    Assert (fTypeParams.Length = 1)
+    Assert (xType = AtomType (fTypeParams[0]))
+
+[<Test>]
+let functionBindingStringToUnit () =
+    let typeInfo = run "let f x = println x"
+
+    let xType = typeInfo |> getIdentifierType "x"
+    let fType = typeInfo |> getIdentifierType "f"
+
+    let fParamType = fType |> getFunctionParameterType
+    let fResultType = fType |> getFunctionResultType
+
+    Assert (xType = BuiltIn.Types.string)
+    Assert (xType = fParamType)
+    Assert (fResultType = BuiltIn.Types.unit)
+    Assert (fType |> isQualifiedType |> not)

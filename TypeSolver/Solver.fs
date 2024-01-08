@@ -20,7 +20,8 @@ let private addBuiltIns (identifierTypes: Dictionary<Identifier, TypeReference>,
       BuiltIn.Identifiers.opAdd, BuiltIn.IdentifierTypes.opAdd
       BuiltIn.Identifiers.opSubtract, BuiltIn.IdentifierTypes.opSubtract
       BuiltIn.Identifiers.opMultiply, BuiltIn.IdentifierTypes.opMultiply
-      BuiltIn.Identifiers.opDivide, BuiltIn.IdentifierTypes.opDivide ]
+      BuiltIn.Identifiers.opDivide, BuiltIn.IdentifierTypes.opDivide
+      BuiltIn.Identifiers.failwith, BuiltIn.IdentifierTypes.failwith ]
     |> List.iter (fun (identifier, type_) ->
         let rec add typeRef type_ =
             match type_ with
@@ -32,7 +33,8 @@ let private addBuiltIns (identifierTypes: Dictionary<Identifier, TypeReference>,
 
                 add paramTr param
                 add resultTr result
-            | QualifiedType _ -> failwith "TODO"
+            | QualifiedType (_, body) ->
+                add typeRef body
 
         let identifierType = getIdentifierTypeRef identifier
         add identifierType type_)

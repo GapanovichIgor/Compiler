@@ -23,6 +23,7 @@ module Identifiers =
     let intToStr = Identifier.Create "intToStr"
     let intToStrFmt = Identifier.Create "intToStrFmt"
     let floatToStr = Identifier.Create "floatToStr"
+    let failwith = Identifier.Create "failwith"
 
 module IdentifierTypes =
     open Types
@@ -35,3 +36,6 @@ module IdentifierTypes =
     let intToStr = FunctionType(int, string)
     let intToStrFmt = FunctionType(string, FunctionType(int, string))
     let floatToStr = FunctionType(float, string)
+    let failwith =
+        let a = AtomTypeId("a")
+        QualifiedType([a], FunctionType(string, AtomType(a)))

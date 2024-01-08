@@ -27,6 +27,7 @@ let generate (ast: Program, outputDirectory: string) =
     programFile.WriteLine("string intToStr(int x) => x.ToString();")
     programFile.WriteLine("System.Func<int, string> intToStrFmt(string format) => (int x) => x.ToString(format);")
     programFile.WriteLine("string floatToStr(float x) => x.ToString();")
+    programFile.WriteLine("T failwith<T>(string message) => throw new Exception(message);")
     programFile.WriteLine("#pragma warning restore CS8321")
     programFile.WriteLine()
     programFile.Flush()
