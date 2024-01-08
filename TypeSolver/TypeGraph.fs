@@ -233,10 +233,14 @@ type TypeGraph() =
         else
             let followupOperations = List()
 
-            // If target is an atom, then assignee is also this atom
-            match atoms.TryGetAtomTypeId(target) with
-            | Some atomTypeId -> followupOperations.Add(SetAsAtom (assignee, atomTypeId))
-            | None -> ()
+            // If either target or assignee is an atom type, then they both must be this atom type
+            match atoms.TryGetAtomTypeId(target), atoms.TryGetAtomTypeId(assignee) with
+            | Some atomTypeId, None -> followupOperations.Add(SetAsAtom (assignee, atomTypeId))
+            | None, Some atomTypeId -> followupOperations.Add(SetAsAtom (target, atomTypeId))
+            | None, None -> ()
+            | Some targetAtomId, Some assigneeAtomId ->
+                if targetAtomId <> assigneeAtomId then
+                    failwith "Target and assignee are constrained to different atom types"
 
             // If target is a function, then set assignable (assignee.param <- target.param) and (target.result <- assignee.result)
             match functions.TryGetParamResultOfFunction(target) with
