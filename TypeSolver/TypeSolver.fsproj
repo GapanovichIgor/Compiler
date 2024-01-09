@@ -10,7 +10,7 @@
         <Compile Include="AtomNodeProperty.fs" />
         <Compile Include="FunctionNodeRelations.fs" />
         <Compile Include="AssignableNodeRelations.fs" />
-        <Compile Include="NonGeneralizableNodeProperty.fs" />
+        <Compile Include="MonomorphicNodeProperty.fs" />
         <Compile Include="FlagNodeProperty.fs" />
         <Compile Include="FunctionApplication.fs" />
         <Compile Include="TypeGraph.fs" />

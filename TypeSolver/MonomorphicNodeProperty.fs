@@ -3,7 +3,7 @@
 open System
 open System.Collections.Generic
 
-type internal NonGeneralizableNodeProperty() =
+type internal MonomorphicNodeProperty() =
     let scopes = Dictionary<Guid, HashSet<Node>>()
 
     member _.Set(scopeId: Guid, node: Node): bool =
@@ -23,12 +23,12 @@ type internal NonGeneralizableNodeProperty() =
         | true, scope ->
             scope.Remove(node) |> ignore
 
-    member _.IsNotGeneralizable(scopeId: Guid, node: Node): bool =
+    member _.IsMonomorphic(scopeId: Guid, node: Node): bool =
         match scopes.TryGetValue(scopeId) with
         | false, _ -> false
         | true, scope -> scope.Contains(node)
 
-    member _.GetScopesWhereNotGeneralizable(node: Node) : Guid list =
+    member _.GetScopesWhereMonomorphic(node: Node) : Guid list =
         scopes
         |> Seq.choose (fun kv ->
             if kv.Value.Contains(node) then

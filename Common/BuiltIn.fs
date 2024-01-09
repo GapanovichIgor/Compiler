@@ -1,18 +1,10 @@
 ﻿module Common.BuiltIn
 
-module AtomTypeIds =
-    let unit = AtomTypeId("Unit")
-    let int = AtomTypeId("Int")
-    let float = AtomTypeId("Float")
-    let string = AtomTypeId("String")
-
-module Types =
-    open AtomTypeIds
-
-    let unit = AtomType unit
-    let int = AtomType int
-    let float = AtomType float
-    let string = AtomType string
+module AtomTypeReferences =
+    let unit = TypeReference("Unit")
+    let int = TypeReference("Int")
+    let float = TypeReference("Float")
+    let string = TypeReference("String")
 
 module Identifiers =
     let opAdd = Identifier.Create "opAdd"
@@ -24,18 +16,3 @@ module Identifiers =
     let intToStrFmt = Identifier.Create "intToStrFmt"
     let floatToStr = Identifier.Create "floatToStr"
     let failwith = Identifier.Create "failwith"
-
-module IdentifierTypes =
-    open Types
-
-    let opAdd = FunctionType(int, FunctionType(int, int))
-    let opSubtract = FunctionType(int, FunctionType(int, int))
-    let opMultiply = FunctionType(int, FunctionType(int, int))
-    let opDivide = FunctionType(int, FunctionType(int, int))
-    let println = FunctionType(string, unit)
-    let intToStr = FunctionType(int, string)
-    let intToStrFmt = FunctionType(string, FunctionType(int, string))
-    let floatToStr = FunctionType(float, string)
-    let failwith =
-        let a = AtomTypeId("a")
-        QualifiedType([a], FunctionType(string, AtomType(a)))

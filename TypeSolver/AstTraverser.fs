@@ -5,11 +5,15 @@ open System.Collections.Generic
 open Common
 open Ast
 
-type private Context(identifierTypes: Dictionary<Identifier, TypeReference>, graph: TypeGraph, scopeTree: ScopeTree) =
-    let globalScope = Guid.NewGuid()
-    let scopeStack = Stack([ globalScope ])
+type private Context(identifierTypes: Dictionary<Identifier, TypeReference>, graph: TypeGraph, scopeTree: ScopeTree, globalScope: Guid, globalScopeMonomorphicTypes: TypeReference list) =
+    let scopeStack = Stack()
+    let monomorphicTypesByScope = Dictionary()
 
-    do Console.WriteLine(graph.ToString())
+    do
+        scopeStack.Push(globalScope)
+        monomorphicTypesByScope.Add(globalScope, List(globalScopeMonomorphicTypes))
+        for t in globalScopeMonomorphicTypes do
+            graph.Monomorphic(globalScope, t)
 
     member _.GetIdentifierType(i: Identifier) =
         match identifierTypes.TryGetValue(i) with
@@ -20,11 +24,18 @@ type private Context(identifierTypes: Dictionary<Identifier, TypeReference>, gra
             tr
 
     member _.PushScope(identifier: Identifier) =
-        scopeTree.Push(identifier)
-        scopeStack.Push(Guid.NewGuid())
+        // scopeTree.Push(identifier)
+        let newScope = Guid.NewGuid()
+        let monomorphicTypes = List()
+        for t in monomorphicTypesByScope[scopeStack.Peek()] do
+            monomorphicTypes.Add(t)
+            graph.Monomorphic(newScope, t)
+
+        scopeStack.Push(newScope)
+        monomorphicTypesByScope.Add(newScope, monomorphicTypes)
 
     member _.PopScope() =
-        scopeTree.Pop()
+        // scopeTree.Pop()
         scopeStack.Pop() |> ignore
 
     member _.Identical(a: TypeReference, b: TypeReference) =
@@ -34,13 +45,10 @@ type private Context(identifierTypes: Dictionary<Identifier, TypeReference>, gra
         let identifierType = this.GetIdentifierType(identifier)
         graph.Assignable(scopeStack.Peek(), expressionType, identifierType)
 
-    member _.Atom(typeReference: TypeReference, atomTypeId: AtomTypeId) =
-        graph.Atom(typeReference, atomTypeId)
-
-    member this.DefinedInCurrentScope(identifier: Identifier) =
+    member this.MonomorphicInCurrentScope(identifier: Identifier) =
         let typeReference = this.GetIdentifierType(identifier)
-        scopeTree.Add(typeReference)
-        graph.NonGeneralizable(scopeStack.Peek(), typeReference)
+        // scopeTree.Add(typeReference)
+        graph.Monomorphic(scopeStack.Peek(), typeReference)
 
     member _.Function(fnType: TypeReference, parameterType: TypeReference, resultType: TypeReference) =
         graph.Function(fnType, parameterType, resultType)
@@ -52,18 +60,16 @@ let private traverseExpression (ctx: Context) (expression: Expression) =
     | NumberLiteral(_, fractionalPart) ->
         let numberType =
             match fractionalPart with
-            | Some _ -> BuiltIn.AtomTypeIds.float
-            | None -> BuiltIn.AtomTypeIds.int
+            | Some _ -> BuiltIn.AtomTypeReferences.float
+            | None -> BuiltIn.AtomTypeReferences.int
 
-        ctx.Atom(expression.expressionType, numberType)
-    | StringLiteral _ -> ctx.Atom(expression.expressionType, BuiltIn.AtomTypeIds.string)
+        ctx.Identical(expression.expressionType, numberType)
+    | StringLiteral _ -> ctx.Identical(expression.expressionType, BuiltIn.AtomTypeReferences.string)
     | Application(_, fn, argument) ->
         ctx.Function(fn.expressionType, argument.expressionType, expression.expressionType)
         traverseExpression ctx fn
         traverseExpression ctx argument
     | Binding(identifier, parameters, body) ->
-        ctx.DefinedInCurrentScope(identifier)
-
         let identifierType = ctx.GetIdentifierType(identifier)
 
         if parameters.Length = 0 then
@@ -74,12 +80,12 @@ let private traverseExpression (ctx: Context) (expression: Expression) =
             let rec loop currentFunctionType parameters =
                 match parameters with
                 | [ parameter ] ->
-                    ctx.DefinedInCurrentScope(parameter)
+                    ctx.MonomorphicInCurrentScope(parameter)
 
                     let parameterType = ctx.GetIdentifierType(parameter)
                     ctx.Function(currentFunctionType, parameterType, body.expressionType)
                 | parameter :: parametersRest ->
-                    ctx.DefinedInCurrentScope(parameter)
+                    ctx.MonomorphicInCurrentScope(parameter)
 
                     let parameterType = ctx.GetIdentifierType(parameter)
                     let subFunctionType =
@@ -91,7 +97,7 @@ let private traverseExpression (ctx: Context) (expression: Expression) =
 
             loop identifierType parameters
 
-        ctx.Atom(expression.expressionType, BuiltIn.AtomTypeIds.unit)
+        ctx.Identical(expression.expressionType, BuiltIn.AtomTypeReferences.unit)
 
         traverseExpression ctx body
 
@@ -103,7 +109,7 @@ let private traverseExpression (ctx: Context) (expression: Expression) =
 
         match List.tryLast expressions with
         | Some lastExpression -> ctx.Identical(expression.expressionType, lastExpression.expressionType)
-        | None -> ctx.Atom(expression.expressionType, BuiltIn.AtomTypeIds.unit)
+        | None -> ctx.Identical(expression.expressionType, BuiltIn.AtomTypeReferences.unit)
 
     | InvalidToken _ -> failwith "TODO"
 
@@ -115,7 +121,7 @@ type TypeReferenceScope =
     { containedTypeReferences: TypeReference list
       childScopes: Map<TypeReference, TypeReferenceScope> }
 
-let collectInfoFromAst (identifierTypes: Dictionary<Identifier, TypeReference>, graph: TypeGraph, scopeTree: ScopeTree) (ast: Program) =
-    let ctx = Context(identifierTypes, graph, scopeTree)
+let collectInfoFromAst (identifierTypes: Dictionary<Identifier, TypeReference>, graph: TypeGraph, scopeTree: ScopeTree, globalScope: Guid, globalScopeMonomorphicTypes: TypeReference list) (ast: Program) =
+    let ctx = Context(identifierTypes, graph, scopeTree, globalScope, globalScopeMonomorphicTypes)
 
     traverseProgram ctx ast
