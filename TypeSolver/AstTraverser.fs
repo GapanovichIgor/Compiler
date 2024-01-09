@@ -4,14 +4,15 @@ open System.Collections.Generic
 open Common
 open Ast
 
-type private Context(identifierTypes: Dictionary<Identifier, TypeReference>, graph: TypeGraph, scopeTree: ScopeTree, globalScope: ScopeId, globalScopeMonomorphicTypes: TypeReference list) =
+type private Context(identifierTypes: Dictionary<Identifier, TypeReference>, graph: TypeGraph, scopeTree: ScopeTree, globalScope: ScopeId, globalScopeAtomTypes: TypeReference list) =
     let scopeStack = Stack()
     let monomorphicTypesByScope = Dictionary()
 
     do
         scopeStack.Push(globalScope)
-        monomorphicTypesByScope.Add(globalScope, List(globalScopeMonomorphicTypes))
-        for t in globalScopeMonomorphicTypes do
+        monomorphicTypesByScope.Add(globalScope, List(globalScopeAtomTypes))
+        for t in globalScopeAtomTypes do
+            // scopeTree.DefinedInCurrentScope(t)
             graph.Monomorphic(globalScope, t)
 
     member _.GetIdentifierType(i: Identifier) =
@@ -44,9 +45,11 @@ type private Context(identifierTypes: Dictionary<Identifier, TypeReference>, gra
         let identifierType = this.GetIdentifierType(identifier)
         graph.Assignable(scopeStack.Peek(), expressionType, identifierType)
 
-    member this.MonomorphicInCurrentScope(identifier: Identifier) =
-        let typeReference = this.GetIdentifierType(identifier)
-        // scopeTree.Add(typeReference)
+    member this.DefinedInCurrentScope(typeReference: TypeReference) =
+        graph.DefinedInScope(scopeStack.Peek(), typeReference)
+    //     scopeTree.DefinedInCurrentScope(typeReference)
+
+    member this.MonomorphicInCurrentScope(typeReference: TypeReference) =
         graph.Monomorphic(scopeStack.Peek(), typeReference)
 
     member _.Function(fnType: TypeReference, parameterType: TypeReference, resultType: TypeReference) =
@@ -71,6 +74,8 @@ let private traverseExpression (ctx: Context) (expression: Expression) =
     | Binding(identifier, parameters, body) ->
         let identifierType = ctx.GetIdentifierType(identifier)
 
+        ctx.DefinedInCurrentScope(identifierType)
+
         if parameters.Length = 0 then
             ctx.Identical(identifierType, body.expressionType)
         else
@@ -79,17 +84,18 @@ let private traverseExpression (ctx: Context) (expression: Expression) =
             let rec loop currentFunctionType parameters =
                 match parameters with
                 | [ parameter ] ->
-                    ctx.MonomorphicInCurrentScope(parameter)
-
                     let parameterType = ctx.GetIdentifierType(parameter)
+
+                    ctx.DefinedInCurrentScope(parameterType)
+                    ctx.MonomorphicInCurrentScope(parameterType)
                     ctx.Function(currentFunctionType, parameterType, body.expressionType)
                 | parameter :: parametersRest ->
-                    ctx.MonomorphicInCurrentScope(parameter)
-
                     let parameterType = ctx.GetIdentifierType(parameter)
                     let subFunctionType =
                         TypeReference($"binding sub-function of ({identifier}) on parameter ({parameter})")
 
+                    ctx.DefinedInCurrentScope(parameterType)
+                    ctx.MonomorphicInCurrentScope(parameterType)
                     ctx.Function(currentFunctionType, parameterType, subFunctionType)
                     loop subFunctionType parametersRest
                 | _ -> failwith "Invalid state"
@@ -120,7 +126,7 @@ type TypeReferenceScope =
     { containedTypeReferences: TypeReference list
       childScopes: Map<TypeReference, TypeReferenceScope> }
 
-let collectInfoFromAst (identifierTypes: Dictionary<Identifier, TypeReference>, graph: TypeGraph, scopeTree: ScopeTree, globalScope: ScopeId, globalScopeMonomorphicTypes: TypeReference list) (ast: Program) =
-    let ctx = Context(identifierTypes, graph, scopeTree, globalScope, globalScopeMonomorphicTypes)
+let collectInfoFromAst (identifierTypes: Dictionary<Identifier, TypeReference>, graph: TypeGraph, scopeTree: ScopeTree, globalScope: ScopeId, globalScopeAtomTypes: TypeReference list) (ast: Program) =
+    let ctx = Context(identifierTypes, graph, scopeTree, globalScope, globalScopeAtomTypes)
 
     traverseProgram ctx ast

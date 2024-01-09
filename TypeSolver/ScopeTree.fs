@@ -27,7 +27,7 @@ type internal ScopeTree() =
 
     member _.Pop() = stack.Pop() |> ignore
 
-    member _.Add(typeReference: TypeReference) =
+    member _.DefinedInCurrentScope(typeReference: TypeReference) =
         if stack.Count = 0 then
             rootScope.Add(typeReference)
         else

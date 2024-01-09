@@ -28,6 +28,8 @@ type TypeGraphInfo =
 type TypeGraph() =
     let typeReferenceNodes = Dictionary<TypeReference, Node>()
 
+    let typeReferenceScopes = Dictionary<TypeReference, ScopeId>()
+
     let functions = FunctionNodeRelations()
     let assignable = AssignableNodeRelations()
     let monomorphic = MonomorphicNodeProperty()
@@ -192,7 +194,8 @@ type TypeGraph() =
 
             // If target is a function, then set assignable (assignee.param <- target.param) and (target.result <- assignee.result)
             match functions.TryGetParamResultOfFunction(target) with
-            | None -> ()
+            | None ->
+                assignable.Set(scope, target, assignee)
             | Some (targetParam, targetResult) ->
                 let assigneeParam, assigneeResult =
                     match functions.TryGetParamResultOfFunction(assignee) with
@@ -248,24 +251,58 @@ type TypeGraph() =
     member _.Monomorphic(scope: ScopeId, typeReference: TypeReference) =
         runOperation (SetMonomorphic (scope, getNode typeReference))
 
-    member _.GetResult(): TypeGraphInfo =
-        let nodeTypeMap = Dictionary()
+    member _.DefinedInScope(scope: ScopeId, typeReference: TypeReference) =
+        typeReferenceScopes.Add(typeReference, scope)
 
-        let rec getType node =
-            match nodeTypeMap.TryGetValue(node) with
-            | true, t -> t
+    member _.GetResult(): TypeGraphInfo =
+        let nodeInfo = Dictionary<Node, Type * (Node * AtomTypeId) list>()
+
+        let rec getNodeInfo node =
+            match nodeInfo.TryGetValue(node) with
+            | true, i -> i
             | false, _ ->
                 let type_ =
                     match functions.TryGetParamResultOfFunction(node) with
-                    | None -> AtomType (AtomTypeId())
-                    | Some (param, result) -> FunctionType (getType param, getType result)
+                    | None ->
+                        let atomTypeId = AtomTypeId()
 
-                nodeTypeMap.Add(node, type_)
+                        AtomType atomTypeId, [node, atomTypeId]
+                    | Some (param, result) ->
+                        let paramType, paramAtomTypes = getNodeInfo param
+                        let resultType, resultAtomTypes = getNodeInfo result
+
+                        FunctionType (paramType, resultType), (paramAtomTypes @ resultAtomTypes |> List.distinct)
+
+                nodeInfo.Add(node, type_)
+
                 type_
 
         let typeReferenceTypes =
             typeReferenceNodes
-            |> Seq.map (fun kv -> kv.Key, getType kv.Value)
+            |> Seq.map (fun kv ->
+                let typeReference = kv.Key
+                let node = kv.Value
+
+                let type_, atomTypes = getNodeInfo node
+
+                let typeParameters =
+                    match typeReferenceScopes.TryGetValue(typeReference) with
+                    | false, _ -> []
+                    | true, scope ->
+                        atomTypes
+                        |> List.choose (fun (node, atomTypeId) ->
+                            if monomorphic.IsMonomorphic(scope, node) then
+                                None
+                            else
+                                Some atomTypeId)
+
+                let type_ =
+                    if typeParameters.Length > 0 then
+                        QualifiedType (typeParameters, type_)
+                    else
+                        type_
+
+                typeReference, type_)
             |> Map.ofSeq
 
         { typeReferenceTypes = typeReferenceTypes }

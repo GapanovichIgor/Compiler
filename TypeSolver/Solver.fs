@@ -6,7 +6,7 @@ open Common
 
 let private globalScope = ScopeId()
 
-let private globalScopeMonomorphicTypes =
+let private globalScopeAtomTypes =
     [ BuiltIn.AtomTypeReferences.int
       BuiltIn.AtomTypeReferences.float
       BuiltIn.AtomTypeReferences.string
@@ -185,7 +185,7 @@ let getTypeInformation (ast: Program) : TypeInformation =
 
     addBuiltIns (identifierTypes, graph, scopeTree)
 
-    AstTraverser.collectInfoFromAst (identifierTypes, graph, scopeTree, globalScope, globalScopeMonomorphicTypes) ast
+    AstTraverser.collectInfoFromAst (identifierTypes, graph, scopeTree, globalScope, globalScopeAtomTypes) ast
 
     let graphInfo = graph.GetResult()
 
