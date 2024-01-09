@@ -84,20 +84,49 @@ let valueBindingToIdentifier () =
 
 [<Test>]
 let genericFunctionBindingAToA () =
-    let typeInfo = run "let id x = x"
+    let typeInfo = run "let f x = x"
 
     let xType = typeInfo |> getIdentifierType "x"
-    let idType = typeInfo |> getIdentifierType "id"
+    let fType = typeInfo |> getIdentifierType "f"
 
-    let idTypeParams = idType |> getTypeParameters
-    let idParamType = idType |> getFunctionParameterType
-    let idResultType = idType |> getFunctionResultType
+    let fTypeParams = fType |> getTypeParameters
+    let fParamType = fType |> getFunctionParameterType
+    let fResultType = fType |> getFunctionResultType
 
     Assert (xType |> isSomeAtomType)
-    Assert (xType = idParamType)
-    Assert (xType = idResultType)
-    Assert (idTypeParams.Length = 1)
-    Assert (xType = AtomType (idTypeParams[0]))
+    Assert (xType = fParamType)
+    Assert (xType = fResultType)
+    Assert (fTypeParams.Length = 1)
+    Assert (xType = AtomType (fTypeParams[0]))
+
+[<Test>]
+let genericFunctionBindingAliasAToA () =
+    let typeInfo =
+        "let f x = x\n\
+         let g = f"
+        |> run
+
+    let xType = typeInfo |> getIdentifierType "x"
+    let fType = typeInfo |> getIdentifierType "f"
+    let gType = typeInfo |> getIdentifierType "g"
+
+    let fTypeParams = fType |> getTypeParameters
+    let fParamType = fType |> getFunctionParameterType
+    let fResultType = fType |> getFunctionResultType
+
+    let gTypeParams = gType |> getTypeParameters
+    let gParamType = gType |> getFunctionParameterType
+    let gResultType = gType |> getFunctionResultType
+
+    Assert (xType |> isSomeAtomType)
+    Assert (xType = fParamType)
+    Assert (xType = fResultType)
+    Assert (fParamType = gParamType)
+    Assert (fResultType = gResultType)
+    Assert (fTypeParams.Length = 1)
+    Assert (xType = AtomType (fTypeParams[0]))
+    Assert (gTypeParams.Length = 1)
+    Assert (fTypeParams = gTypeParams)
 
 [<Test>]
 let genericFunctionBindingAToInt () =

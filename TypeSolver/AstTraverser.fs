@@ -43,7 +43,8 @@ type private Context(identifierTypes: Dictionary<Identifier, TypeReference>, gra
 
     member this.IdentifierReference(identifier: Identifier, expressionType: TypeReference) =
         let identifierType = this.GetIdentifierType(identifier)
-        graph.Assignable(scopeStack.Peek(), expressionType, identifierType)
+        // graph.Assignable(scopeStack.Peek(), expressionType, identifierType)
+        graph.Identical(identifierType, expressionType)
 
     member this.DefinedInCurrentScope(typeReference: TypeReference) =
         graph.DefinedInScope(scopeStack.Peek(), typeReference)
@@ -54,6 +55,9 @@ type private Context(identifierTypes: Dictionary<Identifier, TypeReference>, gra
 
     member _.Function(fnType: TypeReference, parameterType: TypeReference, resultType: TypeReference) =
         graph.Function(fnType, parameterType, resultType)
+
+    member _.Assignable(target: TypeReference, assignee: TypeReference) =
+        graph.Assignable(scopeStack.Peek(), target, assignee)
 
 let private traverseExpression (ctx: Context) (expression: Expression) =
     match expression.expressionShape with
@@ -68,7 +72,9 @@ let private traverseExpression (ctx: Context) (expression: Expression) =
         ctx.Identical(expression.expressionType, numberType)
     | StringLiteral _ -> ctx.Identical(expression.expressionType, BuiltIn.AtomTypeReferences.string)
     | Application(_, fn, argument) ->
-        ctx.Function(fn.expressionType, argument.expressionType, expression.expressionType)
+        let paramType = TypeReference()
+        ctx.Assignable(paramType, argument.expressionType)
+        ctx.Function(fn.expressionType, paramType, expression.expressionType)
         traverseExpression ctx fn
         traverseExpression ctx argument
     | Binding(identifier, parameters, body) ->
@@ -77,6 +83,7 @@ let private traverseExpression (ctx: Context) (expression: Expression) =
         ctx.DefinedInCurrentScope(identifierType)
 
         if parameters.Length = 0 then
+            // ctx.MonomorphicInCurrentScope(body.expressionType)
             ctx.Identical(identifierType, body.expressionType)
         else
             ctx.PushScope(identifier)
