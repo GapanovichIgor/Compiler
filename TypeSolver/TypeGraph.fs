@@ -1,15 +1,14 @@
 ﻿namespace rec TypeSolver
 
-open System
 open System.Collections.Generic
 open System.Text
 open Common
 
 type private Operation =
     | Merge of a: Node * b: Node
-    | SetMonomorphic of scope: Guid * node: Node
+    | SetMonomorphic of scope: ScopeId * node: Node
     | SetFunction of func: Node * parameter: Node * result: Node
-    | UpdateAssignable of scope: Guid * target: Node * assignee: Node
+    | UpdateAssignable of scope: ScopeId * target: Node * assignee: Node
 
 type private OperationOutcome =
     { followupOperations: Operation list
@@ -166,7 +165,7 @@ type TypeGraph() =
             { followupOperations = followupOperations |> List.ofSeq
               nodeSubstitutions = Map.ofList [ a, b ] }
 
-    and setMonomorphic (scope: Guid, node: Node) =
+    and setMonomorphic (scope: ScopeId, node: Node) =
         let followupOperations = List()
 
         match functions.TryGetParamResultOfFunction(node) with
@@ -183,7 +182,7 @@ type TypeGraph() =
 
         OperationOutcome.Followup(followupOperations)
 
-    and updateAssignable (scope: Guid, target: Node, assignee: Node): OperationOutcome =
+    and updateAssignable (scope: ScopeId, target: Node, assignee: Node): OperationOutcome =
         if target = assignee then
             OperationOutcome.Empty
         elif monomorphic.IsMonomorphic(scope, assignee) then
@@ -240,13 +239,13 @@ type TypeGraph() =
     member _.Function(fn: TypeReference, param: TypeReference, result: TypeReference) =
         runOperation (SetFunction (getNode fn, getNode param, getNode result))
 
-    member _.Assignable(scope: Guid, target: TypeReference, assignee: TypeReference) =
+    member _.Assignable(scope: ScopeId, target: TypeReference, assignee: TypeReference) =
         runOperation (UpdateAssignable(scope, getNode target, getNode assignee))
 
     member _.Identical(a: TypeReference, b: TypeReference) =
         runOperation (Merge(getNode a, getNode b))
 
-    member _.Monomorphic(scope: Guid, typeReference: TypeReference) =
+    member _.Monomorphic(scope: ScopeId, typeReference: TypeReference) =
         runOperation (SetMonomorphic (scope, getNode typeReference))
 
     member _.GetResult(): TypeGraphInfo =

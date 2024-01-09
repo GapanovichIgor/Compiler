@@ -1,11 +1,10 @@
 ﻿module internal rec TypeSolver.AstTraverser
 
-open System
 open System.Collections.Generic
 open Common
 open Ast
 
-type private Context(identifierTypes: Dictionary<Identifier, TypeReference>, graph: TypeGraph, scopeTree: ScopeTree, globalScope: Guid, globalScopeMonomorphicTypes: TypeReference list) =
+type private Context(identifierTypes: Dictionary<Identifier, TypeReference>, graph: TypeGraph, scopeTree: ScopeTree, globalScope: ScopeId, globalScopeMonomorphicTypes: TypeReference list) =
     let scopeStack = Stack()
     let monomorphicTypesByScope = Dictionary()
 
@@ -25,7 +24,7 @@ type private Context(identifierTypes: Dictionary<Identifier, TypeReference>, gra
 
     member _.PushScope(identifier: Identifier) =
         // scopeTree.Push(identifier)
-        let newScope = Guid.NewGuid()
+        let newScope = ScopeId()
         let monomorphicTypes = List()
         for t in monomorphicTypesByScope[scopeStack.Peek()] do
             monomorphicTypes.Add(t)
@@ -121,7 +120,7 @@ type TypeReferenceScope =
     { containedTypeReferences: TypeReference list
       childScopes: Map<TypeReference, TypeReferenceScope> }
 
-let collectInfoFromAst (identifierTypes: Dictionary<Identifier, TypeReference>, graph: TypeGraph, scopeTree: ScopeTree, globalScope: Guid, globalScopeMonomorphicTypes: TypeReference list) (ast: Program) =
+let collectInfoFromAst (identifierTypes: Dictionary<Identifier, TypeReference>, graph: TypeGraph, scopeTree: ScopeTree, globalScope: ScopeId, globalScopeMonomorphicTypes: TypeReference list) (ast: Program) =
     let ctx = Context(identifierTypes, graph, scopeTree, globalScope, globalScopeMonomorphicTypes)
 
     traverseProgram ctx ast

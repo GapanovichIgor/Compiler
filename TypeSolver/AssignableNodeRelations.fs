@@ -6,7 +6,7 @@ open System.Diagnostics
 
 [<DebuggerDisplay("{ToString()}")>]
 type internal AssignableNodeRelations() =
-    let scopes = Dictionary<Guid, Dictionary<Node, Node>>()
+    let scopes = Dictionary<ScopeId, Dictionary<Node, Node>>()
 
     let validateCanSet (target, assignee) =
         if target = assignee then
@@ -20,7 +20,7 @@ type internal AssignableNodeRelations() =
         if assigneeHasAnotherTarget then
             failwith "Assignee already has another target"
 
-    member _.Set(scopeId: Guid, target: Node, assignee: Node) : unit =
+    member _.Set(scopeId: ScopeId, target: Node, assignee: Node) : unit =
         validateCanSet (target, assignee)
 
         let scope =
@@ -33,7 +33,7 @@ type internal AssignableNodeRelations() =
 
         scope[assignee] <- target
 
-    member _.Unset(scopeId: Guid, target: Node, assignee: Node) : unit =
+    member _.Unset(scopeId: ScopeId, target: Node, assignee: Node) : unit =
         match scopes.TryGetValue(scopeId) with
         | false, _ -> failwith "Invalid scopeId"
         | true, scope ->
@@ -42,7 +42,7 @@ type internal AssignableNodeRelations() =
                 scope.Remove(assignee) |> ignore
             | _ -> failwith "Invalid target-assignee pair"
 
-    member _.GetAssignees(scopeId: Guid, target: Node): Node list =
+    member _.GetAssignees(scopeId: ScopeId, target: Node): Node list =
         match scopes.TryGetValue(scopeId) with
         | false, _ -> []
         | true, scope ->
@@ -54,7 +54,7 @@ type internal AssignableNodeRelations() =
                     None)
             |> List.ofSeq
 
-    member _.GetAssignees(target: Node) : (Guid * Node) list =
+    member _.GetAssignees(target: Node) : (ScopeId * Node) list =
         scopes
         |> Seq.choose (fun kv ->
             let scopeId = kv.Key
@@ -69,7 +69,7 @@ type internal AssignableNodeRelations() =
             |> Seq.tryExactlyOne)
         |> List.ofSeq
 
-    member _.TryGetTarget(assignee: Node) : (Guid * Node) option =
+    member _.TryGetTarget(assignee: Node) : (ScopeId * Node) option =
         scopes
         |> Seq.choose (fun kv ->
             let scopeId = kv.Key
@@ -80,7 +80,7 @@ type internal AssignableNodeRelations() =
             | false, _ -> None)
         |> Seq.tryExactlyOne
 
-    member _.TryGetTarget(scopeId: Guid, assignee: Node) : Node option =
+    member _.TryGetTarget(scopeId: ScopeId, assignee: Node) : Node option =
         match scopes.TryGetValue(scopeId) with
         | false, _ -> None
         | true, scope ->

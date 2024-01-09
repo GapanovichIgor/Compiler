@@ -4,9 +4,9 @@ open System
 open System.Collections.Generic
 
 type internal MonomorphicNodeProperty() =
-    let scopes = Dictionary<Guid, HashSet<Node>>()
+    let scopes = Dictionary<ScopeId, HashSet<Node>>()
 
-    member _.Set(scopeId: Guid, node: Node): bool =
+    member _.Set(scopeId: ScopeId, node: Node): bool =
         let scope =
             match scopes.TryGetValue(scopeId) with
             | true, scope -> scope
@@ -17,18 +17,18 @@ type internal MonomorphicNodeProperty() =
 
         scope.Add(node)
 
-    member _.Unset(scopeId: Guid, node: Node): unit =
+    member _.Unset(scopeId: ScopeId, node: Node): unit =
         match scopes.TryGetValue(scopeId) with
         | false, _ -> ()
         | true, scope ->
             scope.Remove(node) |> ignore
 
-    member _.IsMonomorphic(scopeId: Guid, node: Node): bool =
+    member _.IsMonomorphic(scopeId: ScopeId, node: Node): bool =
         match scopes.TryGetValue(scopeId) with
         | false, _ -> false
         | true, scope -> scope.Contains(node)
 
-    member _.GetScopesWhereMonomorphic(node: Node) : Guid list =
+    member _.GetScopesWhereMonomorphic(node: Node) : ScopeId list =
         scopes
         |> Seq.choose (fun kv ->
             if kv.Value.Contains(node) then

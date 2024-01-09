@@ -1,11 +1,10 @@
 ﻿module TypeSolver.Solver
 
-open System
 open System.Collections.Generic
 open Ast
 open Common
 
-let private globalScope = Guid.NewGuid()
+let private globalScope = ScopeId()
 
 let private globalScopeMonomorphicTypes =
     [ BuiltIn.AtomTypeReferences.int
