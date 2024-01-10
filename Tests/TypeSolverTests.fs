@@ -14,6 +14,11 @@ let private run (code: string) =
     | Ok ast ->Solver.getTypeInformation ast
     | Error _ -> failwith "Failed to parse"
 
+let private runLines (codeLines: string list) =
+    codeLines
+    |> String.concat "\n"
+    |> run
+
 let private getType (typeReference: TypeReference) (typeInfo: TypeInformation) =
     typeInfo.typeReferenceTypes |> Map.find typeReference
 
@@ -71,9 +76,10 @@ let valueBindingToLiteral () =
 [<Test>]
 let valueBindingToIdentifier () =
     let typeInfo =
-        "let x = 5\n\
-         let y = x"
-        |> run
+        runLines [
+            "let x = 5"
+            "let y = x"
+        ]
 
     let xType = typeInfo |> getIdentifierType "x"
     let yType = typeInfo |> getIdentifierType "y"
@@ -102,9 +108,10 @@ let genericFunctionBindingAToA () =
 [<Test>]
 let genericFunctionBindingAliasAToA () =
     let typeInfo =
-        "let f x = x\n\
-         let g = f"
-        |> run
+        runLines [
+            "let f x = x"
+            "let g = f"
+        ]
 
     let xType = typeInfo |> getIdentifierType "x"
     let fType = typeInfo |> getIdentifierType "f"
@@ -150,11 +157,11 @@ let genericFunctionBindingAToInt () =
 [<Test>]
 let functionBindingIntToA () =
     let typeInfo =
-        "\
-let f x =
-    let y = intToStr x
-    failwith \"test\""
-        |> run
+        runLines [
+            "let f x ="
+            "    let y = intToStr x"
+            "    failwith \"test\""
+        ]
 
     let xType = typeInfo |> getIdentifierType "x"
     let fType = typeInfo |> getIdentifierType "f"
@@ -187,3 +194,34 @@ let functionBindingStringToUnit () =
     Assert (xType = fParamType)
     Assert (fResultType = unitType)
     Assert (fType |> isQualifiedType |> not)
+
+[<Test>]
+let genericFunctionMultipleApplications () =
+    let typeInfo =
+        runLines [
+            "let f x = x"
+            "let a = f 0"
+            "let b = f \"a\""
+        ]
+
+    let intType = typeInfo |> getType BuiltIn.AtomTypeReferences.int
+    let stringType = typeInfo |> getType BuiltIn.AtomTypeReferences.string
+
+    let fType = typeInfo |> getIdentifierType "f"
+    let fTypeParameters = fType |> getTypeParameters
+    let fParamType = fType |> getFunctionParameterType
+    let fResultType = fType |> getFunctionResultType
+    let xType = typeInfo |> getIdentifierType "x"
+
+    let aType = typeInfo |> getIdentifierType "a"
+    let bType = typeInfo |> getIdentifierType "b"
+
+    Assert (xType |> isSomeAtomType)
+    Assert (xType = fParamType)
+    Assert (xType = fResultType)
+    Assert (xType <> intType)
+    Assert (xType <> stringType)
+    Assert (fTypeParameters.Length = 1)
+    Assert (xType = AtomType fTypeParameters[0])
+    Assert (aType = intType)
+    Assert (bType = stringType)
