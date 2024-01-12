@@ -4,17 +4,17 @@ open System
 open System.Diagnostics
 
 [<DebuggerDisplay("{ToString()}")>]
-type ApplicationReference private (id: Guid, hint: string) =
+type ApplicationId private (id: Guid, hint: string) =
     let mutable hashCode = id.GetHashCode()
 
     new() =
         let id = Guid.NewGuid()
-        let hint = $"ApplicationReference({id})"
-        ApplicationReference(id, hint)
+        let hint = $"ApplicationId({id})"
+        ApplicationId(id, hint)
 
     new(hint) =
         let id = Guid.NewGuid()
-        ApplicationReference(id, hint)
+        ApplicationId(id, hint)
 
     member val private Id = id
 
@@ -22,13 +22,13 @@ type ApplicationReference private (id: Guid, hint: string) =
 
     override _.Equals(other) =
         match other with
-        | :? ApplicationReference as other -> other.Id = id
+        | :? ApplicationId as other -> other.Id = id
         | _ -> false
 
     interface IComparable with
         member this.CompareTo(other) =
             match other with
-            | :? ApplicationReference as other -> other.Id.CompareTo(id)
+            | :? ApplicationId as other -> other.Id.CompareTo(id)
             | _ -> 1
 
     override _.ToString() = hint

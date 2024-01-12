@@ -8,10 +8,11 @@
     <ItemGroup>
         <Compile Include="Node.fs" />
         <Compile Include="ScopeId.fs" />
+        <Compile Include="ScopeMap.fs" />
         <Compile Include="FunctionNodeRelations.fs" />
         <Compile Include="AssignableNodeRelations.fs" />
         <Compile Include="MonomorphicNodeProperty.fs" />
-        <Compile Include="FlagNodeProperty.fs" />
+        <Compile Include="ApplicationNodeRelations.fs" />
         <Compile Include="FunctionApplication.fs" />
         <Compile Include="TypeGraph.fs" />
         <Compile Include="ScopeTree.fs" />

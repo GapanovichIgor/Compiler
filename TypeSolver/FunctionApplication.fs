@@ -3,7 +3,7 @@
 open Common
 
 type FunctionApplication =
-    { applicationReference: ApplicationReference
+    { applicationReference: ApplicationId
       definedFunctionType: TypeReference
       resultFunctionType: TypeReference }
 

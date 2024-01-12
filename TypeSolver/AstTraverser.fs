@@ -56,8 +56,8 @@ type private Context(identifierTypes: Dictionary<Identifier, TypeReference>, gra
     member _.Function(fnType: TypeReference, parameterType: TypeReference, resultType: TypeReference) =
         graph.Function(fnType, parameterType, resultType)
 
-    member _.Assignable(target: TypeReference, assignee: TypeReference) =
-        graph.Assignable(scopeStack.Peek(), target, assignee)
+    member _.Application(appId: ApplicationId, fn: TypeReference, argument: TypeReference, result: TypeReference) =
+        graph.Application(scopeStack.Peek(), appId, fn, argument, result)
 
 let private traverseExpression (ctx: Context) (expression: Expression) =
     match expression.expressionShape with
@@ -71,10 +71,8 @@ let private traverseExpression (ctx: Context) (expression: Expression) =
 
         ctx.Identical(expression.expressionType, numberType)
     | StringLiteral _ -> ctx.Identical(expression.expressionType, BuiltIn.AtomTypeReferences.string)
-    | Application(_, fn, argument) ->
-        let paramType = TypeReference()
-        ctx.Assignable(paramType, argument.expressionType)
-        ctx.Function(fn.expressionType, paramType, expression.expressionType)
+    | Application(appId, fn, argument) ->
+        ctx.Application(appId, fn.expressionType, argument.expressionType, expression.expressionType)
         traverseExpression ctx fn
         traverseExpression ctx argument
     | Binding(identifier, parameters, body) ->

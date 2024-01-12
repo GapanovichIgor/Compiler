@@ -138,7 +138,7 @@ let private getImplicitTypeArguments
     (
         typeReferenceTypes: Map<TypeReference, Type>,
         functionApplications: IReadOnlyList<FunctionApplication>
-    ) : Map<ApplicationReference, Map<AtomTypeId, Type>> =
+    ) : Map<ApplicationId, Map<AtomTypeId, Type>> =
 
     let mutable map = Map.empty
 

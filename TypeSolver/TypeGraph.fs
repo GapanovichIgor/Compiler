@@ -1,14 +1,13 @@
 ﻿namespace rec TypeSolver
 
 open System.Collections.Generic
-open System.Text
 open Common
 
 type private Operation =
     | Merge of a: Node * b: Node
     | SetMonomorphic of scope: ScopeId * node: Node
     | SetFunction of func: Node * parameter: Node * result: Node
-    | UpdateAssignable of scope: ScopeId * target: Node * assignee: Node
+    | SetApplicationTypeSubstitution of applicationId: ApplicationId * placeholder: Node * substitution: Node
 
 type private OperationOutcome =
     { followupOperations: Operation list
@@ -28,10 +27,11 @@ type TypeGraphInfo =
 type TypeGraph() =
     let typeReferenceNodes = Dictionary<TypeReference, Node>()
 
-    let typeReferenceScopes = Dictionary<TypeReference, ScopeId>()
+    let typeReferenceScopes = ScopeMap<TypeReference>()
+    let applicationScopes = ScopeMap<ApplicationId>()
 
     let functions = FunctionNodeRelations()
-    let assignable = AssignableNodeRelations()
+    let applications = ApplicationNodeRelations()
     let monomorphic = MonomorphicNodeProperty()
 
     let createNode =
@@ -50,8 +50,8 @@ type TypeGraph() =
             typeReferenceNodes.Add(typeRef, node)
             node
 
-    let rec runOperation (operation: Operation) =
-        let operationSet = HashSet [operation]
+    let rec runOperations (operations: Operation list) =
+        let operationSet = HashSet operations
 
         let rebuildSet (nodeSubstitutions: Map<Node, Node>) =
             if not nodeSubstitutions.IsEmpty then
@@ -70,7 +70,7 @@ type TypeGraph() =
                         | Merge (a, b) -> Merge (replace a, replace b)
                         | SetMonomorphic (scope, node) -> SetMonomorphic (scope, replace node)
                         | SetFunction (func, param, result) -> SetFunction (replace func, replace param, replace result)
-                        | UpdateAssignable (scope, target, assignee) -> UpdateAssignable (scope, replace target, replace assignee)
+                        | SetApplicationTypeSubstitution (appId, p, s) -> SetApplicationTypeSubstitution (appId, replace p, replace s)
 
                     operationSet.Add(operation) |> ignore
 
@@ -80,7 +80,7 @@ type TypeGraph() =
                 | Merge _ -> 1
                 | SetMonomorphic _ -> 2
                 | SetFunction _ -> 3
-                | UpdateAssignable _ -> 4)
+                | SetApplicationTypeSubstitution _ -> 4)
             |> Seq.head
 
         while operationSet.Count > 0 do
@@ -93,12 +93,14 @@ type TypeGraph() =
                 | Merge (a, b) -> merge (a, b)
                 | SetMonomorphic (scope, node) -> setMonomorphic (scope, node)
                 | SetFunction (func, param, result) -> setFunction (func, param, result)
-                | UpdateAssignable (scope, target, assignee) -> updateAssignable (scope, target, assignee)
+                | SetApplicationTypeSubstitution (appId, p, s) -> setApplicationTypeSubstitution (appId, p, s)
 
             for operation in outcome.followupOperations do
                 operationSet.Add(operation) |> ignore
 
             rebuildSet outcome.nodeSubstitutions
+    and runOperation (operation: Operation) =
+        runOperations [operation]
 
     and merge (a: Node, b: Node) =
         if a = b then
@@ -136,28 +138,17 @@ type TypeGraph() =
             for func, param, _ in functionsWithResultA do
                 followupOperations.Add(SetFunction (func, param, b))
 
-            // Merge assignable
+            // Merge applications
 
-            // If a is a target then move the assignees to b
-            for scope, aAssignee in assignable.GetAssignees(a) do
-                followupOperations.Add(UpdateAssignable (scope, b, aAssignee))
+            // For every application where a is placeholder, change it to b
+            for appId, substitution in applications.GetSubstitutions(a) do
+                applications.RemovePlaceholder(appId, a)
+                followupOperations.Add(SetApplicationTypeSubstitution (appId, b, substitution))
 
-                assignable.Unset(scope, a, aAssignee)
-
-            // If a is an assignee then set its target to b
-            match assignable.TryGetTarget(a) with
-            | None -> ()
-            | Some (aScope, aTarget) ->
-                match assignable.TryGetTarget(b) with
-                | None -> followupOperations.Add(UpdateAssignable (aScope, aTarget, b))
-                | Some (bScope, bTarget) ->
-                    if bScope <> aScope then
-                        failwith "Merged nodes are assignees in different scopes"
-
-                    if aTarget <> bTarget then
-                        followupOperations.Add(Merge (aTarget, bTarget))
-
-                assignable.Unset(aScope, aTarget, a)
+            // For every application where a is substitution, change it to b
+            for appId, placeholder in applications.GetPlaceholders(a) do
+                applications.RemovePlaceholder(appId, placeholder)
+                followupOperations.Add(SetApplicationTypeSubstitution (appId, placeholder, b))
 
             // Merge monomorphic
             for aScope in monomorphic.GetScopesWhereMonomorphic(a) do
@@ -176,40 +167,43 @@ type TypeGraph() =
             followupOperations.Add(SetMonomorphic (scope, r))
         | None ->
             if monomorphic.Set(scope, node) then
-                match assignable.TryGetTarget(scope, node) with
-                | Some target ->
-                    assignable.Unset(scope, target, node)
-                    followupOperations.Add(Merge (target, node))
-                | None -> ()
+                for appId, substitution in applications.GetSubstitutions(node) do
+                    followupOperations.Add(Merge (substitution, node))
+                    applications.RemovePlaceholder(appId, node)
 
         OperationOutcome.Followup(followupOperations)
 
-    and updateAssignable (scope: ScopeId, target: Node, assignee: Node): OperationOutcome =
-        if target = assignee then
-            OperationOutcome.Empty
-        elif monomorphic.IsMonomorphic(scope, assignee) then
-            OperationOutcome.Followup([ Merge (target, assignee) ])
+    and setApplicationTypeSubstitution (appId: ApplicationId, placeholder: Node, substitution: Node): OperationOutcome =
+        let scope = applicationScopes.GetScope(appId)
+
+        if monomorphic.IsMonomorphic(scope, substitution) then
+            OperationOutcome.Followup([ Merge (placeholder, substitution) ])
         else
-            let followupOperations = List()
-
-            // If target is a function, then set assignable (assignee.param <- target.param) and (target.result <- assignee.result)
-            match functions.TryGetParamResultOfFunction(target) with
+            match applications.TryGetSubstitution(appId, placeholder) with
+            | Some existingSubstitution when substitution = existingSubstitution ->
+                OperationOutcome.Empty
+            | Some existingSubstitution ->
+                OperationOutcome.Followup([ Merge (substitution, existingSubstitution) ])
             | None ->
-                assignable.Set(scope, target, assignee)
-            | Some (targetParam, targetResult) ->
-                let assigneeParam, assigneeResult =
-                    match functions.TryGetParamResultOfFunction(assignee) with
-                    | None ->
-                        let p = createNode ()
-                        let r = createNode ()
-                        followupOperations.Add(SetFunction (assignee, p, r))
-                        p, r
-                    | Some (p, r) -> p, r
+                let followupOperations = List()
 
-                followupOperations.Add(UpdateAssignable (scope, assigneeParam, targetParam))
-                followupOperations.Add(UpdateAssignable (scope, targetResult, assigneeResult))
+                match functions.TryGetParamResultOfFunction(placeholder) with
+                | None ->
+                    applications.SetSubstitution(appId, placeholder, substitution)
+                | Some (placeholderParam, placeholderResult) ->
+                    let substitutionParam, substitutionResult =
+                        match functions.TryGetParamResultOfFunction(substitution) with
+                        | Some (p, r) -> p, r
+                        | None ->
+                            let p = createNode ()
+                            let r = createNode ()
+                            followupOperations.Add(SetFunction (substitution, p, r))
+                            p, r
 
-            OperationOutcome.Followup(followupOperations)
+                    applications.SetSubstitution(appId, placeholderParam, substitutionParam)
+                    applications.SetSubstitution(appId, placeholderResult, substitutionResult)
+
+                OperationOutcome.Followup(followupOperations)
 
     and setFunction (func: Node, param: Node, result: Node): OperationOutcome =
         let followupOperations = List()
@@ -234,16 +228,44 @@ type TypeGraph() =
                         followupOperations.Add(SetMonomorphic (scope, result))
                         monomorphic.Unset(scope, func)
 
-                    for scope, funcAssignee in assignable.GetAssignees(func) do
-                        followupOperations.Add(UpdateAssignable (scope, func, funcAssignee))
+                    for appId, substitution in applications.GetSubstitutions(func) do
+                        let substitutionParam, substitutionResult =
+                            match functions.TryGetParamResultOfFunction(substitution) with
+                            | Some (substitutionParam, substitutionResult) -> substitutionParam, substitutionResult
+                            | None ->
+                                let substitutionParam = createNode ()
+                                let substitutionResult = createNode ()
+                                followupOperations.Add(SetFunction (substitution, substitutionParam, substitutionResult))
+                                substitutionParam, substitutionResult
+
+                        followupOperations.Add(SetApplicationTypeSubstitution (appId, param, substitutionParam))
+                        followupOperations.Add(SetApplicationTypeSubstitution (appId, result, substitutionResult))
+                        applications.RemovePlaceholder(appId, func)
 
         OperationOutcome.Followup(followupOperations)
 
     member _.Function(fn: TypeReference, param: TypeReference, result: TypeReference) =
         runOperation (SetFunction (getNode fn, getNode param, getNode result))
 
-    member _.Assignable(scope: ScopeId, target: TypeReference, assignee: TypeReference) =
-        runOperation (UpdateAssignable(scope, getNode target, getNode assignee))
+    member _.Application(scope: ScopeId, appId: ApplicationId, fn: TypeReference, argument: TypeReference, result: TypeReference) =
+        applicationScopes.AddToScope(scope, appId)
+
+        let fnNode = getNode fn
+
+        let placeholderParam, placeholderResult, operations =
+            match functions.TryGetParamResultOfFunction(fnNode) with
+            | Some (p, r) -> p, r, []
+            | None ->
+                let p = createNode ()
+                let r = createNode ()
+                p, r, [ SetFunction (fnNode, p, r) ]
+
+        let operations =
+            SetApplicationTypeSubstitution (appId, placeholderParam, getNode argument) ::
+            SetApplicationTypeSubstitution (appId, placeholderResult, getNode result) ::
+            operations
+
+        runOperations operations
 
     member _.Identical(a: TypeReference, b: TypeReference) =
         runOperation (Merge(getNode a, getNode b))
@@ -251,8 +273,8 @@ type TypeGraph() =
     member _.Monomorphic(scope: ScopeId, typeReference: TypeReference) =
         runOperation (SetMonomorphic (scope, getNode typeReference))
 
-    member _.DefinedInScope(scope: ScopeId, typeReference: TypeReference) =
-        typeReferenceScopes.Add(typeReference, scope)
+    member _.DefinedInScope(scopeId: ScopeId, typeReference: TypeReference) =
+        typeReferenceScopes.AddToScope(scopeId, typeReference)
 
     member _.GetResult(): TypeGraphInfo =
         let nodeInfo = Dictionary<Node, Type * (Node * AtomTypeId) list>()
@@ -286,9 +308,9 @@ type TypeGraph() =
                 let type_, atomTypes = getNodeInfo node
 
                 let typeParameters =
-                    match typeReferenceScopes.TryGetValue(typeReference) with
-                    | false, _ -> []
-                    | true, scope ->
+                    match typeReferenceScopes.TryGetScope(typeReference) with
+                    | None -> []
+                    | Some scope ->
                         atomTypes
                         |> List.choose (fun (node, atomTypeId) ->
                             if monomorphic.IsMonomorphic(scope, node) then
@@ -306,65 +328,3 @@ type TypeGraph() =
             |> Map.ofSeq
 
         { typeReferenceTypes = typeReferenceTypes }
-
-    override _.ToString() =
-        let nameCounters = Dictionary()
-        let nodeNames =
-            typeReferenceNodes
-            |> Seq.groupBy (fun kv -> kv.Value)
-            |> Seq.map (fun (key, tRefs) ->
-                let name =
-                    tRefs
-                    |> Seq.map (fun kv -> kv.Key)
-                    |> Seq.map string
-                    |> Seq.sortBy (fun s -> s.Length)
-                    |> Seq.head
-
-                let name =
-                    match nameCounters.TryGetValue(name) with
-                    | false, _ ->
-                        nameCounters[name] <- 2
-                        name
-                    | true, counter ->
-                        nameCounters[name] <- counter + 1
-                        name + string counter
-                key, name)
-            |> Map.ofSeq
-
-        let getNodeName n =
-            match nodeNames |> Map.tryFind n with
-            | Some name -> name
-            | None -> $"node({n})"
-
-        let sb = StringBuilder()
-        let append (s: string) = sb.Append(s) |> ignore
-        let appendLine (s: string) = sb.AppendLine(s) |> ignore
-
-        for node, name in nodeNames |> Map.toSeq do
-            appendLine name
-
-            match functions.TryGetParamResultOfFunction(node) with
-            | Some (param, result) ->
-                let rec getExpanded n =
-                    match functions.TryGetParamResultOfFunction(n) with
-                    | Some (param, result) ->
-                        if functions.IsFunction(param) then
-                            $"({getExpanded param}) -> {getExpanded result}"
-                        else
-                            $"{getExpanded param} -> {getExpanded result}"
-                    | None -> getNodeName n
-
-                append $"   is function {getNodeName param} -> {getNodeName result}"
-                if functions.IsFunction(param) || functions.IsFunction(result) then
-                    append $" | {getExpanded node}"
-                appendLine ""
-            | None ->
-                appendLine "   is an atom"
-
-            match assignable.TryGetTarget(node) with
-            | Some (_, target) -> appendLine $"   is assignable to {getNodeName target}"
-            | None -> ()
-
-            appendLine ""
-
-        sb.ToString()

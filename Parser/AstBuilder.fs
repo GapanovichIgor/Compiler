@@ -58,7 +58,7 @@ let private mapApplication (ctx: LexicalContext) (e: ParserInternal.Application)
     | ParserInternal.Application(fn, arg) ->
         let fn, _ = mapApplication ctx fn
         let arg, _ = mapTerminalEnclosedExpression ctx arg
-        let applicationReference = ApplicationReference()
+        let applicationReference = ApplicationId()
         let application = Ast.Application(applicationReference, fn, arg)
         let pos = PositionInSource.fromTo fn.positionInSource arg.positionInSource
         expression (application, pos), ctx
@@ -69,10 +69,10 @@ let private mapBinaryOperator leftOp mapLeft operatorIdentifier operator rightOp
     let rightOp, _ = mapRight ctx rightOp
 
     let applyLeft =
-        expression (Ast.Application(ApplicationReference(), operator, leftOp), PositionInSource.fromTo leftOp.positionInSource operator.positionInSource)
+        expression (Ast.Application(ApplicationId(), operator, leftOp), PositionInSource.fromTo leftOp.positionInSource operator.positionInSource)
 
     let applyRight =
-        expression (Ast.Application(ApplicationReference(), applyLeft, rightOp), PositionInSource.fromTo operator.positionInSource rightOp.positionInSource)
+        expression (Ast.Application(ApplicationId(), applyLeft, rightOp), PositionInSource.fromTo operator.positionInSource rightOp.positionInSource)
 
     let pos = PositionInSource.fromTo leftOp.positionInSource rightOp.positionInSource
     expression (applyRight.expressionShape, pos), ctx

@@ -165,7 +165,7 @@ type private TypeScope
             |> this.MapTypeToCsType
         typeParameters, typeBody |> Option.get
 
-    member this.GetTypeArguments(identifier: Identifier, applicationReference: ApplicationReference) =
+    member this.GetTypeArguments(identifier: Identifier, applicationReference: ApplicationId) =
         let identifierType = typeInformation.identifierTypes[identifier]
 
         match identifierType with
