@@ -167,16 +167,19 @@ type TypeGraph() =
             followupOperations.Add(SetMonomorphic (scope, r))
         | None ->
             if monomorphic.Set(scope, node) then
-                for appId, substitution in applications.GetSubstitutions(node) do
-                    followupOperations.Add(Merge (substitution, node))
-                    applications.RemovePlaceholder(appId, node)
+                for appId in applicationScopes.GetValuesInScope(scope) do
+                    match applications.TryGetSubstitution(appId, node) with
+                    | Some substitution ->
+                        followupOperations.Add(Merge (substitution, node))
+                        applications.RemovePlaceholder(appId, node)
+                    | None -> ()
 
         OperationOutcome.Followup(followupOperations)
 
     and setApplicationTypeSubstitution (appId: ApplicationId, placeholder: Node, substitution: Node): OperationOutcome =
         let scope = applicationScopes.GetScope(appId)
 
-        if monomorphic.IsMonomorphic(scope, substitution) then
+        if monomorphic.IsMonomorphic(scope, placeholder) then
             OperationOutcome.Followup([ Merge (placeholder, substitution) ])
         else
             match applications.TryGetSubstitution(appId, placeholder) with
