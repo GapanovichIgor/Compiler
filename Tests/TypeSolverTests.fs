@@ -225,3 +225,48 @@ let genericFunctionMultipleApplications () =
     Assert (xType = AtomType fTypeParameters[0])
     Assert (aType = intType)
     Assert (bType = stringType)
+
+[<Test>]
+let genericFunctionAsParameter () =
+    let typeInfo =
+        runLines [
+            "let f x = x"
+            "let g y z = y z"
+            "let c = g f 0"
+        ]
+
+    let intType = typeInfo |> getType BuiltIn.AtomTypeReferences.int
+
+    let fType = typeInfo |> getIdentifierType "f"
+    let fTypeParameters = fType |> getTypeParameters
+    let fParamType = fType |> getFunctionParameterType
+    let fResultType = fType |> getFunctionResultType
+    let xType = typeInfo |> getIdentifierType "x"
+
+    let gType = typeInfo |> getIdentifierType "g"
+    let gTypeParameters = gType |> getTypeParameters
+    let gResultType = gType |> getFunctionResultType
+    let yType = typeInfo |> getIdentifierType "y"
+    let yParamType = yType |> getFunctionParameterType
+    let yResultType = yType |> getFunctionResultType
+    let zType = typeInfo |> getIdentifierType "z"
+
+    let cType = typeInfo |> getIdentifierType "c"
+
+    Assert (xType |> isSomeAtomType)
+    Assert (xType <> intType)
+    Assert (xType = fParamType)
+    Assert (xType = fResultType)
+    Assert (fTypeParameters.Length = 1)
+    Assert (xType = AtomType fTypeParameters[0])
+
+    Assert (zType |> isSomeAtomType)
+    Assert (zType <> intType)
+    Assert (zType <> gResultType)
+    Assert (yParamType = zType)
+    Assert (yType = gResultType)
+    Assert (gTypeParameters.Length = 2)
+    Assert (yParamType = AtomType gTypeParameters[0])
+    Assert (yResultType = AtomType gTypeParameters[1])
+
+    Assert (cType = intType)

@@ -203,8 +203,19 @@ type TypeGraph() =
                             followupOperations.Add(SetFunction (substitution, p, r))
                             p, r
 
-                    applications.SetSubstitution(appId, placeholderParam, substitutionParam)
-                    applications.SetSubstitution(appId, placeholderResult, substitutionResult)
+                    match applications.TryGetSubstitution(appId, placeholderParam) with
+                    | Some existingSubstitutionParam ->
+                        if substitutionParam <> existingSubstitutionParam then
+                            followupOperations.Add(Merge (substitutionParam, existingSubstitutionParam))
+                    | None ->
+                        applications.SetSubstitution(appId, placeholderParam, substitutionParam)
+
+                    match applications.TryGetSubstitution(appId, placeholderResult) with
+                    | Some existingSubstitutionResult ->
+                        if substitutionResult <> existingSubstitutionResult then
+                            followupOperations.Add(Merge (substitutionResult, existingSubstitutionResult))
+                    | None ->
+                        applications.SetSubstitution(appId, placeholderResult, substitutionResult)
 
                 OperationOutcome.Followup(followupOperations)
 
